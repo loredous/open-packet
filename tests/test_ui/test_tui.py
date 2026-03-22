@@ -38,3 +38,40 @@ async def test_console_toggle(app_config):
         assert console.display
         await pilot.press("`")
         assert not console.display
+
+
+@pytest.mark.asyncio
+async def test_folder_selection_loads_inbox(app_config, tmp_path):
+    """Selecting Inbox in the folder tree populates the message list."""
+    from open_packet.store.database import Database
+    from open_packet.store.store import Store
+    from open_packet.store.models import Operator, Node, Message
+    from datetime import datetime, timezone
+    from open_packet.ui.tui.app import OpenPacketApp
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    node = db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    store = Store(db)
+    from open_packet.store.models import Message
+    from datetime import datetime, timezone
+    store.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="001",
+        from_call="W0TEST", to_call="KD9ABC", subject="Test",
+        body="Body", timestamp=datetime.now(timezone.utc),
+    ))
+
+    app_config.store.db_path = str(tmp_path / "test.db")
+    app = OpenPacketApp(config=app_config)
+    # Inject store/operator directly to bypass engine init
+    app._store = store
+    app._active_operator = op
+    app._active_folder = "Inbox"
+    app._active_category = ""
+
+    async with app.run_test() as pilot:
+        app._refresh_message_list()
+        await pilot.pause()
+        msg_list = app.query_one("MessageList")
+        assert msg_list.row_count == 1
