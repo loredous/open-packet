@@ -60,6 +60,7 @@ def test_get_default_node(db):
 
 
 from open_packet.store.store import Store
+from open_packet.store.exporter import export_messages, export_bulletins
 from datetime import datetime, timezone
 
 
@@ -141,3 +142,54 @@ def test_message_not_duplicated(store):
     s.save_message(msg)  # same bbs_id + node_id — should not duplicate
     messages = s.list_messages(operator_id=op.id)
     assert len(messages) == 1
+
+
+def test_export_messages_writes_files(store, tmp_path):
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="005",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Export test", body="Export body",
+        timestamp=datetime(2026, 3, 22, 12, 0, 0, tzinfo=timezone.utc),
+    )
+    saved = s.save_message(msg)
+    export_messages([saved], base_path=str(tmp_path))
+    inbox_dir = tmp_path / "inbox" / "KD9ABC"
+    files = list(inbox_dir.iterdir())
+    assert len(files) == 1
+    content = files[0].read_text()
+    assert "Export test" in content
+    assert "Export body" in content
+
+
+def test_export_bulletins_writes_files(store, tmp_path):
+    s, op, node = store
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="B005",
+        category="WX", from_call="W0WX",
+        subject="Weather", body="Sunny",
+        timestamp=datetime(2026, 3, 22, 12, 0, 0, tzinfo=timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+    export_bulletins([saved], base_path=str(tmp_path))
+    wx_dir = tmp_path / "bulletins" / "WX"
+    files = list(wx_dir.iterdir())
+    assert len(files) == 1
+    content = files[0].read_text()
+    assert "Weather" in content
+
+
+def test_export_sent_messages(store, tmp_path):
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="006",
+        from_call="KD9ABC", to_call="W0TEST",
+        subject="Outbound", body="Sent body",
+        timestamp=datetime(2026, 3, 22, 12, 0, 0, tzinfo=timezone.utc),
+        sent=True,
+    )
+    saved = s.save_message(msg)
+    export_messages([saved], base_path=str(tmp_path))
+    sent_dir = tmp_path / "sent"
+    files = list(sent_dir.iterdir())
+    assert len(files) == 1
