@@ -1,0 +1,29 @@
+[project]
+name = "open-packet"
+version = "0.1.0"
+description = "Amateur radio packet messaging client"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "textual>=0.60.0",
+    "pyserial>=3.5",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+open-packet = "open_packet.ui.tui.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "textual-dev>=0.60.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
