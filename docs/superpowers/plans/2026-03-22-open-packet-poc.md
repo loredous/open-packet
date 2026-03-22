@@ -3299,7 +3299,165 @@ git commit -m "feat: wire folder selection and post-sync message list refresh in
 
 ---
 
-## Task 14: Integration Test
+## Task 14: Flat-File Export
+
+**Files:**
+- Create: `open_packet/store/exporter.py`
+- Modify: `tests/test_store/test_store.py` (add export tests)
+
+The spec requires optional export of messages and bulletins to a directory tree of `.txt` files. This is enabled when `store.export_path` is set in config. The exporter writes one file per message/bulletin on demand (called after each sync).
+
+- [ ] **Step 1: Add export tests**
+
+Append to `tests/test_store/test_store.py`:
+
+```python
+from open_packet.store.exporter import export_messages, export_bulletins
+import os
+
+
+def test_export_messages_writes_files(store, tmp_path):
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="005",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Export test", body="Export body",
+        timestamp=datetime(2026, 3, 22, 12, 0, 0, tzinfo=timezone.utc),
+    )
+    saved = s.save_message(msg)
+    export_messages([saved], base_path=str(tmp_path))
+    inbox_dir = tmp_path / "inbox" / "KD9ABC"
+    files = list(inbox_dir.iterdir())
+    assert len(files) == 1
+    content = files[0].read_text()
+    assert "Export test" in content
+    assert "Export body" in content
+
+
+def test_export_bulletins_writes_files(store, tmp_path):
+    s, op, node = store
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="B005",
+        category="WX", from_call="W0WX",
+        subject="Weather", body="Sunny",
+        timestamp=datetime(2026, 3, 22, 12, 0, 0, tzinfo=timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+    export_bulletins([saved], base_path=str(tmp_path))
+    wx_dir = tmp_path / "bulletins" / "WX"
+    files = list(wx_dir.iterdir())
+    assert len(files) == 1
+    content = files[0].read_text()
+    assert "Weather" in content
+
+
+def test_export_sent_messages(store, tmp_path):
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="006",
+        from_call="KD9ABC", to_call="W0TEST",
+        subject="Outbound", body="Sent body",
+        timestamp=datetime(2026, 3, 22, 12, 0, 0, tzinfo=timezone.utc),
+        sent=True,
+    )
+    saved = s.save_message(msg)
+    export_messages([saved], base_path=str(tmp_path))
+    sent_dir = tmp_path / "sent"
+    files = list(sent_dir.iterdir())
+    assert len(files) == 1
+```
+
+- [ ] **Step 2: Run to verify failure**
+
+```bash
+uv run pytest tests/test_store/ -k "export" -v
+```
+
+Expected: ImportError on `open_packet.store.exporter`.
+
+- [ ] **Step 3: Implement the exporter**
+
+```python
+# open_packet/store/exporter.py
+from __future__ import annotations
+import os
+from open_packet.store.models import Message, Bulletin
+
+
+def export_messages(messages: list[Message], base_path: str) -> None:
+    for msg in messages:
+        if msg.sent:
+            folder = os.path.join(base_path, "sent")
+        else:
+            folder = os.path.join(base_path, "inbox", msg.to_call.upper())
+        os.makedirs(folder, exist_ok=True)
+        date_str = msg.timestamp.strftime("%Y-%m-%d") if msg.timestamp else "0000-00-00"
+        safe_subject = "".join(c if c.isalnum() or c in "-_ " else "_" for c in msg.subject)[:40]
+        filename = f"{date_str}-{msg.bbs_id}-{safe_subject}.txt".replace(" ", "-")
+        path = os.path.join(folder, filename)
+        if not os.path.exists(path):
+            with open(path, "w") as f:
+                f.write(f"From:    {msg.from_call}\n")
+                f.write(f"To:      {msg.to_call}\n")
+                f.write(f"Subject: {msg.subject}\n")
+                f.write(f"Date:    {msg.timestamp.isoformat() if msg.timestamp else ''}\n")
+                f.write("-" * 40 + "\n")
+                f.write(msg.body)
+
+
+def export_bulletins(bulletins: list[Bulletin], base_path: str) -> None:
+    for bul in bulletins:
+        folder = os.path.join(base_path, "bulletins", bul.category.upper())
+        os.makedirs(folder, exist_ok=True)
+        date_str = bul.timestamp.strftime("%Y-%m-%d") if bul.timestamp else "0000-00-00"
+        safe_subject = "".join(c if c.isalnum() or c in "-_ " else "_" for c in bul.subject)[:40]
+        filename = f"{date_str}-{bul.bbs_id}-{safe_subject}.txt".replace(" ", "-")
+        path = os.path.join(folder, filename)
+        if not os.path.exists(path):
+            with open(path, "w") as f:
+                f.write(f"Category: {bul.category}\n")
+                f.write(f"From:     {bul.from_call}\n")
+                f.write(f"Subject:  {bul.subject}\n")
+                f.write(f"Date:     {bul.timestamp.isoformat() if bul.timestamp else ''}\n")
+                f.write("-" * 40 + "\n")
+                f.write(bul.body)
+```
+
+- [ ] **Step 4: Call the exporter from the engine after sync**
+
+In `open_packet/engine/engine.py`, add an import and call in `_do_check_mail` after `SyncCompleteEvent` is emitted:
+
+```python
+from open_packet.store.exporter import export_messages, export_bulletins
+
+# At the end of _do_check_mail, before the finally block:
+if self._export_path:
+    all_messages = self._store.list_messages(operator_id=self._operator.id)
+    all_bulletins = self._store.list_bulletins(operator_id=self._operator.id)
+    export_messages(all_messages, base_path=self._export_path)
+    export_bulletins(all_bulletins, base_path=self._export_path)
+```
+
+Add `_export_path: str | None` as an `__init__` parameter to `Engine` (default `None`). Pass it from `OpenPacketApp._init_engine` using `os.path.expanduser(self.config.store.export_path) if self.config.store.export_path else None`.
+
+- [ ] **Step 5: Run all store tests**
+
+```bash
+uv run pytest tests/test_store/ -v
+```
+
+Expected: all pass.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add open_packet/store/exporter.py tests/test_store/test_store.py open_packet/engine/engine.py
+git commit -m "feat: flat-file export of messages and bulletins after sync"
+```
+
+---
+
+## Task 15: Integration Test
 
 **Files:**
 - Create: `tests/test_engine/test_integration.py`
