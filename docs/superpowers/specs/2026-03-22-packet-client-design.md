@@ -192,7 +192,7 @@ ui:
   console_log: ~/.local/share/open-packet/console.log  # omit to disable
 ```
 
-Config is loaded at startup and validated with Pydantic. Invalid config surfaces a clear error to stderr and exits before the engine starts.
+Config is loaded at startup and validated with manual checks using plain Python dataclasses. Invalid config surfaces a clear error to stderr and exits before the engine starts.
 
 ---
 
@@ -258,7 +258,7 @@ A compose screen overlays the full terminal for new messages and replies.
 
 - **Tool:** [uv](https://docs.astral.sh/uv/)
 - **Project definition:** `pyproject.toml`
-- **Key dependencies:** Textual (TUI), Pydantic (config validation), pyserial (serial transport)
+- **Key dependencies:** Textual (TUI), pyserial (serial transport), PyYAML (config parsing). No heavy validation frameworks — config validation uses plain Python dataclasses with manual checks.
 - **Commands:** `uv sync`, `uv run open-packet`, `uv run pytest`, `uv build`
 
 ---
@@ -271,7 +271,7 @@ A compose screen overlays the full terminal for new messages and replies.
 - BPQ BBS driver: list, read, send, delete personal messages + read bulletins
 - SQLite store with operator profiles, node definitions, and flat-file export
 - Textual TUI: three-panel layout + collapsible console panel
-- YAML config + Pydantic validation
+- YAML config with manual validation (no Pydantic)
 - Rotating application log + optional console frame log
 - uv-managed project, pytest test suite
 
