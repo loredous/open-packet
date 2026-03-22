@@ -39,7 +39,7 @@ open_packet/
 │   └── store.py          # Store: all CRUD operations
 ├── config/
 │   ├── __init__.py
-│   └── config.py         # Pydantic models + YAML loader
+│   └── config.py         # Dataclass config models + YAML loader + manual validation
 ├── engine/
 │   ├── __init__.py
 │   ├── commands.py       # Command dataclasses (UI → Engine)
@@ -438,7 +438,7 @@ Expected: 5 tests pass.
 
 ```bash
 git add open_packet/config/config.py tests/test_config/test_config.py
-git commit -m "feat: config module with Pydantic validation and YAML loading"
+git commit -m "feat: config module with manual validation and YAML loading"
 ```
 
 ---
@@ -1688,6 +1688,11 @@ class Store:
         self._conn.execute("UPDATE messages SET read=1 WHERE id=?", (id,))
         self._conn.commit()
 
+    def mark_message_sent(self, id: int) -> None:
+        assert self._conn
+        self._conn.execute("UPDATE messages SET sent=1 WHERE id=?", (id,))
+        self._conn.commit()
+
     def delete_message(self, id: int) -> None:
         assert self._conn
         self._conn.execute("UPDATE messages SET deleted=1 WHERE id=?", (id,))
@@ -2451,6 +2456,7 @@ class Engine:
             for m in outbound:
                 if not m.sent and not m.deleted:
                     self._node.send_message(m.to_call, m.subject, m.body)
+                    self._store.mark_message_sent(m.id)
                     sent += 1
 
             self._last_sync = datetime.now(timezone.utc)
@@ -3073,13 +3079,8 @@ class OpenPacketApp(App):
             self.notify(f"Error: {event.message}", severity="error")
 
     def _refresh_message_list(self) -> None:
-        try:
-            msg_list = self.query_one("MessageList")
-            # Reload from store — engine owns the store reference
-            # For now, notify the screen to refresh
-            self.query_one(MainScreen).refresh()
-        except Exception:
-            pass
+        # Implemented in Task 13 — wires store queries into the TUI
+        pass
 
     def check_mail(self) -> None:
         if self._engine:
@@ -3149,7 +3150,156 @@ git commit -m "feat: TUI app with main screen, compose screen, and engine integr
 
 ---
 
-## Task 13: Integration Test
+## Task 13: Wire TUI Folder Selection and Message List Refresh
+
+**Files:**
+- Modify: `open_packet/ui/tui/app.py`
+- Modify: `open_packet/store/store.py` (add `list_sent_messages`, `list_bulletins_by_category`)
+- Modify: `tests/test_ui/test_tui.py`
+
+The TUI currently has two broken interactions: (1) selecting a folder doesn't load messages, and (2) after `SyncCompleteEvent` the inbox doesn't update. This task wires both.
+
+The app needs a reference to the `Store` and the active `Operator` so it can query the right messages for the selected folder. Store these on `OpenPacketApp` during `_init_engine`.
+
+- [ ] **Step 1: Expose store and operator on the app**
+
+In `open_packet/ui/tui/app.py`, in `_init_engine`, after creating `store`, `op`, `node_record`, add:
+
+```python
+self._store = store
+self._active_operator = operator
+self._active_folder = "Inbox"
+self._active_category = ""
+```
+
+- [ ] **Step 2: Implement `_refresh_message_list`**
+
+Replace the stub in `OpenPacketApp`:
+
+```python
+def _refresh_message_list(self) -> None:
+    if not hasattr(self, "_store") or not self._store:
+        return
+    try:
+        msg_list = self.query_one("MessageList")
+        folder = getattr(self, "_active_folder", "Inbox")
+        category = getattr(self, "_active_category", "")
+        operator_id = self._active_operator.id
+
+        if folder == "Inbox":
+            messages = [
+                m for m in self._store.list_messages(operator_id=operator_id)
+                if not m.sent
+            ]
+        elif folder == "Sent":
+            messages = [
+                m for m in self._store.list_messages(operator_id=operator_id)
+                if m.sent
+            ]
+        elif folder == "Bulletins":
+            messages = self._store.list_bulletins(
+                operator_id=operator_id,
+                category=category or None,
+            )
+        else:
+            messages = []
+
+        msg_list.load_messages(messages)
+    except Exception:
+        logger.exception("Failed to refresh message list")
+```
+
+- [ ] **Step 3: Implement `on_folder_tree_folder_selected`**
+
+Replace the stub in `OpenPacketApp`:
+
+```python
+def on_folder_tree_folder_selected(self, event) -> None:
+    self._active_folder = event.folder
+    self._active_category = getattr(event, "category", "")
+    self._refresh_message_list()
+```
+
+- [ ] **Step 4: Call `_refresh_message_list` after sync**
+
+In `_handle_event`, in the `SyncCompleteEvent` branch, add the refresh call:
+
+```python
+elif isinstance(event, SyncCompleteEvent):
+    from datetime import datetime
+    status_bar.last_sync = datetime.now().strftime("%H:%M")
+    self.notify(
+        f"Sync complete: {event.messages_retrieved} new, {event.messages_sent} sent"
+    )
+    self._refresh_message_list()   # ← add this
+```
+
+- [ ] **Step 5: Also refresh on mount**
+
+In `OpenPacketApp.on_mount`, after `self.push_screen("main")`:
+
+```python
+self.call_after_refresh(self._refresh_message_list)
+```
+
+- [ ] **Step 6: Add TUI wiring tests**
+
+Append to `tests/test_ui/test_tui.py`:
+
+```python
+@pytest.mark.asyncio
+async def test_folder_selection_loads_inbox(app_config, tmp_path):
+    """Selecting Inbox in the folder tree populates the message list."""
+    from open_packet.store.database import Database
+    from open_packet.store.store import Store
+    from open_packet.store.models import Operator, Node, Message
+    from datetime import datetime, timezone
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    node = db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    store = Store(db)
+    store.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="001",
+        from_call="W0TEST", to_call="KD9ABC", subject="Test",
+        body="Body", timestamp=datetime.now(timezone.utc),
+    ))
+
+    # Patch app_config to use the pre-populated db
+    app_config.store.db_path = str(tmp_path / "test.db")
+    app = OpenPacketApp(config=app_config)
+    # Inject store/operator directly to bypass engine init
+    app._store = store
+    app._active_operator = op
+    app._active_folder = "Inbox"
+    app._active_category = ""
+
+    async with app.run_test() as pilot:
+        app._refresh_message_list()
+        await pilot.pause()
+        msg_list = app.query_one("MessageList")
+        assert msg_list.row_count == 1
+```
+
+- [ ] **Step 7: Run TUI tests**
+
+```bash
+uv run pytest tests/test_ui/ -v
+```
+
+Expected: all TUI tests pass including the new wiring test.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add open_packet/ui/tui/app.py tests/test_ui/test_tui.py
+git commit -m "feat: wire folder selection and post-sync message list refresh in TUI"
+```
+
+---
+
+## Task 14: Integration Test
 
 **Files:**
 - Create: `tests/test_engine/test_integration.py`
