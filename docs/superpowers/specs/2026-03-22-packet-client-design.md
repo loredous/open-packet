@@ -137,6 +137,7 @@ timestamp, read, synced_at
 ```
 
 - `operator_id` is a foreign key to `operators`, keeping each operator's mail separate.
+- `messages` and `bulletins` may also carry a `node_id` foreign key to `nodes`, recording which BBS node the message was retrieved from.
 - Sync state (last sync time, message counts, connection status) is held as in-memory state on the engine instance and surfaced to the UI via events. No `sync_log` table at PoC.
 
 ### Flat-File Export
@@ -154,9 +155,20 @@ export/
 
 ## Configuration
 
-### Split: YAML (machine config) + SQLite (operator config)
+### Split: YAML (machine config) + SQLite (operator and node config)
 
-Operator identity (callsign, SSIDs) lives in the SQLite `operators` table to support future multi-operator use via a web UI. All other configuration is in YAML.
+Operator identity (callsign, SSIDs) and remote node definitions live in SQLite. This allows a single station to configure multiple BBS nodes and switch between them, and supports future multi-operator use via a web UI. YAML holds only machine-level configuration that does not vary per operator or per session.
+
+### SQLite: Node Table
+
+**`nodes`**
+```
+id, label, callsign, node_type, is_default, created_at
+```
+
+- `node_type` maps to a `NodeBase` implementation (e.g., `bpq`)
+- `is_default` identifies the node selected at startup
+- The TUI exposes a node switcher for selecting which BBS node to connect to
 
 ### YAML Config
 
@@ -169,10 +181,6 @@ connection:
   port: 8001              # TCP only
   # device: /dev/ttyUSB0  # serial only
   # baud: 9600            # serial only
-
-node:
-  type: bpq
-  callsign: W0BPQ-1
 
 store:
   db_path: ~/.local/share/open-packet/messages.db
@@ -261,7 +269,7 @@ A compose screen overlays the full terminal for new messages and replies.
 - KISS transport over serial and TCP/IP
 - AX.25 framing and session management
 - BPQ BBS driver: list, read, send, delete personal messages + read bulletins
-- SQLite store with operator profiles and flat-file export
+- SQLite store with operator profiles, node definitions, and flat-file export
 - Textual TUI: three-panel layout + collapsible console panel
 - YAML config + Pydantic validation
 - Rotating application log + optional console frame log
