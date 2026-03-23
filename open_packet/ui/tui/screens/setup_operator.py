@@ -1,13 +1,10 @@
 from __future__ import annotations
-import re
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Switch
 from textual.containers import Vertical, Horizontal
 from open_packet.store.models import Operator
-
-
-CALLSIGN_RE = re.compile(r'^[A-Za-z0-9]{1,6}$')
+from open_packet.ui.tui.screens import CALLSIGN_RE
 
 
 class OperatorSetupScreen(ModalScreen):
