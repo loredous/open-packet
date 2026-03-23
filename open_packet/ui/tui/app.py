@@ -25,6 +25,7 @@ from open_packet.transport.tcp import TCPTransport
 from open_packet.transport.serial import SerialTransport
 from open_packet.ui.tui.screens.compose import ComposeScreen
 from open_packet.ui.tui.screens.main import MainScreen
+from open_packet.ui.tui.screens.settings import SettingsScreen
 from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
 from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
 
@@ -252,9 +253,15 @@ class OpenPacketApp(App):
                 bbs_id=self._selected_message.bbs_id,
             ))
 
+    def open_compose(self) -> None:
+        self.push_screen(ComposeScreen(), callback=self._on_compose_result)
+
+    def open_settings(self) -> None:
+        self.push_screen(SettingsScreen(), callback=self._on_settings_result)
+
     def reply_to_selected(self) -> None:
         if self._selected_message:
-            self.push_screen(ComposeScreen(), callback=self._on_compose_result)
+            self.open_compose()
 
     def _on_compose_result(self, result) -> None:
         if result and isinstance(result, SendMessageCommand):
