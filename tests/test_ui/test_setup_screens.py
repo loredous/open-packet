@@ -1,6 +1,7 @@
 import pytest
 from textual.app import App
 from open_packet.ui.tui.screens.settings import SettingsScreen
+from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
 
 
 _SENTINEL = object()
@@ -42,5 +43,63 @@ async def test_settings_close_button():
     app = _ScreenTestApp(SettingsScreen)
     async with app.run_test() as pilot:
         await pilot.click("#close_btn")
+        await pilot.pause()
+    assert app.dismiss_result is None
+
+
+@pytest.mark.asyncio
+async def test_operator_setup_valid_input():
+    app = _ScreenTestApp(OperatorSetupScreen)
+    async with app.run_test() as pilot:
+        await pilot.click("#callsign_field")
+        await pilot.press(*"kd9abc")
+        await pilot.click("#ssid_field")
+        await pilot.press("1")
+        await pilot.click("#label_field")
+        await pilot.press(*"home")
+        await pilot.click("#save_btn")
+        await pilot.pause()
+    result = app.dismiss_result
+    assert result is not _SENTINEL
+    assert result is not None
+    assert result.callsign == "KD9ABC"  # uppercased
+    assert result.ssid == 1
+    assert result.label == "home"
+    assert result.is_default is True
+
+
+@pytest.mark.asyncio
+async def test_operator_setup_blank_callsign_does_not_dismiss():
+    app = _ScreenTestApp(OperatorSetupScreen)
+    async with app.run_test() as pilot:
+        await pilot.click("#ssid_field")
+        await pilot.press("1")
+        await pilot.click("#label_field")
+        await pilot.press(*"home")
+        await pilot.click("#save_btn")
+        await pilot.pause()
+    assert app.dismiss_result is _SENTINEL  # never dismissed
+
+
+@pytest.mark.asyncio
+async def test_operator_setup_invalid_ssid_does_not_dismiss():
+    app = _ScreenTestApp(OperatorSetupScreen)
+    async with app.run_test() as pilot:
+        await pilot.click("#callsign_field")
+        await pilot.press(*"KD9ABC")
+        await pilot.click("#ssid_field")
+        await pilot.press(*"99")
+        await pilot.click("#label_field")
+        await pilot.press(*"home")
+        await pilot.click("#save_btn")
+        await pilot.pause()
+    assert app.dismiss_result is _SENTINEL
+
+
+@pytest.mark.asyncio
+async def test_operator_setup_cancel():
+    app = _ScreenTestApp(OperatorSetupScreen)
+    async with app.run_test() as pilot:
+        await pilot.click("#cancel_btn")
         await pilot.pause()
     assert app.dismiss_result is None
