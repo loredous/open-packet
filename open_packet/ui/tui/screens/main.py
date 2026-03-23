@@ -8,6 +8,7 @@ from open_packet.ui.tui.widgets.folder_tree import FolderTree
 from open_packet.ui.tui.widgets.message_list import MessageList
 from open_packet.ui.tui.widgets.message_body import MessageBody
 from open_packet.ui.tui.widgets.console_panel import ConsolePanel
+from open_packet.ui.tui.screens.settings import SettingsScreen
 
 
 class MainScreen(Screen):
@@ -29,6 +30,7 @@ class MainScreen(Screen):
         ("n", "new_message", "New"),
         ("d", "delete_message", "Delete"),
         ("r", "reply_message", "Reply"),
+        ("s", "settings", "Settings"),
         ("`", "toggle_console", "Console"),
         ("q", "quit", "Quit"),
     ]
@@ -60,6 +62,9 @@ class MainScreen(Screen):
 
     def action_reply_message(self) -> None:
         self.app.reply_to_selected()
+
+    def action_settings(self) -> None:
+        self.app.push_screen(SettingsScreen(), callback=self.app._on_settings_result)
 
     def action_quit(self) -> None:
         self.app.exit()

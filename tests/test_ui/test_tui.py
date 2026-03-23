@@ -27,7 +27,18 @@ async def test_app_mounts(app_config):
 
 
 @pytest.mark.asyncio
-async def test_console_toggle(app_config):
+async def test_console_toggle(app_config, tmp_path):
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node
+
+    # Pre-populate DB so no setup screen is pushed during test
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
     app = OpenPacketApp(config=app_config)
     async with app.run_test() as pilot:
         # Console starts hidden by default

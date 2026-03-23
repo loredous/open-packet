@@ -3,6 +3,10 @@ from textual.app import App
 from open_packet.ui.tui.screens.settings import SettingsScreen
 from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
 from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
+from open_packet.ui.tui.app import OpenPacketApp
+from open_packet.config.config import AppConfig, TCPConnectionConfig, StoreConfig, UIConfig
+from open_packet.store.database import Database
+from open_packet.store.models import Operator, Node
 
 
 _SENTINEL = object()
@@ -163,3 +167,96 @@ async def test_node_setup_cancel():
         await pilot.click("#cancel_btn")
         await pilot.pause()
     assert app.dismiss_result is None
+
+
+@pytest.fixture
+def base_config(tmp_path):
+    return AppConfig(
+        connection=TCPConnectionConfig(type="kiss_tcp", host="localhost", port=8001),
+        store=StoreConfig(
+            db_path=str(tmp_path / "test.db"),
+            export_path=str(tmp_path / "export"),
+        ),
+        ui=UIConfig(),
+    )
+
+
+@pytest.mark.asyncio
+async def test_first_run_pushes_operator_setup(base_config):
+    """Empty DB: OperatorSetupScreen is pushed on mount."""
+    app = OpenPacketApp(config=base_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.pause()
+        assert isinstance(app.screen, OperatorSetupScreen)
+
+
+@pytest.mark.asyncio
+async def test_first_run_node_missing_pushes_node_setup(base_config, tmp_path):
+    """Operator exists but no node: NodeSetupScreen is pushed."""
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    db.close()
+
+    app = OpenPacketApp(config=base_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.pause()
+        assert isinstance(app.screen, NodeSetupScreen)
+
+
+@pytest.mark.asyncio
+async def test_partial_first_run_cancel_engine_stays_none(base_config):
+    """Operator saved, NodeSetupScreen cancelled: engine stays uninitialized."""
+    app = OpenPacketApp(config=base_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.pause()
+        assert isinstance(app.screen, OperatorSetupScreen)
+        # Fill and save operator
+        await pilot.click("#callsign_field")
+        await pilot.press(*"KD9ABC")
+        await pilot.click("#ssid_field")
+        await pilot.press(*"1")
+        await pilot.click("#label_field")
+        await pilot.press(*"home")
+        await pilot.click("#save_btn")
+        await pilot.pause()
+        # Now NodeSetupScreen should be shown
+        assert isinstance(app.screen, NodeSetupScreen)
+        # Cancel node setup
+        await pilot.click("#cancel_btn")
+        await pilot.pause()
+    assert app._engine is None
+    assert app._db is not None  # db was opened
+
+
+@pytest.mark.asyncio
+async def test_engine_reinit_after_full_setup(base_config):
+    """Completing operator + node setup initializes the engine."""
+    app = OpenPacketApp(config=base_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.pause()
+        # Fill operator
+        await pilot.click("#callsign_field")
+        await pilot.press(*"KD9ABC")
+        await pilot.click("#ssid_field")
+        await pilot.press(*"1")
+        await pilot.click("#label_field")
+        await pilot.press(*"home")
+        await pilot.click("#save_btn")
+        await pilot.pause()
+        # Fill node
+        await pilot.click("#label_field")
+        await pilot.press(*"HomeBBS")
+        await pilot.click("#callsign_field")
+        await pilot.press(*"W0BPQ")
+        await pilot.click("#ssid_field")
+        await pilot.press(*"1")
+        await pilot.click("#save_btn")
+        await pilot.pause()
+        await pilot.pause()
+    assert app._engine is not None
+    app._engine.stop()

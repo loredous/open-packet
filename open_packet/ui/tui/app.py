@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 import os
 import queue
-import threading
 from typing import Optional
 
-from textual.app import App, ComposeResult
+from textual.app import App
 
 from open_packet.config.config import AppConfig, load_config
 from open_packet.engine.commands import (
@@ -20,11 +19,15 @@ from open_packet.engine.events import (
 from open_packet.link.kiss import KISSLink
 from open_packet.node.bpq import BPQNode
 from open_packet.store.database import Database
+from open_packet.store.models import Operator, Node
 from open_packet.store.store import Store
 from open_packet.transport.tcp import TCPTransport
 from open_packet.transport.serial import SerialTransport
 from open_packet.ui.tui.screens.compose import ComposeScreen
 from open_packet.ui.tui.screens.main import MainScreen
+from open_packet.ui.tui.screens.settings import SettingsScreen
+from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
+from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +59,10 @@ class OpenPacketApp(App):
         self._engine: Optional[Engine] = None
         self._selected_message = None
         self._store: Optional[Store] = None
-        self._active_operator = None
+        self._active_operator: Optional[Operator] = None
         self._active_folder = "Inbox"
         self._active_category = ""
+        self._db: Optional[Database] = None
 
     def get_default_screen(self) -> MainScreen:
         return MainScreen()
@@ -73,18 +77,30 @@ class OpenPacketApp(App):
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         db = Database(db_path)
         db.initialize()
-        store = Store(db)
+        # Assign self._db BEFORE any early return so _restart_engine can close it.
+        self._db = db
 
         operator = db.get_default_operator()
         node_record = db.get_default_node()
-        if not operator or not node_record:
-            self.notify("No operator or node configured. Add them to the database.", severity="error")
+
+        if not operator:
+            self.call_after_refresh(
+                lambda: self.push_screen(OperatorSetupScreen(), callback=self._on_operator_setup_result)
+            )
+            return
+        elif not node_record:
+            self.call_after_refresh(
+                lambda: self.push_screen(NodeSetupScreen(), callback=self._on_node_setup_result)
+            )
             return
 
+        self._start_engine(db, operator, node_record)
+
+    def _start_engine(self, db: Database, operator: Operator, node_record: Node) -> None:
+        store = Store(db)
         self._store = store
         self._active_operator = operator
 
-        # Build transport + link
         conn_cfg = self.config.connection
         if conn_cfg.type == "kiss_tcp":
             transport = TCPTransport(host=conn_cfg.host, port=conn_cfg.port)
@@ -100,7 +116,10 @@ class OpenPacketApp(App):
             my_ssid=operator.ssid,
         )
 
-        export_path = os.path.expanduser(self.config.store.export_path) if self.config.store.export_path else None
+        export_path = (
+            os.path.expanduser(self.config.store.export_path)
+            if self.config.store.export_path else None
+        )
 
         self._engine = Engine(
             command_queue=self._cmd_queue,
@@ -113,6 +132,53 @@ class OpenPacketApp(App):
             export_path=export_path,
         )
         self._engine.start()
+
+    def _restart_engine(self) -> None:
+        if self._engine is not None:
+            self._engine.stop()
+        if self._db is not None:
+            self._db.close()
+        self._engine = None
+        self._store = None
+        self._active_operator = None
+        self._db = None
+        self._init_engine()
+
+    def _save_operator(self, op: Operator) -> None:
+        if op.is_default:
+            self._db.clear_default_operator()
+        self._db.insert_operator(op)
+
+    def _save_node(self, node: Node) -> None:
+        if node.is_default:
+            self._db.clear_default_node()
+        self._db.insert_node(node)
+
+    # --- Dismiss callbacks ---
+
+    def _on_operator_setup_result(self, result) -> None:
+        if result is None:
+            return
+        self._save_operator(result)
+        # Check DB state to determine next step (works for both first-run and settings flow)
+        if self._db.get_default_node() is None:
+            self.push_screen(NodeSetupScreen(), callback=self._on_node_setup_result)
+        else:
+            self._restart_engine()
+
+    def _on_node_setup_result(self, result) -> None:
+        if result is None:
+            return
+        self._save_node(result)
+        self._restart_engine()
+
+    def _on_settings_result(self, result) -> None:
+        if result == "operator":
+            self.push_screen(OperatorSetupScreen(), callback=self._on_operator_setup_result)
+        elif result == "node":
+            self.push_screen(NodeSetupScreen(), callback=self._on_node_setup_result)
+
+    # --- Event polling ---
 
     def _poll_events(self) -> None:
         while not self._evt_queue.empty():
