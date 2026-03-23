@@ -161,6 +161,7 @@ class OpenPacketApp(App):
         if result is None:
             return
         self._save_operator(result)
+        assert self._db is not None
         # Check DB state to determine next step (works for both first-run and settings flow)
         if self._db.get_default_node() is None:
             self.push_screen(NodeSetupScreen(), callback=self._on_node_setup_result)
