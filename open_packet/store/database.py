@@ -146,3 +146,13 @@ class Database:
             ssid=row["ssid"], node_type=row["node_type"],
             is_default=bool(row["is_default"]),
         )
+
+    def clear_default_operator(self) -> None:
+        assert self._conn
+        self._conn.execute("UPDATE operators SET is_default=0 WHERE is_default=1")
+        self._conn.commit()
+
+    def clear_default_node(self) -> None:
+        assert self._conn
+        self._conn.execute("UPDATE nodes SET is_default=0 WHERE is_default=1")
+        self._conn.commit()
