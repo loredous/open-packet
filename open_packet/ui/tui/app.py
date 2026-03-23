@@ -25,7 +25,6 @@ from open_packet.transport.tcp import TCPTransport
 from open_packet.transport.serial import SerialTransport
 from open_packet.ui.tui.screens.compose import ComposeScreen
 from open_packet.ui.tui.screens.main import MainScreen
-from open_packet.ui.tui.screens.settings import SettingsScreen
 from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
 from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
 
@@ -145,11 +144,13 @@ class OpenPacketApp(App):
         self._init_engine()
 
     def _save_operator(self, op: Operator) -> None:
+        assert self._db is not None
         if op.is_default:
             self._db.clear_default_operator()
         self._db.insert_operator(op)
 
     def _save_node(self, node: Node) -> None:
+        assert self._db is not None
         if node.is_default:
             self._db.clear_default_node()
         self._db.insert_node(node)
@@ -252,9 +253,9 @@ class OpenPacketApp(App):
 
     def reply_to_selected(self) -> None:
         if self._selected_message:
-            self.push_screen(ComposeScreen())
+            self.push_screen(ComposeScreen(), callback=self._on_compose_result)
 
-    def on_compose_screen_dismiss(self, result) -> None:
+    def _on_compose_result(self, result) -> None:
         if result and isinstance(result, SendMessageCommand):
             self._cmd_queue.put(result)
 
