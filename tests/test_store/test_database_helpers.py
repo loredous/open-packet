@@ -1,6 +1,4 @@
 import pytest
-import tempfile
-import os
 from open_packet.store.database import Database
 from open_packet.store.models import Operator, Node
 
