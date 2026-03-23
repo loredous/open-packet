@@ -1,6 +1,5 @@
 import pytest
 from textual.app import App
-from textual.widgets import Label
 from open_packet.ui.tui.screens.settings import SettingsScreen
 
 
