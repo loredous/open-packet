@@ -4,7 +4,7 @@ An open-source packet messaging client for amateur radio operators.
 
 > **Early development:** v0.1 — expect breaking changes between releases.
 
-![open-packet TUI](images/image.png)
+![Screenshot of the open-packet terminal UI showing the message inbox](images/image.png)
 
 ---
 
