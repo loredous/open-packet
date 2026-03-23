@@ -1,0 +1,4 @@
+connection:
+  type: kiss_tcp          # kiss_tcp | kiss_serial
+  host: localhost         # TCP only
+  port: 8001              # TCP only

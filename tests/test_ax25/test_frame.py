@@ -1,60 +1,134 @@
-from open_packet.ax25.frame import AX25Frame, encode_frame, decode_frame
+from open_packet.ax25.frame import (
+    encode_sabm, encode_ua, encode_disc, encode_dm,
+    encode_i_frame, encode_rr, encode_rnr, encode_rej,
+    decode_frame, FrameType,
+    is_i_frame, is_s_frame, is_u_frame, u_frame_type,
+    U_SABM, U_UA, U_DISC, U_DM, P_BIT,
+)
 
 
-def test_encode_ui_frame():
-    frame = AX25Frame(
-        destination="W0BPQ",
-        destination_ssid=1,
-        source="KD9ABC",
-        source_ssid=0,
-        info=b"Hello",
-    )
-    data = encode_frame(frame)
-    assert isinstance(data, bytes)
-    # Destination is first 7 bytes
-    assert len(data) >= 16  # 7 + 7 + 1 + 1 + 5
+# --- Frame type identification ---
+
+def test_i_frame_identification():
+    assert is_i_frame(0x00)   # N(S)=0, N(R)=0, P=0
+    assert is_i_frame(0x02)   # N(S)=1
+    assert not is_i_frame(0x01)  # S-frame
+
+def test_s_frame_identification():
+    assert is_s_frame(0x01)   # RR
+    assert is_s_frame(0x05)   # RNR
+    assert not is_s_frame(0x00)  # I-frame
+
+def test_u_frame_identification():
+    assert is_u_frame(0x03)   # UI
+    assert is_u_frame(0x2F)   # SABM
+    assert not is_u_frame(0x00)  # I-frame
+
+def test_u_frame_type_masks_pf_bit():
+    assert u_frame_type(0x3F) == U_SABM  # SABM with P=1
+    assert u_frame_type(0x73) == U_UA    # UA with F=1
 
 
-def test_round_trip():
-    original = AX25Frame(
-        destination="W0BPQ",
-        destination_ssid=1,
-        source="KD9ABC",
-        source_ssid=0,
-        info=b"Test message",
-    )
-    data = encode_frame(original)
-    decoded = decode_frame(data)
-    assert decoded.destination == "W0BPQ"
-    assert decoded.destination_ssid == 1
-    assert decoded.source == "KD9ABC"
-    assert decoded.source_ssid == 0
-    assert decoded.info == b"Test message"
+# --- SABM ---
+
+def test_encode_sabm_correct_length():
+    frame = encode_sabm("W0BPQ", 1, "KD9ABC", 0, poll=True)
+    assert len(frame) == 15  # 7 dest + 7 src + 1 ctrl (no PID, no info)
+
+def test_encode_sabm_control_byte():
+    frame = encode_sabm("W0BPQ", 1, "KD9ABC", 0, poll=True)
+    ctrl = frame[14]
+    assert u_frame_type(ctrl) == U_SABM
+    assert ctrl & P_BIT  # P bit set
+
+def test_encode_sabm_command_c_bits():
+    frame = encode_sabm("W0BPQ", 1, "KD9ABC", 0, poll=True)
+    # Destination C bit = 1 (command), source C bit = 0
+    assert frame[6] & 0x80   # dest C=1
+    assert not (frame[13] & 0x80)  # src C=0
 
 
-def test_empty_info():
-    frame = AX25Frame(
-        destination="W0BPQ",
-        destination_ssid=0,
-        source="KD9ABC",
-        source_ssid=1,
-        info=b"",
-    )
-    data = encode_frame(frame)
-    decoded = decode_frame(data)
-    assert decoded.info == b""
+# --- UA ---
+
+def test_encode_ua_correct_length():
+    frame = encode_ua("KD9ABC", 0, "W0BPQ", 1, final=True)
+    assert len(frame) == 15
+
+def test_encode_ua_control_byte():
+    frame = encode_ua("KD9ABC", 0, "W0BPQ", 1, final=True)
+    ctrl = frame[14]
+    assert u_frame_type(ctrl) == U_UA
+    assert ctrl & P_BIT  # F bit set
 
 
-def test_decode_sets_last_flags_correctly():
-    frame = AX25Frame(
-        destination="W0BPQ",
-        destination_ssid=0,
-        source="KD9ABC",
-        source_ssid=0,
-        info=b"x",
-    )
-    data = encode_frame(frame)
-    # Source address last bit must be set (end of address field)
-    # Destination last bit must NOT be set
-    assert data[6] & 0x01 == 0   # destination not last
-    assert data[13] & 0x01 == 1  # source is last
+# --- DISC ---
+
+def test_encode_disc_correct_length():
+    frame = encode_disc("W0BPQ", 1, "KD9ABC", 0, poll=True)
+    assert len(frame) == 15
+
+def test_encode_disc_is_command():
+    frame = encode_disc("W0BPQ", 1, "KD9ABC", 0, poll=True)
+    assert frame[6] & 0x80   # dest C=1 (command)
+
+
+# --- I-frame ---
+
+def test_encode_i_frame_has_pid_and_info():
+    frame = encode_i_frame("W0BPQ", 1, "KD9ABC", 0, ns=0, nr=0, payload=b"L\r")
+    assert len(frame) == 7 + 7 + 1 + 1 + 2  # addr + ctrl + pid + payload
+
+def test_encode_i_frame_control_byte():
+    frame = encode_i_frame("W0BPQ", 1, "KD9ABC", 0, ns=3, nr=5, payload=b"x")
+    ctrl = frame[14]
+    assert is_i_frame(ctrl)
+    ns_decoded = (ctrl >> 1) & 0x07
+    nr_decoded = (ctrl >> 5) & 0x07
+    assert ns_decoded == 3
+    assert nr_decoded == 5
+
+def test_encode_i_frame_payload():
+    frame = encode_i_frame("W0BPQ", 1, "KD9ABC", 0, ns=0, nr=0, payload=b"Hello")
+    assert frame[16:] == b"Hello"
+
+
+# --- RR ---
+
+def test_encode_rr_control_byte():
+    frame = encode_rr("W0BPQ", 1, "KD9ABC", 0, nr=3, poll=False)
+    ctrl = frame[14]
+    assert is_s_frame(ctrl)
+    assert (ctrl & 0x0F) == 0x01   # RR bits
+    assert (ctrl >> 5) & 0x07 == 3  # N(R)=3
+
+
+# --- decode_frame ---
+
+def test_decode_sabm():
+    raw = encode_sabm("W0BPQ", 1, "KD9ABC", 0, poll=True)
+    f = decode_frame(raw)
+    assert f.frame_type == FrameType.SABM
+    assert f.poll_final is True
+    assert f.destination == "W0BPQ"
+    assert f.source == "KD9ABC"
+
+def test_decode_ua():
+    raw = encode_ua("KD9ABC", 0, "W0BPQ", 1, final=True)
+    f = decode_frame(raw)
+    assert f.frame_type == FrameType.UA
+    assert f.poll_final is True
+
+def test_decode_i_frame():
+    raw = encode_i_frame("W0BPQ", 1, "KD9ABC", 0, ns=2, nr=4, payload=b"test")
+    f = decode_frame(raw)
+    assert f.frame_type == FrameType.I
+    assert f.ns == 2
+    assert f.nr == 4
+    assert f.info == b"test"
+
+def test_decode_rr():
+    raw = encode_rr("W0BPQ", 1, "KD9ABC", 0, nr=5, poll=True)
+    f = decode_frame(raw)
+    assert f.frame_type == FrameType.RR
+    assert f.nr == 5
+    assert f.poll_final is True

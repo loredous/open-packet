@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Switch
@@ -25,20 +26,29 @@ class OperatorSetupScreen(ModalScreen):
     }
     """
 
+    def __init__(self, operator: Optional[Operator] = None, **kwargs):
+        super().__init__(**kwargs)
+        self._operator = operator
+
     def compose(self) -> ComposeResult:
+        op = self._operator
+        title = "Edit Operator" if op else "Operator Setup"
         with Vertical():
-            yield Label("Operator Setup")
+            yield Label(title)
             yield Label("Callsign:")
-            yield Input(placeholder="e.g. KD9ABC", id="callsign_field")
+            yield Input(placeholder="e.g. KD9ABC", id="callsign_field",
+                        value=op.callsign if op else "")
             yield Label("", id="callsign_error", classes="error")
             yield Label("SSID (0-15):")
-            yield Input(placeholder="0", id="ssid_field")
+            yield Input(placeholder="0", id="ssid_field",
+                        value=str(op.ssid) if op else "")
             yield Label("", id="ssid_error", classes="error")
             yield Label("Label:")
-            yield Input(placeholder="e.g. home", id="label_field")
+            yield Input(placeholder="e.g. home", id="label_field",
+                        value=op.label if op else "")
             yield Label("", id="label_error", classes="error")
             yield Label("Set as default:")
-            yield Switch(value=True, id="default_switch")
+            yield Switch(value=op.is_default if op else True, id="default_switch")
             with Horizontal():
                 yield Button("Save", variant="primary", id="save_btn")
                 yield Button("Cancel", id="cancel_btn")
@@ -90,6 +100,7 @@ class OperatorSetupScreen(ModalScreen):
                     ssid=ssid,
                     label=label,
                     is_default=is_default,
+                    id=self._operator.id if self._operator else None,
                 ))
 
     def on_key(self, event) -> None:

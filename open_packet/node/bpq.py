@@ -4,7 +4,6 @@ import re
 import time
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase, NodeError, MessageHeader, Message
-from open_packet.ax25.frame import AX25Frame, encode_frame, decode_frame
 
 PROMPT = "BPQ>"
 TIMEOUT = 10.0
@@ -48,23 +47,15 @@ class BPQNode(NodeBase):
         self._my_ssid = my_ssid
 
     def _send_text(self, text: str) -> None:
-        frame = AX25Frame(
-            destination=self._node_callsign,
-            destination_ssid=self._node_ssid,
-            source=self._my_callsign,
-            source_ssid=self._my_ssid,
-            info=(text + "\r").encode(),
-        )
-        self._conn.send_frame(encode_frame(frame))
+        self._conn.send_frame((text + "\r").encode())
 
     def _recv_until_prompt(self, timeout: float = TIMEOUT) -> str:
         buffer = ""
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            raw = self._conn.receive_frame(timeout=1.0)
-            if raw:
-                frame = decode_frame(raw)
-                buffer += frame.info.decode(errors="replace")
+            data = self._conn.receive_frame(timeout=1.0)
+            if data:
+                buffer += data.decode(errors="replace")
                 if PROMPT in buffer:
                     break
         return buffer

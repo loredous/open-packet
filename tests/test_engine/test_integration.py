@@ -14,18 +14,12 @@ from open_packet.store.store import Store
 from open_packet.store.models import Operator, Node
 from open_packet.node.bpq import BPQNode
 from open_packet.link.base import ConnectionBase
-from open_packet.ax25.frame import AX25Frame, encode_frame
 from open_packet.node.base import MessageHeader, Message as NodeMessage
 
 
 class ReplayConnection(ConnectionBase):
-    """Replays a sequence of AX.25 frames as if received from a BBS."""
-    def __init__(self, source: str, source_ssid: int,
-                 dest: str, dest_ssid: int, responses: list[str]):
-        self._source = source
-        self._source_ssid = source_ssid
-        self._dest = dest
-        self._dest_ssid = dest_ssid
+    """Replays a sequence of raw payload bytes as if received from a BBS."""
+    def __init__(self, responses: list[str]):
         self._responses = list(responses)
         self.sent_text: list[str] = []
 
@@ -36,20 +30,11 @@ class ReplayConnection(ConnectionBase):
         pass
 
     def send_frame(self, data: bytes) -> None:
-        from open_packet.ax25.frame import decode_frame
-        frame = decode_frame(data)
-        self.sent_text.append(frame.info.decode(errors="replace").strip())
+        self.sent_text.append(data.decode(errors="replace").strip())
 
     def receive_frame(self, timeout: float = 5.0) -> bytes:
         if self._responses:
-            text = self._responses.pop(0)
-            return encode_frame(AX25Frame(
-                destination=self._dest,
-                destination_ssid=self._dest_ssid,
-                source=self._source,
-                source_ssid=self._source_ssid,
-                info=text.encode(),
-            ))
+            return self._responses.pop(0).encode()
         return b""
 
 
@@ -85,11 +70,7 @@ def test_full_check_mail_cycle():
             "Message Sent\nBPQ> ",                                  # send_message completion
         ]
 
-        connection = ReplayConnection(
-            source="W0BPQ", source_ssid=1,
-            dest="KD9ABC", dest_ssid=1,
-            responses=responses,
-        )
+        connection = ReplayConnection(responses=responses)
         node = BPQNode(
             connection=connection,
             node_callsign="W0BPQ", node_ssid=1,

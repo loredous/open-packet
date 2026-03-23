@@ -34,3 +34,52 @@ def test_clear_default_node_clears_existing(db):
 def test_clear_default_node_noop_when_none_set(db):
     db.clear_default_node()
     assert db.get_default_node() is None
+
+
+def test_list_operators_returns_all(db):
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="home", is_default=True))
+    db.insert_operator(Operator(callsign="W0TEST", ssid=1, label="car", is_default=False))
+    ops = db.list_operators()
+    assert len(ops) == 2
+    assert ops[0].callsign == "KD9ABC"
+    assert ops[1].callsign == "W0TEST"
+
+
+def test_list_operators_empty(db):
+    assert db.list_operators() == []
+
+
+def test_list_nodes_returns_all(db):
+    db.insert_node(Node(label="BBS1", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    db.insert_node(Node(label="BBS2", callsign="W0FOO", ssid=0, node_type="bpq", is_default=False))
+    nodes = db.list_nodes()
+    assert len(nodes) == 2
+    assert nodes[0].label == "BBS1"
+
+
+def test_update_operator(db):
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="home", is_default=True))
+    op.callsign = "W0NEW"
+    op.label = "updated"
+    db.update_operator(op)
+    refreshed = db.get_operator(op.id)
+    assert refreshed.callsign == "W0NEW"
+    assert refreshed.label == "updated"
+
+
+def test_update_node(db):
+    node = db.insert_node(Node(label="BBS1", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    node.label = "New BBS"
+    node.callsign = "W0NEW"
+    db.update_node(node)
+    refreshed = db.get_node(node.id)
+    assert refreshed.label == "New BBS"
+    assert refreshed.callsign == "W0NEW"
+
+
+def test_update_operator_changes_default(db):
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="home", is_default=False))
+    db.clear_default_operator()
+    op.is_default = True
+    db.update_operator(op)
+    assert db.get_default_operator().id == op.id

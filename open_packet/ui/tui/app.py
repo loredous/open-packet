@@ -16,6 +16,7 @@ from open_packet.engine.events import (
     ConnectionStatusEvent, MessageReceivedEvent, SyncCompleteEvent,
     ErrorEvent, ConnectionStatus,
 )
+from open_packet.ax25.connection import AX25Connection
 from open_packet.link.kiss import KISSLink
 from open_packet.node.bpq import BPQNode
 from open_packet.store.database import Database
@@ -107,7 +108,12 @@ class OpenPacketApp(App):
         else:
             transport = SerialTransport(device=conn_cfg.device, baud=conn_cfg.baud)
 
-        connection = KISSLink(transport=transport)
+        kiss = KISSLink(transport=transport)
+        connection = AX25Connection(
+            kiss=kiss,
+            my_callsign=operator.callsign,
+            my_ssid=operator.ssid,
+        )
         node = BPQNode(
             connection=connection,
             node_callsign=node_record.callsign,
@@ -177,9 +183,23 @@ class OpenPacketApp(App):
 
     def _on_settings_result(self, result) -> None:
         if result == "operator":
-            self.push_screen(OperatorSetupScreen(), callback=self._on_operator_setup_result)
+            if self._db:
+                from open_packet.ui.tui.screens.manage_operators import OperatorManageScreen
+                self.push_screen(OperatorManageScreen(self._db),
+                                 callback=self._on_manage_result)
+            else:
+                self.push_screen(OperatorSetupScreen(), callback=self._on_operator_setup_result)
         elif result == "node":
-            self.push_screen(NodeSetupScreen(), callback=self._on_node_setup_result)
+            if self._db:
+                from open_packet.ui.tui.screens.manage_nodes import NodeManageScreen
+                self.push_screen(NodeManageScreen(self._db),
+                                 callback=self._on_manage_result)
+            else:
+                self.push_screen(NodeSetupScreen(), callback=self._on_node_setup_result)
+
+    def _on_manage_result(self, needs_restart) -> None:
+        if needs_restart:
+            self._restart_engine()
 
     # --- Event polling ---
 

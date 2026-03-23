@@ -1,7 +1,6 @@
 import pytest
 from open_packet.link.kiss import kiss_encode, kiss_decode, KISSLink
 from open_packet.transport.base import TransportBase, TransportError
-from open_packet.ax25.frame import AX25Frame, encode_frame
 
 
 # --- KISS encode/decode unit tests ---
@@ -72,27 +71,19 @@ def test_kisslink_send_frame():
     link = KISSLink(transport=transport)
     link.connect(callsign="W0BPQ", ssid=1)
 
-    frame = AX25Frame(
-        destination="W0BPQ", destination_ssid=1,
-        source="KD9ABC", source_ssid=0,
-        info=b"L\r",
-    )
-    link.send_frame(encode_frame(frame))
+    raw = b"\xae`\x84\xa0\xa2@\x62\x96\x88r\x82\x84\x86\x61\x00\xf0L\r"
+    link.send_frame(raw)
     assert len(transport.sent) == 1
     assert transport.sent[0].startswith(b"\xc0")
     assert transport.sent[0].endswith(b"\xc0")
 
 
 def test_kisslink_receive_frame():
-    ax25_data = encode_frame(AX25Frame(
-        destination="KD9ABC", destination_ssid=0,
-        source="W0BPQ", source_ssid=1,
-        info=b"BPQ> ",
-    ))
-    kiss_packet = kiss_encode(ax25_data)
+    raw = b"\xae`\x84\xa0\xa2@\x62\x96\x88r\x82\x84\x86\x61\x03\xf0BPQ> "
+    kiss_packet = kiss_encode(raw)
     transport = MockTransport(responses=[kiss_packet])
     link = KISSLink(transport=transport)
     link.connect(callsign="W0BPQ", ssid=1)
 
     received = link.receive_frame(timeout=1.0)
-    assert received == ax25_data
+    assert received == raw

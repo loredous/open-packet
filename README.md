@@ -11,14 +11,14 @@ An open-source packet messaging client for amateur radio operators.
 ## Quickstart
 
 **Requirements:**
-- Linux (macOS and Windows are not currently supported)
+- Linux (Windows and MacOS are currently untested, but should probably work)
 - Python >= 3.11
 - A KISS-capable TNC connected via TCP or serial port. If you don't have hardware, [Direwolf](https://github.com/wb2osz/direwolf) is a good software TNC.
 
 **Install:**
 
 ```bash
-uv tool install git+https://github.com/YOUR_USERNAME/open-packet
+uv tool install git+https://github.com/loredous/open-packet
 ```
 
 **Configure:**
@@ -30,17 +30,6 @@ connection:
   type: kiss_tcp          # kiss_tcp | kiss_serial
   host: localhost         # TCP only
   port: 8001              # TCP only
-  # device: /dev/ttyUSB0  # serial only
-  # baud: 9600            # serial only
-
-store:
-  db_path: ~/.local/share/open-packet/messages.db
-  export_path: ~/.local/share/open-packet/export
-
-ui:
-  console_visible: false
-  console_buffer: 500     # ring buffer size (lines)
-  # console_log: ~/.local/share/open-packet/console.log  # omit to disable
 ```
 
 **Run:**
@@ -89,7 +78,7 @@ Operator identity (callsign, SSID) and BBS node configuration are managed intera
 
 ```bash
 # Clone and install dependencies
-git clone https://github.com/YOUR_USERNAME/open-packet.git
+git clone https://github.com/loredous/open-packet.git
 cd open-packet
 uv sync
 

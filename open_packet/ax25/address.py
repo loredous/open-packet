@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -7,12 +7,18 @@ class AX25Address:
     callsign: str
     ssid: int
     last: bool
+    c_bit: bool = False
 
 
-def encode_address(callsign: str, ssid: int, last: bool) -> bytes:
+def encode_address(callsign: str, ssid: int, last: bool, c_bit: bool = False) -> bytes:
     padded = callsign.upper().ljust(6)[:6]
     encoded = bytes(ord(c) << 1 for c in padded)
-    ssid_byte = 0b01100000 | ((ssid & 0x0F) << 1) | (1 if last else 0)
+    ssid_byte = (
+        (0x80 if c_bit else 0x00)
+        | 0b01100000
+        | ((ssid & 0x0F) << 1)
+        | (1 if last else 0)
+    )
     return encoded + bytes([ssid_byte])
 
 
@@ -23,4 +29,5 @@ def decode_address(data: bytes) -> AX25Address:
     ssid_byte = data[6]
     ssid = (ssid_byte >> 1) & 0x0F
     last = bool(ssid_byte & 0x01)
-    return AX25Address(callsign=callsign, ssid=ssid, last=last)
+    c_bit = bool(ssid_byte & 0x80)
+    return AX25Address(callsign=callsign, ssid=ssid, last=last, c_bit=c_bit)

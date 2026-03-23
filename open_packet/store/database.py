@@ -147,6 +147,42 @@ class Database:
             is_default=bool(row["is_default"]),
         )
 
+    def list_operators(self) -> list[Operator]:
+        assert self._conn
+        rows = self._conn.execute("SELECT * FROM operators ORDER BY id").fetchall()
+        return [
+            Operator(id=r["id"], callsign=r["callsign"], ssid=r["ssid"],
+                     label=r["label"], is_default=bool(r["is_default"]))
+            for r in rows
+        ]
+
+    def list_nodes(self) -> list[Node]:
+        assert self._conn
+        rows = self._conn.execute("SELECT * FROM nodes ORDER BY id").fetchall()
+        return [
+            Node(id=r["id"], label=r["label"], callsign=r["callsign"],
+                 ssid=r["ssid"], node_type=r["node_type"], is_default=bool(r["is_default"]))
+            for r in rows
+        ]
+
+    def update_operator(self, op: Operator) -> None:
+        assert self._conn
+        assert op.id is not None, "Cannot update operator without id"
+        self._conn.execute(
+            "UPDATE operators SET callsign=?, ssid=?, label=?, is_default=? WHERE id=?",
+            (op.callsign, op.ssid, op.label, int(op.is_default), op.id),
+        )
+        self._conn.commit()
+
+    def update_node(self, node: Node) -> None:
+        assert self._conn
+        assert node.id is not None, "Cannot update node without id"
+        self._conn.execute(
+            "UPDATE nodes SET label=?, callsign=?, ssid=?, node_type=?, is_default=? WHERE id=?",
+            (node.label, node.callsign, node.ssid, node.node_type, int(node.is_default), node.id),
+        )
+        self._conn.commit()
+
     def clear_default_operator(self) -> None:
         assert self._conn
         self._conn.execute("UPDATE operators SET is_default=0 WHERE is_default=1")

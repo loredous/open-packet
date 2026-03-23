@@ -23,12 +23,10 @@ def kiss_encode(data: bytes) -> bytes:
 
 
 def kiss_decode(packet: bytes) -> bytes:
-    # Strip leading/trailing FEND and CMD byte
     inner = packet.strip(bytes([FEND]))
     if not inner:
         return b""
-    # Skip the command byte
-    inner = inner[1:]
+    inner = inner[1:]   # skip command byte
     result = bytearray()
     i = 0
     while i < len(inner):
@@ -46,7 +44,9 @@ def kiss_decode(packet: bytes) -> bytes:
 
 
 class KISSLink(ConnectionBase):
-    def __init__(self, transport: TransportBase):
+    """Pure KISS framing layer. No AX.25 logic — use AX25Connection for that."""
+
+    def __init__(self, transport: TransportBase) -> None:
         self._transport = transport
         self._buffer = b""
 
@@ -72,7 +72,6 @@ class KISSLink(ConnectionBase):
             raise ConnectionError(f"Receive failed: {e}") from e
 
         self._buffer += chunk
-        # Extract one complete KISS frame from the buffer
         start = self._buffer.find(bytes([FEND]))
         if start == -1:
             return b""

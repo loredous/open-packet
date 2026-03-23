@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Switch
@@ -25,21 +26,30 @@ class NodeSetupScreen(ModalScreen):
     }
     """
 
+    def __init__(self, node: Optional[Node] = None, **kwargs):
+        super().__init__(**kwargs)
+        self._node = node
+
     def compose(self) -> ComposeResult:
+        n = self._node
+        title = "Edit Node" if n else "Node Setup"
         with Vertical():
-            yield Label("Node Setup")
+            yield Label(title)
             yield Label("Label:")
-            yield Input(placeholder="e.g. Home BBS", id="label_field")
+            yield Input(placeholder="e.g. Home BBS", id="label_field",
+                        value=n.label if n else "")
             yield Label("", id="label_error", classes="error")
             yield Label("Callsign:")
-            yield Input(placeholder="e.g. W0BPQ", id="callsign_field")
+            yield Input(placeholder="e.g. W0BPQ", id="callsign_field",
+                        value=n.callsign if n else "")
             yield Label("", id="callsign_error", classes="error")
             yield Label("SSID (0-15):")
-            yield Input(placeholder="0", id="ssid_field")
+            yield Input(placeholder="0", id="ssid_field",
+                        value=str(n.ssid) if n else "")
             yield Label("", id="ssid_error", classes="error")
             yield Label("Node Type: bpq")
             yield Label("Set as default:")
-            yield Switch(value=True, id="default_switch")
+            yield Switch(value=n.is_default if n else True, id="default_switch")
             with Horizontal():
                 yield Button("Save", variant="primary", id="save_btn")
                 yield Button("Cancel", id="cancel_btn")
@@ -90,8 +100,9 @@ class NodeSetupScreen(ModalScreen):
                     label=label,
                     callsign=callsign,
                     ssid=ssid,
-                    node_type="bpq",
+                    node_type=self._node.node_type if self._node else "bpq",
                     is_default=is_default,
+                    id=self._node.id if self._node else None,
                 ))
 
     def on_key(self, event) -> None:

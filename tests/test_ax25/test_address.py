@@ -44,3 +44,24 @@ def test_decode_short_callsign():
     assert addr.callsign == "W0BPQ"
     assert addr.ssid == 0
     assert addr.last is False
+
+
+def test_encode_c_bit_set():
+    encoded = encode_address("W0BPQ", ssid=1, last=False, c_bit=True)
+    assert encoded[6] & 0x80  # bit 7 set
+
+
+def test_encode_c_bit_clear():
+    encoded = encode_address("W0BPQ", ssid=1, last=False, c_bit=False)
+    assert not (encoded[6] & 0x80)
+
+
+def test_decode_c_bit():
+    encoded = encode_address("KD9ABC", ssid=0, last=True, c_bit=True)
+    addr = decode_address(encoded)
+    assert addr.c_bit is True
+
+
+def test_default_c_bit_is_false():
+    # Existing callers must not break
+    assert not (encode_address("KD9ABC", ssid=0, last=True)[6] & 0x80)

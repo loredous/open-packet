@@ -3,6 +3,7 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Horizontal, Vertical
+from textual.widgets import Footer
 from open_packet.ui.tui.widgets.status_bar import StatusBar
 from open_packet.ui.tui.widgets.folder_tree import FolderTree
 from open_packet.ui.tui.widgets.message_list import MessageList
@@ -42,6 +43,7 @@ class MainScreen(Screen):
                 yield MessageList(id="message_list")
                 yield MessageBody(id="message_body")
         yield ConsolePanel(id="console_panel")
+        yield Footer()
 
     def on_mount(self) -> None:
         self.query_one("ConsolePanel").display = self.app.config.ui.console_visible

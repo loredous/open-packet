@@ -1,9 +1,7 @@
 # tests/test_node/test_bpq.py
 import pytest
-from unittest.mock import MagicMock, call
 from open_packet.node.bpq import BPQNode, parse_message_list, parse_message_header
 from open_packet.node.base import MessageHeader, NodeError
-from open_packet.ax25.frame import encode_frame, decode_frame, AX25Frame
 
 
 # --- Parser unit tests (no connection needed) ---
@@ -36,29 +34,23 @@ def test_parse_empty_list():
 
 # --- BPQNode session tests using a mock connection ---
 
-def make_mock_connection(responses: list[str], source: str = "KD9ABC",
-                         source_ssid: int = 0, dest: str = "W0BPQ",
-                         dest_ssid: int = 1):
-    conn = MagicMock()
-    frames = [
-        encode_frame(AX25Frame(
-            destination=source, destination_ssid=source_ssid,
-            source=dest, source_ssid=dest_ssid,
-            info=r.encode(),
-        ))
-        for r in responses
-    ] + [b""]
+class MockConn:
+    def __init__(self, responses: list[bytes]):
+        self._responses = list(responses)
+        self.sent: list[bytes] = []
 
-    conn.receive_frame.side_effect = frames
-    return conn
+    def connect(self, callsign, ssid): pass
+    def disconnect(self): pass
+    def send_frame(self, data: bytes): self.sent.append(data)
+    def receive_frame(self, timeout=5.0) -> bytes:
+        return self._responses.pop(0) if self._responses else b""
 
 
 def test_bpqnode_list_messages():
-    responses = [
-        "BPQ> ",  # initial prompt
-        LIST_OUTPUT + "BPQ> ",  # response to L command
-    ]
-    conn = make_mock_connection(responses)
+    conn = MockConn(responses=[
+        b"BPQ> ",
+        (LIST_OUTPUT + "BPQ> ").encode(),
+    ])
     node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
                    my_callsign="KD9ABC", my_ssid=0)
     node.connect_node()
@@ -67,12 +59,29 @@ def test_bpqnode_list_messages():
 
 
 def test_bpqnode_delete_message():
-    responses = [
-        "BPQ> ",
-        "Message 1 killed\nBPQ> ",
-    ]
-    conn = make_mock_connection(responses)
+    conn = MockConn(responses=[
+        b"BPQ> ",
+        b"Message 1 killed\nBPQ> ",
+    ])
     node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
                    my_callsign="KD9ABC", my_ssid=0)
     node.connect_node()
     node.delete_message("1")  # should not raise
+
+
+def test_connect_node_receives_prompt():
+    conn = MockConn(responses=[b"BPQ>"])
+    node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
+                   my_callsign="KD9ABC", my_ssid=0)
+    node.connect_node()  # should not raise
+
+
+def test_list_messages_sends_l_command():
+    conn = MockConn(responses=[
+        b"1  KD9ABC  W1XYZ   2024-01-01  Hello\r\nBPQ>",
+    ])
+    node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
+                   my_callsign="KD9ABC", my_ssid=0)
+    headers = node.list_messages()
+    assert conn.sent[0] == b"L\r"
+    assert len(headers) == 1
