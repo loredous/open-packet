@@ -14,7 +14,7 @@ from open_packet.engine.commands import (
 from open_packet.engine.engine import Engine
 from open_packet.engine.events import (
     ConnectionStatusEvent, MessageReceivedEvent, SyncCompleteEvent,
-    ErrorEvent, ConnectionStatus,
+    ErrorEvent, ConnectionStatus, MessageQueuedEvent,
 )
 from open_packet.ax25.connection import AX25Connection
 from open_packet.link.kiss import KISSLink
@@ -212,6 +212,9 @@ class OpenPacketApp(App):
                 break
 
     def _handle_event(self, event) -> None:
+        if isinstance(event, MessageQueuedEvent):
+            self._refresh_message_list()
+            return
         try:
             status_bar = self.query_one("StatusBar")
         except Exception:
@@ -243,7 +246,7 @@ class OpenPacketApp(App):
             if folder == "Inbox":
                 messages = [
                     m for m in self._store.list_messages(operator_id=operator_id)
-                    if not m.sent
+                    if not m.sent and not m.queued
                 ]
             elif folder == "Sent":
                 messages = [
@@ -255,10 +258,14 @@ class OpenPacketApp(App):
                     operator_id=operator_id,
                     category=category or None,
                 )
+            elif folder == "Outbox":
+                messages = self._store.list_outbox(operator_id=operator_id)
             else:
                 messages = []
 
             msg_list.load_messages(messages)
+            stats = self._store.count_folder_stats(operator_id)
+            self.query_one("FolderTree").update_counts(stats)
         except Exception:
             logger.exception("Failed to refresh message list")
 

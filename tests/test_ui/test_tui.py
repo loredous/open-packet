@@ -16,6 +16,13 @@ def app_config(tmp_path):
     )
 
 
+def test_app_store_has_outbox_methods():
+    """Smoke-check: Store has the methods app.py will call for Outbox and folder counts."""
+    from open_packet.store.store import Store
+    assert hasattr(Store, "list_outbox"), "Store.list_outbox missing — Task 2 not complete"
+    assert hasattr(Store, "count_folder_stats"), "Store.count_folder_stats missing — Task 2 not complete"
+
+
 @pytest.mark.asyncio
 async def test_app_mounts(app_config, tmp_path):
     from open_packet.store.database import Database
