@@ -5,7 +5,6 @@ import time
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase, NodeError, MessageHeader, Message
 
-PROMPT = "BPQ>"
 TIMEOUT = 10.0
 
 
@@ -56,14 +55,26 @@ class BPQNode(NodeBase):
             data = self._conn.receive_frame(timeout=1.0)
             if data:
                 buffer += data.decode(errors="replace")
-                if PROMPT in buffer:
+                if buffer.rstrip().endswith(">"):
                     break
         return buffer
 
     def connect_node(self) -> None:
+        # Navigate from node to BBS, then trigger the prompt.
+        self._send_text("BBS")
         response = self._recv_until_prompt()
-        if PROMPT not in response:
-            raise NodeError(f"No BPQ prompt received. Got: {response!r}")
+        if "Connected to BBS" not in response and not response.rstrip().endswith(">"):
+            raise NodeError(f"Failed to connect to BBS. Got: {response!r}")
+        if not response.rstrip().endswith(">"):
+            # Trigger the BBS prompt with a bare CR
+            self._send_text("")
+            response = self._recv_until_prompt()
+        # Some BBS nodes prompt for a name on first connect; reply with callsign.
+        if "name" in response.lower():
+            self._send_text(self._my_callsign)
+            response = self._recv_until_prompt()
+        if not response.rstrip().endswith(">"):
+            raise NodeError(f"No BBS prompt received. Got: {response!r}")
 
     def list_messages(self) -> list[MessageHeader]:
         self._send_text("L")
@@ -81,7 +92,7 @@ class BPQNode(NodeBase):
             if not in_body and line.strip() == "":
                 in_body = True
                 continue
-            if in_body and PROMPT not in line:
+            if in_body and not line.rstrip().endswith(">"):
                 body_lines.append(line)
         return Message(header=header, body="\n".join(body_lines).strip())
 

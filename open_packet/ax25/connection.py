@@ -234,7 +234,7 @@ class AX25Connection(ConnectionBase):
         self._reject_exception = False
         payload = f.info
 
-        self._send_rr(nr=self.V_R, poll=bool(f.poll_final))
+        self._send_rr(nr=self.V_R, poll=bool(f.poll_final), command=False)
         self._ack_pending = False
         self._check_i_frame_ack(f.nr)
 
@@ -243,11 +243,15 @@ class AX25Connection(ConnectionBase):
     def _handle_rr(self, f) -> None:
         self._peer_receiver_busy = False
         self._check_i_frame_ack(f.nr)
-        if f.poll_final and self.state == LinkState.TIMER_RECOVERY:
-            self._t1.stop()
-            self.state = LinkState.CONNECTED
-            self._t3.start(self._t3_timeout)
-            self._invoke_retransmission()
+        if f.poll_final:
+            if self.state == LinkState.TIMER_RECOVERY:
+                self._t1.stop()
+                self.state = LinkState.CONNECTED
+                self._t3.start(self._t3_timeout)
+                self._invoke_retransmission()
+            else:
+                # Respond to remote's keep-alive poll with F=1 (AX.25 §6.3.8)
+                self._send_rr(nr=self.V_R, poll=True, command=False)
 
     def _handle_rnr(self, f) -> None:
         self._peer_receiver_busy = True
@@ -271,6 +275,10 @@ class AX25Connection(ConnectionBase):
 
     def _check_i_frame_ack(self, nr: int) -> None:
         if self._va_leq_nr_leq_vs(nr):
+            seq = self.V_A
+            while seq != nr:
+                self._unacked.pop(seq, None)
+                seq = (seq + 1) % 8
             self.V_A = nr
             if self.V_A == self.V_S:
                 self._t1.stop()
@@ -362,10 +370,10 @@ class AX25Connection(ConnectionBase):
             self._t3.stop()
         logger.debug("→ I(%d,%d) %d bytes", ns, self.V_R, len(payload))
 
-    def _send_rr(self, nr: int, poll: bool = False) -> None:
+    def _send_rr(self, nr: int, poll: bool = False, command: bool = True) -> None:
         raw = encode_rr(self._dest_call, self._dest_ssid,
                         self._my_call, self._my_ssid,
-                        nr=nr, poll=poll, command=poll)
+                        nr=nr, poll=poll, command=command)
         self._kiss.send_frame(raw)
 
     def _send_rnr(self, final: bool = False) -> None:
