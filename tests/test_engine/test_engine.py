@@ -135,7 +135,7 @@ def test_send_message_command_saves_to_outbox(db_and_store):
         try:
             events.append(evt_queue.get(timeout=0.3))
         except queue.Empty:
-            break
+            pass
 
     engine.stop()
 
@@ -152,7 +152,6 @@ def test_send_message_command_saves_to_outbox(db_and_store):
 def test_check_mail_sends_only_queued_messages(db_and_store):
     """Only outbox messages are transmitted during sync; received messages are never re-sent."""
     db, store, op, node_record = db_and_store
-    from datetime import datetime, timezone
 
     # Pre-populate: one received inbox message (queued=False)
     store.save_message(Message(
