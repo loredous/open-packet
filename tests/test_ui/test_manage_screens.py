@@ -204,7 +204,7 @@ async def test_node_setup_prepopulates_fields(db_with_nodes):
             self.push_screen(NodeSetupScreen(node), callback=capture)
 
     app = _EditApp()
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 80)) as pilot:
         await pilot.pause()
         callsign_val = app.screen.query_one("#callsign_field").value
         assert callsign_val == node.callsign

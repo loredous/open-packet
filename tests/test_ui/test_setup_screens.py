@@ -6,7 +6,7 @@ from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
 from open_packet.ui.tui.app import OpenPacketApp
 from open_packet.config.config import AppConfig, StoreConfig, UIConfig
 from open_packet.store.database import Database
-from open_packet.store.models import Operator, Node
+from open_packet.store.models import Operator, Node, Interface
 
 
 _SENTINEL = object()
@@ -127,60 +127,113 @@ async def test_operator_setup_cancel():
     assert app.dismiss_result is None
 
 
+@pytest.fixture
+def node_db(tmp_path):
+    db = Database(str(tmp_path / "node_test.db"))
+    db.initialize()
+    yield db
+    db.close()
+
+
 @pytest.mark.asyncio
-async def test_node_setup_valid_input():
-    app = _ScreenTestApp(NodeSetupScreen)
-    async with app.run_test() as pilot:
+async def test_node_setup_telnet_creates_interface(node_db):
+    """Saving a Telnet node creates an Interface record and links the Node to it."""
+    app = _ScreenTestApp(lambda: NodeSetupScreen(interfaces=[], db=node_db))
+    async with app.run_test(size=(80, 80)) as pilot:
         await pilot.click("#label_field")
         await pilot.press(*"Home BBS")
         await pilot.click("#callsign_field")
         await pilot.press(*"w0bpq")
         await pilot.click("#ssid_field")
         await pilot.press("1")
+        # conn_type defaults to "telnet", iface_selector defaults to "New"
+        await pilot.click("#telnet_host")
+        await pilot.press(*"192.168.1.209")
+        await pilot.click("#telnet_port")
+        await pilot.press(*"8023")
+        await pilot.click("#telnet_user")
+        await pilot.press(*"K0JLB")
+        await pilot.click("#telnet_pass")
+        await pilot.press(*"password")
         await pilot.click("#save_btn")
         await pilot.pause()
+
     result = app.dismiss_result
     assert result is not _SENTINEL
     assert result is not None
     assert result.label == "Home BBS"
-    assert result.callsign == "W0BPQ"  # uppercased
+    assert result.callsign == "W0BPQ"
     assert result.ssid == 1
-    assert result.node_type == "bpq"
-    assert result.is_default is True
+    assert result.interface_id is not None
+
+    iface = node_db.get_interface(result.interface_id)
+    assert iface.iface_type == "telnet"
+    assert iface.host == "192.168.1.209"
+    assert iface.port == 8023
+    assert iface.username == "K0JLB"
+    assert iface.password == "password"
 
 
 @pytest.mark.asyncio
-async def test_node_setup_blank_callsign_does_not_dismiss():
-    app = _ScreenTestApp(NodeSetupScreen)
-    async with app.run_test() as pilot:
-        await pilot.click("#label_field")
-        await pilot.press(*"Home BBS")
-        await pilot.click("#ssid_field")
-        await pilot.press("0")
-        await pilot.click("#save_btn")
-        await pilot.pause()
-    assert app.dismiss_result is _SENTINEL
+async def test_node_setup_reuses_existing_interface(node_db):
+    """When an existing interface is selected, no new Interface record is created."""
+    existing = node_db.insert_interface(Interface(
+        label="Home TNC", iface_type="telnet",
+        host="10.0.0.1", port=8023, username="K0JLB", password="pw"
+    ))
+    before_count = len(node_db.list_interfaces())
 
-
-@pytest.mark.asyncio
-async def test_node_setup_invalid_ssid_does_not_dismiss():
-    app = _ScreenTestApp(NodeSetupScreen)
-    async with app.run_test() as pilot:
+    app = _ScreenTestApp(lambda: NodeSetupScreen(
+        interfaces=node_db.list_interfaces(), db=node_db
+    ))
+    async with app.run_test(size=(80, 80)) as pilot:
         await pilot.click("#label_field")
-        await pilot.press(*"Home BBS")
+        await pilot.press(*"Remote BBS")
         await pilot.click("#callsign_field")
         await pilot.press(*"W0BPQ")
         await pilot.click("#ssid_field")
-        await pilot.press(*"abc")
+        await pilot.press("0")
+        # interface selector should have the existing interface; select it
+        iface_sel = pilot.app.screen.query_one("#iface_selector")
+        iface_sel.value = existing.id
+        await pilot.pause()
+        await pilot.click("#save_btn")
+        await pilot.pause()
+
+    result = app.dismiss_result
+    assert result is not _SENTINEL
+    assert result is not None
+    assert result.interface_id == existing.id
+    assert len(node_db.list_interfaces()) == before_count  # no new interface created
+
+
+@pytest.mark.asyncio
+async def test_node_setup_blank_host_does_not_dismiss(node_db):
+    """Telnet with blank host should not dismiss."""
+    app = _ScreenTestApp(lambda: NodeSetupScreen(interfaces=[], db=node_db))
+    async with app.run_test(size=(80, 80)) as pilot:
+        await pilot.click("#label_field")
+        await pilot.press(*"BBS")
+        await pilot.click("#callsign_field")
+        await pilot.press(*"W0BPQ")
+        await pilot.click("#ssid_field")
+        await pilot.press("0")
+        # Leave host blank, fill rest
+        await pilot.click("#telnet_port")
+        await pilot.press(*"8023")
+        await pilot.click("#telnet_user")
+        await pilot.press(*"K0JLB")
+        await pilot.click("#telnet_pass")
+        await pilot.press(*"pw")
         await pilot.click("#save_btn")
         await pilot.pause()
     assert app.dismiss_result is _SENTINEL
 
 
 @pytest.mark.asyncio
-async def test_node_setup_cancel():
-    app = _ScreenTestApp(NodeSetupScreen)
-    async with app.run_test() as pilot:
+async def test_node_setup_cancel(node_db):
+    app = _ScreenTestApp(lambda: NodeSetupScreen(interfaces=[], db=node_db))
+    async with app.run_test(size=(80, 80)) as pilot:
         await pilot.click("#cancel_btn")
         await pilot.pause()
     assert app.dismiss_result is None
@@ -226,7 +279,7 @@ async def test_first_run_node_missing_pushes_node_setup(base_config, tmp_path):
 async def test_partial_first_run_cancel_engine_stays_none(base_config):
     """Operator saved, NodeSetupScreen cancelled: engine stays uninitialized."""
     app = OpenPacketApp(config=base_config)
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 80)) as pilot:
         await pilot.pause()
         await pilot.pause()
         assert isinstance(app.screen, OperatorSetupScreen)
@@ -252,7 +305,7 @@ async def test_partial_first_run_cancel_engine_stays_none(base_config):
 async def test_engine_reinit_after_full_setup(base_config):
     """Completing operator + node setup initializes the engine."""
     app = OpenPacketApp(config=base_config)
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 80)) as pilot:
         await pilot.pause()
         await pilot.pause()
         # Fill operator
@@ -271,6 +324,15 @@ async def test_engine_reinit_after_full_setup(base_config):
         await pilot.press(*"W0BPQ")
         await pilot.click("#ssid_field")
         await pilot.press(*"1")
+        # Telnet fields (default connection type)
+        await pilot.click("#telnet_host")
+        await pilot.press(*"192.168.1.209")
+        await pilot.click("#telnet_port")
+        await pilot.press(*"8023")
+        await pilot.click("#telnet_user")
+        await pilot.press(*"K0JLB")
+        await pilot.click("#telnet_pass")
+        await pilot.press(*"password")
         await pilot.click("#save_btn")
         await pilot.pause()
         await pilot.pause()

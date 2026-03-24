@@ -92,7 +92,7 @@ class OpenPacketApp(App):
             return
         elif not node_record:
             self.call_after_refresh(
-                lambda: self.push_screen(NodeSetupScreen(), callback=self._on_node_setup_result)
+                lambda: self.push_screen(NodeSetupScreen(interfaces=self._db.list_interfaces(), db=self._db), callback=self._on_node_setup_result)
             )
             return
 
@@ -190,7 +190,7 @@ class OpenPacketApp(App):
         assert self._db is not None
         # Check DB state to determine next step (works for both first-run and settings flow)
         if self._db.get_default_node() is None:
-            self.push_screen(NodeSetupScreen(), callback=self._on_node_setup_result)
+            self.push_screen(NodeSetupScreen(interfaces=self._db.list_interfaces(), db=self._db), callback=self._on_node_setup_result)
         else:
             self._restart_engine()
 
@@ -214,7 +214,7 @@ class OpenPacketApp(App):
                 self.push_screen(NodeManageScreen(self._db),
                                  callback=self._on_manage_result)
             else:
-                self.push_screen(NodeSetupScreen(), callback=self._on_node_setup_result)
+                self.push_screen(NodeSetupScreen(interfaces=[], db=None), callback=self._on_node_setup_result)
         elif result == "interfaces":
             if self._db:
                 from open_packet.ui.tui.screens.manage_interfaces import InterfaceManageScreen
