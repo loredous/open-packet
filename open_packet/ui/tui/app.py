@@ -14,7 +14,7 @@ from open_packet.engine.commands import (
 from open_packet.engine.engine import Engine
 from open_packet.engine.events import (
     ConnectionStatusEvent, MessageReceivedEvent, SyncCompleteEvent,
-    ErrorEvent, ConnectionStatus, MessageQueuedEvent,
+    ErrorEvent, ConnectionStatus, MessageQueuedEvent, ConsoleEvent,
 )
 from open_packet.ax25.connection import AX25Connection
 from open_packet.link.kiss import KISSLink
@@ -214,6 +214,12 @@ class OpenPacketApp(App):
     def _handle_event(self, event) -> None:
         if isinstance(event, MessageQueuedEvent):
             self._refresh_message_list()
+            return
+        if isinstance(event, ConsoleEvent):
+            try:
+                self.query_one("ConsolePanel").log_frame(event.direction, event.text)
+            except Exception:
+                pass
             return
         try:
             status_bar = self.query_one("StatusBar")

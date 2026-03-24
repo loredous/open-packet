@@ -47,4 +47,10 @@ class MessageQueuedEvent:
     pass
 
 
-Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent
+@dataclass
+class ConsoleEvent:
+    direction: str  # ">" sent, "<" received, "!" error/info
+    text: str
+
+
+Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent

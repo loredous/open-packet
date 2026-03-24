@@ -74,6 +74,23 @@ async def test_operator_setup_valid_input():
 
 
 @pytest.mark.asyncio
+async def test_operator_setup_empty_ssid_defaults_to_zero():
+    app = _ScreenTestApp(OperatorSetupScreen)
+    async with app.run_test() as pilot:
+        await pilot.click("#callsign_field")
+        await pilot.press(*"kd9abc")
+        # leave ssid_field blank
+        await pilot.click("#label_field")
+        await pilot.press(*"home")
+        await pilot.click("#save_btn")
+        await pilot.pause()
+    result = app.dismiss_result
+    assert result is not _SENTINEL
+    assert result is not None
+    assert result.ssid == 0
+
+
+@pytest.mark.asyncio
 async def test_operator_setup_blank_callsign_does_not_dismiss():
     app = _ScreenTestApp(OperatorSetupScreen)
     async with app.run_test() as pilot:

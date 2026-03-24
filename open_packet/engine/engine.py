@@ -12,7 +12,7 @@ from open_packet.engine.commands import (
 )
 from open_packet.engine.events import (
     ConnectionStatusEvent, ConnectionStatus, MessageReceivedEvent,
-    SyncCompleteEvent, ErrorEvent, MessageQueuedEvent,
+    SyncCompleteEvent, ErrorEvent, MessageQueuedEvent, ConsoleEvent,
 )
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase
@@ -112,17 +112,21 @@ class Engine:
         self._set_status(ConnectionStatus.DISCONNECTED)
 
     def _do_check_mail(self) -> None:
+        node_addr = f"{self._node_record.callsign}-{self._node_record.ssid}"
         self._set_status(ConnectionStatus.CONNECTING)
+        self._emit(ConsoleEvent(">", f"Connecting to {node_addr}..."))
         try:
             self._connection.connect(
                 callsign=self._node_record.callsign,
                 ssid=self._node_record.ssid,
             )
             self._node.connect_node()
+            self._emit(ConsoleEvent("<", f"Connected to {node_addr}"))
             self._set_status(ConnectionStatus.SYNCING)
 
             retrieved = 0
             headers = self._node.list_messages()
+            self._emit(ConsoleEvent(">", f"Listing messages ({len(headers)} found)"))
             for header in headers:
                 msg = self._node.read_message(header.bbs_id)
                 now = datetime.now(timezone.utc)
@@ -138,6 +142,7 @@ class Engine:
                 ))
                 if saved:
                     retrieved += 1
+                    self._emit(ConsoleEvent("<", f"[{header.bbs_id}] {header.subject} from {header.from_call}"))
                     self._emit(MessageReceivedEvent(
                         message_id=saved.id,
                         from_call=header.from_call,
@@ -148,6 +153,7 @@ class Engine:
             sent = 0
             outbound = self._store.list_outbox(self._operator.id)
             for m in outbound:
+                self._emit(ConsoleEvent(">", f"Sending to {m.to_call}: {m.subject}"))
                 self._node.send_message(m.to_call, m.subject, m.body)
                 self._store.mark_message_sent(m.id)
                 sent += 1
@@ -160,6 +166,7 @@ class Engine:
             ))
         finally:
             self._connection.disconnect()
+            self._emit(ConsoleEvent("<", "Disconnected"))
             self._set_status(ConnectionStatus.DISCONNECTED)
 
     def _do_send_message(self, cmd: SendMessageCommand) -> None:

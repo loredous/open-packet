@@ -39,7 +39,7 @@ class OperatorSetupScreen(ModalScreen):
             yield Input(placeholder="e.g. KD9ABC", id="callsign_field",
                         value=op.callsign if op else "")
             yield Label("", id="callsign_error", classes="error")
-            yield Label("SSID (0-15):")
+            yield Label("SSID (0-15, default 0):")
             yield Input(placeholder="0", id="ssid_field",
                         value=str(op.ssid) if op else "")
             yield Label("", id="ssid_error", classes="error")
@@ -70,7 +70,7 @@ class OperatorSetupScreen(ModalScreen):
             callsign_error.update("")
 
         try:
-            ssid = int(ssid_str)
+            ssid = int(ssid_str) if ssid_str else 0
             if not 0 <= ssid <= 15:
                 raise ValueError
             ssid_error.update("")
@@ -92,7 +92,8 @@ class OperatorSetupScreen(ModalScreen):
         elif event.button.id == "save_btn":
             if self._validate():
                 callsign = self.query_one("#callsign_field", Input).value.strip().upper()
-                ssid = int(self.query_one("#ssid_field", Input).value.strip())
+                ssid_str = self.query_one("#ssid_field", Input).value.strip()
+                ssid = int(ssid_str) if ssid_str else 0
                 label = self.query_one("#label_field", Input).value.strip()
                 is_default = self.query_one("#default_switch", Switch).value
                 self.dismiss(Operator(
