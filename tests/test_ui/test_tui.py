@@ -97,3 +97,78 @@ async def test_folder_selection_loads_inbox(app_config, tmp_path):
         await pilot.pause()
         msg_list = app.query_one("MessageList")
         assert msg_list.row_count == 1
+
+
+@pytest.mark.asyncio
+async def test_update_counts_inbox_labels(app_config, tmp_path):
+    """update_counts() sets correct Inbox label variants on the mounted FolderTree."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        tree = app.query_one("FolderTree")
+
+        # No messages → plain labels
+        tree.update_counts({"Inbox": (0, 0), "Sent": (0,), "Outbox": (0,)})
+        await pilot.pause()
+        assert str(tree._inbox_node.label) == "Inbox"
+        assert str(tree._sent_node.label) == "Sent"
+        assert str(tree._outbox_node.label) == "Outbox"
+
+        # Inbox with messages, no unread
+        tree.update_counts({"Inbox": (5, 0), "Sent": (2,), "Outbox": (0,)})
+        await pilot.pause()
+        assert str(tree._inbox_node.label) == "Inbox (5)"
+        assert str(tree._sent_node.label) == "Sent (2)"
+
+        # Inbox with unread
+        tree.update_counts({"Inbox": (10, 3), "Sent": (0,), "Outbox": (0,)})
+        await pilot.pause()
+        inbox_label = tree._inbox_node.label
+        assert "10" in str(inbox_label)
+        assert "3" in str(inbox_label)
+
+        # Outbox with pending messages → gold background
+        from rich.text import Text
+        tree.update_counts({"Inbox": (0, 0), "Sent": (0,), "Outbox": (4,)})
+        await pilot.pause()
+        outbox_label = tree._outbox_node.label
+        assert isinstance(outbox_label, Text)
+        assert "4" in outbox_label.plain
+        assert outbox_label.style.bgcolor is not None
+
+
+@pytest.mark.asyncio
+async def test_update_counts_outbox_cleared(app_config, tmp_path):
+    """When Outbox count drops to 0, label returns to plain 'Outbox' with no background."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node
+    from rich.text import Text
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        tree = app.query_one("FolderTree")
+        tree.update_counts({"Inbox": (0, 0), "Sent": (0,), "Outbox": (2,)})
+        await pilot.pause()
+        tree.update_counts({"Inbox": (0, 0), "Sent": (0,), "Outbox": (0,)})
+        await pilot.pause()
+        label = tree._outbox_node.label
+        assert str(label) == "Outbox"
+        # No background style on cleared outbox
+        if isinstance(label, Text):
+            assert label.style.bgcolor is None
