@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from open_packet.store.models import Operator, Node, Message, Bulletin
+from open_packet.store.models import Operator, Node, Message, Bulletin, Interface
 
 
 class Database:
@@ -19,6 +19,14 @@ class Database:
         try:
             self._conn.execute(
                 "ALTER TABLE messages ADD COLUMN queued INTEGER NOT NULL DEFAULT 0"
+            )
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+        try:
+            self._conn.execute(
+                "ALTER TABLE nodes ADD COLUMN interface_id INTEGER REFERENCES interfaces(id)"
             )
             self._conn.commit()
         except sqlite3.OperationalError:
@@ -48,6 +56,18 @@ class Database:
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
 
+            CREATE TABLE IF NOT EXISTS interfaces (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                label TEXT NOT NULL,
+                iface_type TEXT NOT NULL,
+                host TEXT,
+                port INTEGER,
+                username TEXT,
+                password TEXT,
+                device TEXT,
+                baud INTEGER
+            );
+
             CREATE TABLE IF NOT EXISTS nodes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 label TEXT NOT NULL,
@@ -55,7 +75,8 @@ class Database:
                 ssid INTEGER NOT NULL DEFAULT 0,
                 node_type TEXT NOT NULL,
                 is_default INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                interface_id INTEGER REFERENCES interfaces(id)
             );
 
             CREATE TABLE IF NOT EXISTS messages (
@@ -125,8 +146,8 @@ class Database:
     def insert_node(self, node: Node) -> Node:
         assert self._conn
         cur = self._conn.execute(
-            "INSERT INTO nodes (label, callsign, ssid, node_type, is_default) VALUES (?, ?, ?, ?, ?)",
-            (node.label, node.callsign, node.ssid, node.node_type, int(node.is_default)),
+            "INSERT INTO nodes (label, callsign, ssid, node_type, is_default, interface_id) VALUES (?, ?, ?, ?, ?, ?)",
+            (node.label, node.callsign, node.ssid, node.node_type, int(node.is_default), node.interface_id),
         )
         self._conn.commit()
         return self.get_node(cur.lastrowid)  # type: ignore
@@ -140,6 +161,7 @@ class Database:
             id=row["id"], label=row["label"], callsign=row["callsign"],
             ssid=row["ssid"], node_type=row["node_type"],
             is_default=bool(row["is_default"]),
+            interface_id=row["interface_id"],
         )
 
     def get_default_node(self) -> Optional[Node]:
@@ -153,6 +175,7 @@ class Database:
             id=row["id"], label=row["label"], callsign=row["callsign"],
             ssid=row["ssid"], node_type=row["node_type"],
             is_default=bool(row["is_default"]),
+            interface_id=row["interface_id"],
         )
 
     def list_operators(self) -> list[Operator]:
@@ -168,8 +191,11 @@ class Database:
         assert self._conn
         rows = self._conn.execute("SELECT * FROM nodes ORDER BY id").fetchall()
         return [
-            Node(id=r["id"], label=r["label"], callsign=r["callsign"],
-                 ssid=r["ssid"], node_type=r["node_type"], is_default=bool(r["is_default"]))
+            Node(
+                id=r["id"], label=r["label"], callsign=r["callsign"],
+                ssid=r["ssid"], node_type=r["node_type"], is_default=bool(r["is_default"]),
+                interface_id=r["interface_id"],
+            )
             for r in rows
         ]
 
@@ -186,10 +212,68 @@ class Database:
         assert self._conn
         assert node.id is not None, "Cannot update node without id"
         self._conn.execute(
-            "UPDATE nodes SET label=?, callsign=?, ssid=?, node_type=?, is_default=? WHERE id=?",
-            (node.label, node.callsign, node.ssid, node.node_type, int(node.is_default), node.id),
+            "UPDATE nodes SET label=?, callsign=?, ssid=?, node_type=?, is_default=?, interface_id=? WHERE id=?",
+            (node.label, node.callsign, node.ssid, node.node_type,
+             int(node.is_default), node.interface_id, node.id),
         )
         self._conn.commit()
+
+    def insert_interface(self, iface: Interface) -> Interface:
+        assert self._conn
+        cur = self._conn.execute(
+            """INSERT INTO interfaces (label, iface_type, host, port, username, password, device, baud)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (iface.label, iface.iface_type, iface.host, iface.port,
+             iface.username, iface.password, iface.device, iface.baud),
+        )
+        self._conn.commit()
+        return self.get_interface(cur.lastrowid)  # type: ignore
+
+    def get_interface(self, id: int) -> Optional[Interface]:
+        assert self._conn
+        row = self._conn.execute("SELECT * FROM interfaces WHERE id=?", (id,)).fetchone()
+        if not row:
+            return None
+        return Interface(
+            id=row["id"], label=row["label"], iface_type=row["iface_type"],
+            host=row["host"], port=row["port"],
+            username=row["username"], password=row["password"],
+            device=row["device"], baud=row["baud"],
+        )
+
+    def list_interfaces(self) -> list[Interface]:
+        assert self._conn
+        rows = self._conn.execute("SELECT * FROM interfaces ORDER BY id").fetchall()
+        return [
+            Interface(
+                id=r["id"], label=r["label"], iface_type=r["iface_type"],
+                host=r["host"], port=r["port"],
+                username=r["username"], password=r["password"],
+                device=r["device"], baud=r["baud"],
+            )
+            for r in rows
+        ]
+
+    def update_interface(self, iface: Interface) -> None:
+        assert self._conn
+        assert iface.id is not None, "Cannot update interface without id"
+        self._conn.execute(
+            """UPDATE interfaces SET label=?, iface_type=?, host=?, port=?,
+               username=?, password=?, device=?, baud=? WHERE id=?""",
+            (iface.label, iface.iface_type, iface.host, iface.port,
+             iface.username, iface.password, iface.device, iface.baud, iface.id),
+        )
+        self._conn.commit()
+
+    def delete_interface(self, id: int) -> None:
+        assert self._conn
+        try:
+            self._conn.execute("DELETE FROM interfaces WHERE id=?", (id,))
+            self._conn.commit()
+        except sqlite3.IntegrityError as e:
+            raise ValueError(
+                f"Cannot delete interface {id}: it is still referenced by one or more nodes"
+            ) from e
 
     def clear_default_operator(self) -> None:
         assert self._conn

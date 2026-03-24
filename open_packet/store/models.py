@@ -5,6 +5,19 @@ from typing import Optional
 
 
 @dataclass
+class Interface:
+    id: Optional[int] = None
+    label: str = ""
+    iface_type: str = ""          # "telnet" | "kiss_tcp" | "kiss_serial"
+    host: Optional[str] = None    # telnet + kiss_tcp
+    port: Optional[int] = None    # telnet + kiss_tcp
+    username: Optional[str] = None  # telnet only
+    password: Optional[str] = None  # telnet only
+    device: Optional[str] = None  # kiss_serial only
+    baud: Optional[int] = None    # kiss_serial only
+
+
+@dataclass
 class Operator:
     callsign: str
     ssid: int
@@ -21,6 +34,7 @@ class Node:
     ssid: int
     node_type: str  # e.g. "bpq"
     is_default: bool = False
+    interface_id: Optional[int] = None
     id: Optional[int] = None
     created_at: Optional[datetime] = None
 
