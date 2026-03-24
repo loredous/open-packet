@@ -26,7 +26,7 @@ class MainScreen(Screen):
     """
 
     BINDINGS = [
-        ("c", "check_mail", "Check Mail"),
+        ("c", "check_mail", "Send/Receive"),
         ("n", "new_message", "New"),
         ("d", "delete_message", "Delete"),
         ("r", "reply_message", "Reply"),
