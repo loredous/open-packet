@@ -3,6 +3,7 @@ from textual.app import App
 from open_packet.ui.tui.screens.settings import SettingsScreen
 from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
 from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
+from open_packet.ui.tui.screens.setup_interface import InterfaceSetupScreen
 from open_packet.ui.tui.app import OpenPacketApp
 from open_packet.config.config import AppConfig, StoreConfig, UIConfig
 from open_packet.store.database import Database
@@ -234,6 +235,61 @@ async def test_node_setup_blank_host_does_not_dismiss(node_db):
 async def test_node_setup_cancel(node_db):
     app = _ScreenTestApp(lambda: NodeSetupScreen(interfaces=[], db=node_db))
     async with app.run_test(size=(80, 80)) as pilot:
+        await pilot.click("#cancel_btn")
+        await pilot.pause()
+    assert app.dismiss_result is None
+
+
+@pytest.mark.asyncio
+async def test_interface_setup_telnet_valid():
+    app = _ScreenTestApp(InterfaceSetupScreen)
+    async with app.run_test(size=(80, 80)) as pilot:
+        # Default type is telnet
+        await pilot.click("#iface_label_field")
+        await pilot.press(*"Home BBS")
+        await pilot.click("#host_field")
+        await pilot.press(*"192.168.1.209")
+        await pilot.click("#port_field")
+        await pilot.press(*"8023")
+        await pilot.click("#username_field")
+        await pilot.press(*"K0JLB")
+        await pilot.click("#password_field")
+        await pilot.press(*"secret")
+        await pilot.click("#save_btn")
+        await pilot.pause()
+    result = app.dismiss_result
+    assert result is not _SENTINEL
+    assert result is not None
+    assert result.label == "Home BBS"
+    assert result.iface_type == "telnet"
+    assert result.host == "192.168.1.209"
+    assert result.port == 8023
+    assert result.username == "K0JLB"
+    assert result.password == "secret"
+
+
+@pytest.mark.asyncio
+async def test_interface_setup_blank_host_does_not_dismiss():
+    app = _ScreenTestApp(InterfaceSetupScreen)
+    async with app.run_test(size=(80, 80)) as pilot:
+        await pilot.click("#iface_label_field")
+        await pilot.press(*"Bad")
+        # leave host blank
+        await pilot.click("#port_field")
+        await pilot.press(*"8023")
+        await pilot.click("#username_field")
+        await pilot.press(*"user")
+        await pilot.click("#password_field")
+        await pilot.press(*"pw")
+        await pilot.click("#save_btn")
+        await pilot.pause()
+    assert app.dismiss_result is _SENTINEL
+
+
+@pytest.mark.asyncio
+async def test_interface_setup_cancel():
+    app = _ScreenTestApp(InterfaceSetupScreen)
+    async with app.run_test() as pilot:
         await pilot.click("#cancel_btn")
         await pilot.pause()
     assert app.dismiss_result is None
