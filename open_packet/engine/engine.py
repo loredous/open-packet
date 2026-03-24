@@ -12,7 +12,7 @@ from open_packet.engine.commands import (
 )
 from open_packet.engine.events import (
     ConnectionStatusEvent, ConnectionStatus, MessageReceivedEvent,
-    SyncCompleteEvent, ErrorEvent,
+    SyncCompleteEvent, ErrorEvent, MessageQueuedEvent,
 )
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase
@@ -144,16 +144,13 @@ class Engine:
                         subject=header.subject,
                     ))
 
-            # Send any queued outbound messages
+            # Send queued outbound messages
             sent = 0
-            outbound = self._store.list_messages(
-                operator_id=self._operator.id
-            )
+            outbound = self._store.list_outbox(self._operator.id)
             for m in outbound:
-                if not m.sent and not m.deleted:
-                    self._node.send_message(m.to_call, m.subject, m.body)
-                    self._store.mark_message_sent(m.id)
-                    sent += 1
+                self._node.send_message(m.to_call, m.subject, m.body)
+                self._store.mark_message_sent(m.id)
+                sent += 1
 
             self._last_sync = datetime.now(timezone.utc)
             self._messages_last_sync = retrieved
@@ -176,8 +173,9 @@ class Engine:
             subject=cmd.subject,
             body=cmd.body,
             timestamp=now,
-            sent=False,
+            queued=True,
         ))
+        self._emit(MessageQueuedEvent())
 
     def _do_delete_message(self, cmd: DeleteMessageCommand) -> None:
         self._store.delete_message(cmd.message_id)

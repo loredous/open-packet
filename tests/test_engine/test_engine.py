@@ -8,9 +8,10 @@ from unittest.mock import MagicMock
 from datetime import datetime, timezone
 
 from open_packet.engine.engine import Engine
-from open_packet.engine.commands import CheckMailCommand, DisconnectCommand
+from open_packet.engine.commands import CheckMailCommand, DisconnectCommand, SendMessageCommand
 from open_packet.engine.events import (
-    ConnectionStatusEvent, SyncCompleteEvent, ErrorEvent, ConnectionStatus
+    ConnectionStatusEvent, SyncCompleteEvent, ErrorEvent, ConnectionStatus,
+    MessageQueuedEvent,
 )
 from open_packet.store.database import Database
 from open_packet.store.store import Store
@@ -109,3 +110,122 @@ def test_engine_emits_connection_status(db_and_store):
     engine.stop()
     status_events = [e for e in events if isinstance(e, ConnectionStatusEvent)]
     assert len(status_events) >= 1
+
+
+def test_send_message_command_saves_to_outbox(db_and_store):
+    """SendMessageCommand saves a queued message; does NOT transmit immediately."""
+    db, store, op, node_record = db_and_store
+    mock_node = make_mock_node()
+    mock_connection = MagicMock()
+
+    cmd_queue = queue.Queue()
+    evt_queue = queue.Queue()
+
+    engine = Engine(
+        command_queue=cmd_queue, event_queue=evt_queue,
+        store=store, operator=op, node_record=node_record,
+        connection=mock_connection, node=mock_node,
+    )
+    engine.start()
+    cmd_queue.put(SendMessageCommand(to_call="W0TEST", subject="Hi", body="Body"))
+
+    events = []
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline:
+        try:
+            events.append(evt_queue.get(timeout=0.3))
+        except queue.Empty:
+            break
+
+    engine.stop()
+
+    # MessageQueuedEvent must be emitted
+    assert any(isinstance(e, MessageQueuedEvent) for e in events)
+    # Message must be in the outbox
+    outbox = store.list_outbox(op.id)
+    assert len(outbox) == 1
+    assert outbox[0].to_call == "W0TEST"
+    # Node send_message must NOT have been called (not a sync)
+    mock_node.send_message.assert_not_called()
+
+
+def test_check_mail_sends_only_queued_messages(db_and_store):
+    """Only outbox messages are transmitted during sync; received messages are never re-sent."""
+    db, store, op, node_record = db_and_store
+    from datetime import datetime, timezone
+
+    # Pre-populate: one received inbox message (queued=False)
+    store.save_message(Message(
+        operator_id=op.id, node_id=node_record.id, bbs_id="RX1",
+        from_call="W0A", to_call="KD9ABC",
+        subject="Received", body="body",
+        timestamp=datetime.now(timezone.utc),
+    ))
+    # Pre-populate: one outbox message (queued=True)
+    store.save_message(Message(
+        operator_id=op.id, node_id=node_record.id, bbs_id="",
+        from_call="KD9ABC-1", to_call="W0B",
+        subject="Outgoing", body="body",
+        timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+
+    mock_node = make_mock_node()
+    mock_connection = MagicMock()
+    cmd_queue = queue.Queue()
+    evt_queue = queue.Queue()
+
+    engine = Engine(
+        command_queue=cmd_queue, event_queue=evt_queue,
+        store=store, operator=op, node_record=node_record,
+        connection=mock_connection, node=mock_node,
+    )
+    engine.start()
+    cmd_queue.put(CheckMailCommand())
+
+    events = []
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        try:
+            events.append(evt_queue.get(timeout=0.5))
+        except queue.Empty:
+            break
+
+    engine.stop()
+
+    sync_events = [e for e in events if isinstance(e, SyncCompleteEvent)]
+    assert len(sync_events) == 1
+    assert sync_events[0].messages_sent == 1   # only the queued message
+    # send_message called exactly once, with outgoing subject
+    mock_node.send_message.assert_called_once()
+    call_args = mock_node.send_message.call_args
+    assert call_args[0][1] == "Outgoing"  # subject is second positional arg
+
+
+def test_multiple_compose_actions_each_queued(db_and_store):
+    """Composing three messages results in three outbox rows."""
+    db, store, op, node_record = db_and_store
+    mock_node = make_mock_node()
+    mock_connection = MagicMock()
+    cmd_queue = queue.Queue()
+    evt_queue = queue.Queue()
+
+    engine = Engine(
+        command_queue=cmd_queue, event_queue=evt_queue,
+        store=store, operator=op, node_record=node_record,
+        connection=mock_connection, node=mock_node,
+    )
+    engine.start()
+    for i in range(3):
+        cmd_queue.put(SendMessageCommand(to_call="W0TEST", subject=f"Msg {i}", body="b"))
+
+    # Drain events
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline:
+        try:
+            evt_queue.get(timeout=0.2)
+        except queue.Empty:
+            break
+
+    engine.stop()
+    assert len(store.list_outbox(op.id)) == 3
