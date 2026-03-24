@@ -40,6 +40,8 @@ class FolderTree(Tree):
             self.post_message(self.FolderSelected(folder))
 
     def update_counts(self, stats: dict[str, tuple[int, ...]]) -> None:
+        if not hasattr(self, "_inbox_node"):
+            return  # called before on_mount(); nodes not yet created
         inbox_total, inbox_unread = stats.get("Inbox", (0, 0))
         (sent_total,) = stats.get("Sent", (0,))
         (outbox_count,) = stats.get("Outbox", (0,))
