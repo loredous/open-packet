@@ -1,9 +1,20 @@
 import pytest
 import tempfile
 import os
-from open_packet.config.config import AppConfig, load_config, ConfigError
+from open_packet.config.config import AppConfig, StoreConfig, UIConfig, load_config, ConfigError
 
-VALID_YAML = """
+
+MINIMAL_YAML = """
+store:
+  db_path: /tmp/test.db
+  export_path: /tmp/export
+
+ui:
+  console_visible: false
+  console_buffer: 500
+"""
+
+YAML_WITH_CONNECTION = """
 connection:
   type: kiss_tcp
   host: localhost
@@ -12,26 +23,8 @@ connection:
 store:
   db_path: /tmp/test.db
   export_path: /tmp/export
-
-ui:
-  console_visible: false
-  console_buffer: 500
 """
 
-SERIAL_YAML = """
-connection:
-  type: kiss_serial
-  device: /dev/ttyUSB0
-  baud: 9600
-
-store:
-  db_path: /tmp/test.db
-  export_path: /tmp/export
-
-ui:
-  console_visible: false
-  console_buffer: 500
-"""
 
 def write_yaml(content: str) -> str:
     f = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False)
@@ -40,49 +33,46 @@ def write_yaml(content: str) -> str:
     return f.name
 
 
-def test_load_valid_tcp_config():
-    path = write_yaml(VALID_YAML)
+def test_load_config_store_and_ui():
+    path = write_yaml(MINIMAL_YAML)
     try:
         config = load_config(path)
-        assert config.connection.type == "kiss_tcp"
-        assert config.connection.host == "localhost"
-        assert config.connection.port == 8001
         assert config.store.db_path == "/tmp/test.db"
-        assert config.ui.console_buffer == 500
+        assert config.store.export_path == "/tmp/export"
         assert config.ui.console_visible is False
+        assert config.ui.console_buffer == 500
         assert config.ui.console_log is None
     finally:
         os.unlink(path)
 
 
-def test_load_valid_serial_config():
-    path = write_yaml(SERIAL_YAML)
+def test_load_config_ignores_connection_section():
+    """A YAML with a legacy 'connection' key is silently accepted."""
+    path = write_yaml(YAML_WITH_CONNECTION)
     try:
         config = load_config(path)
-        assert config.connection.type == "kiss_serial"
-        assert config.connection.device == "/dev/ttyUSB0"
-        assert config.connection.baud == 9600
+        assert config.store.db_path == "/tmp/test.db"
+        assert not hasattr(config, "connection")
     finally:
         os.unlink(path)
 
 
-def test_missing_file_raises():
+def test_load_config_missing_file_raises():
     with pytest.raises(ConfigError, match="not found"):
         load_config("/nonexistent/path/config.yaml")
 
 
-def test_invalid_connection_type_raises():
-    bad_yaml = VALID_YAML.replace("kiss_tcp", "invalid_type")
-    path = write_yaml(bad_yaml)
+def test_load_config_empty_file_uses_defaults():
+    path = write_yaml("")
     try:
-        with pytest.raises(ConfigError):
-            load_config(path)
+        config = load_config(path)
+        assert "open-packet" in config.store.db_path
     finally:
         os.unlink(path)
 
 
 def test_console_log_optional():
-    yaml_with_log = VALID_YAML + "\n  console_log: /tmp/console.log\n"
+    yaml_with_log = MINIMAL_YAML + "\n  console_log: /tmp/console.log\n"
     path = write_yaml(yaml_with_log)
     try:
         config = load_config(path)

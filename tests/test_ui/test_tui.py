@@ -1,13 +1,12 @@
 # tests/test_ui/test_tui.py
 import pytest
 from open_packet.ui.tui.app import OpenPacketApp
-from open_packet.config.config import AppConfig, TCPConnectionConfig, StoreConfig, UIConfig
+from open_packet.config.config import AppConfig, StoreConfig, UIConfig
 
 
 @pytest.fixture
 def app_config(tmp_path):
     return AppConfig(
-        connection=TCPConnectionConfig(type="kiss_tcp", host="localhost", port=8001),
         store=StoreConfig(
             db_path=str(tmp_path / "test.db"),
             export_path=str(tmp_path / "export"),
