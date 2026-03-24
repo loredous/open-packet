@@ -211,6 +211,115 @@ def test_database_schema_has_queued_column(db):
     assert "queued" in cols
 
 
+def test_row_to_message_preserves_queued_flag(store):
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC-1", to_call="W0TEST",
+        subject="Queued", body="Body",
+        timestamp=datetime.now(timezone.utc),
+        queued=True,
+    )
+    saved = s.save_message(msg)
+    fetched = s.get_message(saved.id)
+    assert fetched.queued is True
+
+
+def test_multiple_queued_messages_all_saved(store):
+    """Each compose action must produce its own row (dedup bypass for queued=True)."""
+    s, op, node = store
+    for i in range(3):
+        s.save_message(Message(
+            operator_id=op.id, node_id=node.id, bbs_id="",
+            from_call="KD9ABC-1", to_call="W0TEST",
+            subject=f"Msg {i}", body="Body",
+            timestamp=datetime.now(timezone.utc),
+            queued=True,
+        ))
+    outbox = s.list_outbox(op.id)
+    assert len(outbox) == 3
+
+
+def test_received_messages_still_deduplicated(store):
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="007",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Dupe", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    )
+    s.save_message(msg)
+    s.save_message(msg)
+    messages = s.list_messages(op.id)
+    assert len([m for m in messages if m.bbs_id == "007"]) == 1
+
+
+def test_list_outbox_excludes_sent_and_deleted(store):
+    s, op, node = store
+    # queued + sent (transmitted) — should NOT appear
+    transmitted = s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC-1", to_call="W0TEST",
+        subject="Sent", body="Body",
+        timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+    s.mark_message_sent(transmitted.id)
+    # queued + deleted — should NOT appear
+    deleted = s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC-1", to_call="W0TEST",
+        subject="Deleted", body="Body",
+        timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+    s.delete_message(deleted.id)
+    # queued + pending — SHOULD appear
+    s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC-1", to_call="W0TEST",
+        subject="Pending", body="Body",
+        timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+    outbox = s.list_outbox(op.id)
+    assert len(outbox) == 1
+    assert outbox[0].subject == "Pending"
+
+
+def test_count_folder_stats_empty_db(store):
+    s, op, node = store
+    stats = s.count_folder_stats(op.id)
+    assert stats["Inbox"] == (0, 0)
+    assert stats["Sent"] == (0,)
+    assert stats["Outbox"] == (0,)
+
+
+def test_count_folder_stats_counts_correctly(store):
+    s, op, node = store
+    now = datetime.now(timezone.utc)
+    # 2 received, 1 unread
+    m1 = s.save_message(Message(operator_id=op.id, node_id=node.id, bbs_id="A1",
+        from_call="W0A", to_call="KD9ABC", subject="s", body="b", timestamp=now))
+    m2 = s.save_message(Message(operator_id=op.id, node_id=node.id, bbs_id="A2",
+        from_call="W0A", to_call="KD9ABC", subject="s", body="b", timestamp=now))
+    s.mark_message_read(m1.id)
+    # 1 queued (outbox)
+    s.save_message(Message(operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC-1", to_call="W0A", subject="s", body="b",
+        timestamp=now, queued=True))
+    # 1 transmitted (queued+sent → appears in Sent)
+    tx = s.save_message(Message(operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC-1", to_call="W0B", subject="s", body="b",
+        timestamp=now, queued=True))
+    s.mark_message_sent(tx.id)
+
+    stats = s.count_folder_stats(op.id)
+    assert stats["Inbox"] == (2, 1)    # 2 total, 1 unread
+    assert stats["Outbox"] == (1,)     # 1 pending
+    assert stats["Sent"] == (1,)       # 1 transmitted
+
+
 def test_migration_adds_queued_column_to_existing_db():
     """Simulates an old DB that lacks the queued column."""
     import tempfile, os, sqlite3 as _sqlite3

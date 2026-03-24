@@ -19,24 +19,26 @@ class Store:
         # Avoid duplicates by bbs_id + node_id
         # NOTE: messages with bbs_id="" (outbound queue) will all match each other
         # for the same node_id — known PoC limitation.
-        existing = self._conn.execute(
-            "SELECT id FROM messages WHERE bbs_id=? AND node_id=?",
-            (msg.bbs_id, msg.node_id),
-        ).fetchone()
-        if existing:
-            return self.get_message(existing["id"])  # type: ignore
+        if not msg.queued:
+            existing = self._conn.execute(
+                "SELECT id FROM messages WHERE bbs_id=? AND node_id=?",
+                (msg.bbs_id, msg.node_id),
+            ).fetchone()
+            if existing:
+                return self.get_message(existing["id"])  # type: ignore
 
         cur = self._conn.execute(
             """INSERT INTO messages
                (operator_id, node_id, bbs_id, from_call, to_call, subject, body,
-                timestamp, read, sent, deleted, synced_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                timestamp, read, sent, deleted, queued, synced_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 msg.operator_id, msg.node_id, msg.bbs_id, msg.from_call,
                 msg.to_call, msg.subject, msg.body,
                 msg.timestamp.isoformat(),
-                int(msg.read), int(msg.sent), int(msg.deleted),
-                datetime.now(timezone.utc).isoformat(),
+                int(msg.read), int(msg.sent), int(msg.deleted), int(msg.queued),
+                None if msg.queued else datetime.now(timezone.utc).isoformat(),
+                # synced_at=NULL for queued (composed) messages; they were never retrieved from a BBS.
             ),
         )
         self._conn.commit()
@@ -58,6 +60,31 @@ class Store:
         query += " ORDER BY timestamp DESC"
         rows = self._conn.execute(query, params).fetchall()
         return [self._row_to_message(r) for r in rows]
+
+    def list_outbox(self, operator_id: int) -> list[Message]:
+        assert self._conn
+        rows = self._conn.execute(
+            "SELECT * FROM messages WHERE operator_id=? AND queued=1 AND sent=0 AND deleted=0 ORDER BY timestamp ASC",
+            (operator_id,),
+        ).fetchall()
+        return [self._row_to_message(r) for r in rows]
+
+    def count_folder_stats(self, operator_id: int) -> dict[str, tuple[int, ...]]:
+        assert self._conn
+        row = self._conn.execute(
+            """SELECT
+                   COALESCE(SUM(CASE WHEN queued=0 AND sent=0 AND deleted=0            THEN 1 ELSE 0 END), 0) AS inbox_total,
+                   COALESCE(SUM(CASE WHEN queued=0 AND sent=0 AND deleted=0 AND read=0 THEN 1 ELSE 0 END), 0) AS inbox_unread,
+                   COALESCE(SUM(CASE WHEN sent=1 AND deleted=0                         THEN 1 ELSE 0 END), 0) AS sent_total,
+                   COALESCE(SUM(CASE WHEN queued=1 AND sent=0 AND deleted=0            THEN 1 ELSE 0 END), 0) AS outbox_count
+               FROM messages WHERE operator_id=?""",
+            (operator_id,),
+        ).fetchone()
+        return {
+            "Inbox":  (row["inbox_total"], row["inbox_unread"]),
+            "Sent":   (row["sent_total"],),
+            "Outbox": (row["outbox_count"],),
+        }
 
     def mark_message_read(self, id: int) -> None:
         assert self._conn
@@ -123,6 +150,7 @@ class Store:
             subject=row["subject"], body=row["body"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
             read=bool(row["read"]), sent=bool(row["sent"]), deleted=bool(row["deleted"]),
+            queued=bool(row["queued"]),
         )
 
     def _row_to_bulletin(self, row) -> Bulletin:
