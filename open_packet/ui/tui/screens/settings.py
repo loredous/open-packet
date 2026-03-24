@@ -28,6 +28,7 @@ class SettingsScreen(ModalScreen):
             yield Label("Settings")
             yield Button("Operator", id="operator_btn")
             yield Button("Node", id="node_btn")
+            yield Button("Interfaces", id="interfaces_btn")
             yield Button("Close", id="close_btn")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -35,6 +36,8 @@ class SettingsScreen(ModalScreen):
             self.dismiss("operator")
         elif event.button.id == "node_btn":
             self.dismiss("node")
+        elif event.button.id == "interfaces_btn":
+            self.dismiss("interfaces")
         else:
             self.dismiss(None)
 

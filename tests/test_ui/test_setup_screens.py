@@ -295,6 +295,53 @@ async def test_interface_setup_cancel():
     assert app.dismiss_result is None
 
 
+@pytest.mark.asyncio
+async def test_settings_interfaces_button():
+    app = _ScreenTestApp(SettingsScreen)
+    async with app.run_test() as pilot:
+        await pilot.click("#interfaces_btn")
+        await pilot.pause()
+    assert app.dismiss_result == "interfaces"
+
+
+from open_packet.ui.tui.screens.manage_interfaces import InterfaceManageScreen
+
+
+class _ManageTestApp(App):
+    """Wrapper app that opens InterfaceManageScreen with a real DB."""
+    def __init__(self, db, **kwargs):
+        super().__init__(**kwargs)
+        self._db = db
+        self.dismiss_result = _SENTINEL
+
+    def on_mount(self):
+        def capture(result):
+            self.dismiss_result = result
+        self.push_screen(InterfaceManageScreen(self._db), callback=capture)
+
+
+@pytest.mark.asyncio
+async def test_interface_manage_shows_existing(node_db):
+    node_db.insert_interface(Interface(label="My TNC", iface_type="kiss_tcp",
+                                       host="localhost", port=8910))
+    app = _ManageTestApp(node_db)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        assert app.screen.query("Label")  # screen mounted
+        await pilot.click("#close_btn")
+        await pilot.pause()
+    assert app.dismiss_result is False
+
+
+@pytest.mark.asyncio
+async def test_interface_manage_close_returns_false(node_db):
+    app = _ManageTestApp(node_db)
+    async with app.run_test() as pilot:
+        await pilot.click("#close_btn")
+        await pilot.pause()
+    assert app.dismiss_result is False
+
+
 @pytest.fixture
 def base_config(tmp_path):
     return AppConfig(

@@ -85,7 +85,10 @@ class NodeManageScreen(ModalScreen):
         btn_id = event.button.id or ""
         if btn_id == "add_btn":
             from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
-            self.app.push_screen(NodeSetupScreen(), callback=self._on_add)
+            self.app.push_screen(
+                NodeSetupScreen(interfaces=self._db.list_interfaces(), db=self._db),
+                callback=self._on_add,
+            )
         elif btn_id == "close_btn":
             self.dismiss(self._needs_restart)
         elif btn_id.startswith("set_active_"):
@@ -108,8 +111,10 @@ class NodeManageScreen(ModalScreen):
         node = self._db.get_node(node_id)
         if node:
             from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
-            self.app.push_screen(NodeSetupScreen(node),
-                                 callback=lambda result: self._on_edit(result))
+            self.app.push_screen(
+                NodeSetupScreen(node, interfaces=self._db.list_interfaces(), db=self._db),
+                callback=lambda result: self._on_edit(result),
+            )
 
     def _on_add(self, result: Optional[Node]) -> None:
         if result is None:
