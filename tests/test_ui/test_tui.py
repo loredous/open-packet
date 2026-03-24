@@ -169,6 +169,7 @@ async def test_update_counts_outbox_cleared(app_config, tmp_path):
         await pilot.pause()
         label = tree._outbox_node.label
         assert str(label) == "Outbox"
-        # No background style on cleared outbox
-        if isinstance(label, Text):
-            assert label.style.bgcolor is None
+        # The cleared outbox uses Text("Outbox", style=Style()) so .style is always
+        # a Style object (not a bare string), making .bgcolor accessible unconditionally.
+        assert isinstance(label, Text)
+        assert label.style.bgcolor is None
