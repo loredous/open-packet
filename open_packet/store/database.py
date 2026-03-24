@@ -16,6 +16,13 @@ class Database:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._create_schema()
+        try:
+            self._conn.execute(
+                "ALTER TABLE messages ADD COLUMN queued INTEGER NOT NULL DEFAULT 0"
+            )
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
     def close(self) -> None:
         if self._conn:
@@ -64,6 +71,7 @@ class Database:
                 read INTEGER NOT NULL DEFAULT 0,
                 sent INTEGER NOT NULL DEFAULT 0,
                 deleted INTEGER NOT NULL DEFAULT 0,
+                queued INTEGER NOT NULL DEFAULT 0,
                 synced_at TEXT
             );
 

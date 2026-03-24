@@ -38,6 +38,7 @@ class Message:
     read: bool = False
     sent: bool = False
     deleted: bool = False
+    queued: bool = False
     id: Optional[int] = None
     synced_at: Optional[datetime] = None
 

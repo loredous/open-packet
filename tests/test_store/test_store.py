@@ -193,3 +193,57 @@ def test_export_sent_messages(store, tmp_path):
     sent_dir = tmp_path / "sent"
     files = list(sent_dir.iterdir())
     assert len(files) == 1
+
+
+def test_message_model_queued_defaults_false():
+    from datetime import datetime, timezone
+    msg = Message(
+        operator_id=1, node_id=1, bbs_id="x",
+        from_call="W0A", to_call="W0B",
+        subject="s", body="b",
+        timestamp=datetime.now(timezone.utc),
+    )
+    assert msg.queued is False
+
+
+def test_database_schema_has_queued_column(db):
+    cols = [row[1] for row in db._conn.execute("PRAGMA table_info(messages)").fetchall()]
+    assert "queued" in cols
+
+
+def test_migration_adds_queued_column_to_existing_db():
+    """Simulates an old DB that lacks the queued column."""
+    import tempfile, os, sqlite3 as _sqlite3
+    f = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    f.close()
+    # Create old-style schema without queued
+    old_conn = _sqlite3.connect(f.name)
+    old_conn.executescript("""
+        CREATE TABLE messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            operator_id INTEGER NOT NULL,
+            node_id INTEGER NOT NULL,
+            bbs_id TEXT NOT NULL,
+            from_call TEXT NOT NULL,
+            to_call TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            body TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            read INTEGER NOT NULL DEFAULT 0,
+            sent INTEGER NOT NULL DEFAULT 0,
+            deleted INTEGER NOT NULL DEFAULT 0,
+            synced_at TEXT
+        );
+        CREATE TABLE operators (id INTEGER PRIMARY KEY, callsign TEXT, ssid INTEGER, label TEXT, is_default INTEGER, created_at TEXT);
+        CREATE TABLE nodes (id INTEGER PRIMARY KEY, label TEXT, callsign TEXT, ssid INTEGER, node_type TEXT, is_default INTEGER, created_at TEXT);
+        CREATE TABLE bulletins (id INTEGER PRIMARY KEY, operator_id INTEGER, node_id INTEGER, bbs_id TEXT, category TEXT, from_call TEXT, subject TEXT, body TEXT, timestamp TEXT, read INTEGER, synced_at TEXT);
+    """)
+    old_conn.close()
+    # Now open with Database — should migrate transparently
+    from open_packet.store.database import Database
+    db2 = Database(f.name)
+    db2.initialize()
+    cols = [row[1] for row in db2._conn.execute("PRAGMA table_info(messages)").fetchall()]
+    db2.close()
+    os.unlink(f.name)
+    assert "queued" in cols
