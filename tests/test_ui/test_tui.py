@@ -25,13 +25,17 @@ def test_app_store_has_outbox_methods():
 @pytest.mark.asyncio
 async def test_app_mounts(app_config, tmp_path):
     from open_packet.store.database import Database
-    from open_packet.store.models import Operator, Node
+    from open_packet.store.models import Operator, Node, Interface
 
     # Pre-populate DB so no setup screen is pushed during test
     db = Database(str(tmp_path / "test.db"))
     db.initialize()
     db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
-    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    iface = db.insert_interface(Interface(
+        label="Test", iface_type="kiss_tcp", host="localhost", port=8910
+    ))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
     db.close()
     app_config.store.db_path = str(tmp_path / "test.db")
 
@@ -46,13 +50,17 @@ async def test_app_mounts(app_config, tmp_path):
 @pytest.mark.asyncio
 async def test_console_toggle(app_config, tmp_path):
     from open_packet.store.database import Database
-    from open_packet.store.models import Operator, Node
+    from open_packet.store.models import Operator, Node, Interface
 
     # Pre-populate DB so no setup screen is pushed during test
     db = Database(str(tmp_path / "test.db"))
     db.initialize()
     db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
-    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    iface = db.insert_interface(Interface(
+        label="Test", iface_type="kiss_tcp", host="localhost", port=8910
+    ))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
     db.close()
     app_config.store.db_path = str(tmp_path / "test.db")
 
@@ -109,12 +117,16 @@ async def test_folder_selection_loads_inbox(app_config, tmp_path):
 async def test_update_counts_inbox_labels(app_config, tmp_path):
     """update_counts() sets correct Inbox label variants on the mounted FolderTree."""
     from open_packet.store.database import Database
-    from open_packet.store.models import Operator, Node
+    from open_packet.store.models import Operator, Node, Interface
 
     db = Database(str(tmp_path / "test.db"))
     db.initialize()
     db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
-    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    iface = db.insert_interface(Interface(
+        label="Test", iface_type="kiss_tcp", host="localhost", port=8910
+    ))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
     db.close()
     app_config.store.db_path = str(tmp_path / "test.db")
 
@@ -156,13 +168,17 @@ async def test_update_counts_inbox_labels(app_config, tmp_path):
 async def test_update_counts_outbox_cleared(app_config, tmp_path):
     """When Outbox count drops to 0, label returns to plain 'Outbox' with no background."""
     from open_packet.store.database import Database
-    from open_packet.store.models import Operator, Node
+    from open_packet.store.models import Operator, Node, Interface
     from rich.text import Text
 
     db = Database(str(tmp_path / "test.db"))
     db.initialize()
     db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
-    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    iface = db.insert_interface(Interface(
+        label="Test", iface_type="kiss_tcp", host="localhost", port=8910
+    ))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
     db.close()
     app_config.store.db_path = str(tmp_path / "test.db")
 

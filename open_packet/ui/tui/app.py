@@ -18,9 +18,10 @@ from open_packet.engine.events import (
 )
 from open_packet.ax25.connection import AX25Connection
 from open_packet.link.kiss import KISSLink
+from open_packet.link.telnet import TelnetLink
 from open_packet.node.bpq import BPQNode
 from open_packet.store.database import Database
-from open_packet.store.models import Operator, Node
+from open_packet.store.models import Operator, Node, Interface
 from open_packet.store.store import Store
 from open_packet.transport.tcp import TCPTransport
 from open_packet.transport.serial import SerialTransport
@@ -102,18 +103,36 @@ class OpenPacketApp(App):
         self._store = store
         self._active_operator = operator
 
-        conn_cfg = self.config.connection
-        if conn_cfg.type == "kiss_tcp":
-            transport = TCPTransport(host=conn_cfg.host, port=conn_cfg.port)
-        else:
-            transport = SerialTransport(device=conn_cfg.device, baud=conn_cfg.baud)
+        if node_record.interface_id is None:
+            return  # no interface configured; engine stays dormant
 
-        kiss = KISSLink(transport=transport)
-        connection = AX25Connection(
-            kiss=kiss,
-            my_callsign=operator.callsign,
-            my_ssid=operator.ssid,
-        )
+        iface = db.get_interface(node_record.interface_id)
+        if iface is None:
+            return
+
+        match iface.iface_type:
+            case "telnet":
+                connection = TelnetLink(
+                    host=iface.host, port=iface.port,
+                    username=iface.username, password=iface.password,
+                )
+            case "kiss_tcp":
+                transport = TCPTransport(host=iface.host, port=iface.port)
+                connection = AX25Connection(
+                    kiss=KISSLink(transport=transport),
+                    my_callsign=operator.callsign,
+                    my_ssid=operator.ssid,
+                )
+            case "kiss_serial":
+                transport = SerialTransport(device=iface.device, baud=iface.baud)
+                connection = AX25Connection(
+                    kiss=KISSLink(transport=transport),
+                    my_callsign=operator.callsign,
+                    my_ssid=operator.ssid,
+                )
+            case _:
+                raise ValueError(f"Unknown interface type: {iface.iface_type!r}")
+
         node = BPQNode(
             connection=connection,
             node_callsign=node_record.callsign,
@@ -196,6 +215,11 @@ class OpenPacketApp(App):
                                  callback=self._on_manage_result)
             else:
                 self.push_screen(NodeSetupScreen(), callback=self._on_node_setup_result)
+        elif result == "interfaces":
+            if self._db:
+                from open_packet.ui.tui.screens.manage_interfaces import InterfaceManageScreen
+                self.push_screen(InterfaceManageScreen(self._db),
+                                 callback=self._on_manage_result)
 
     def _on_manage_result(self, needs_restart) -> None:
         if needs_restart:
