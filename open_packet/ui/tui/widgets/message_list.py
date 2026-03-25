@@ -2,7 +2,7 @@
 from __future__ import annotations
 from textual.widgets import DataTable
 from textual.message import Message as TMessage
-from open_packet.store.models import Message
+from open_packet.store.models import Message, Bulletin
 
 
 class MessageList(DataTable):
@@ -13,7 +13,7 @@ class MessageList(DataTable):
     """
 
     class MessageSelected(TMessage):
-        def __init__(self, message: Message) -> None:
+        def __init__(self, message: Message | Bulletin) -> None:
             self.message = message
             super().__init__()
 
@@ -21,7 +21,7 @@ class MessageList(DataTable):
         self.add_columns("  ", "Subject", "From", "Date")
         self.cursor_type = "row"
 
-    def load_messages(self, messages: list[Message]) -> None:
+    def load_messages(self, messages: list[Message | Bulletin]) -> None:
         self.clear()
         self._messages = messages
         for msg in messages:

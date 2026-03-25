@@ -10,7 +10,7 @@ from textual.css.query import NoMatches
 
 from open_packet.config.config import AppConfig, load_config
 from open_packet.engine.commands import (
-    CheckMailCommand, DeleteMessageCommand, SendMessageCommand
+    CheckMailCommand, DeleteMessageCommand, SendMessageCommand, PostBulletinCommand
 )
 from open_packet.engine.engine import Engine
 from open_packet.engine.events import (
@@ -22,11 +22,12 @@ from open_packet.link.kiss import KISSLink
 from open_packet.link.telnet import TelnetLink
 from open_packet.node.bpq import BPQNode
 from open_packet.store.database import Database
-from open_packet.store.models import Operator, Node, Interface
+from open_packet.store.models import Operator, Node, Interface, Message, Bulletin
 from open_packet.store.store import Store
 from open_packet.transport.tcp import TCPTransport
 from open_packet.transport.serial import SerialTransport
 from open_packet.ui.tui.screens.compose import ComposeScreen
+from open_packet.ui.tui.screens.compose_bulletin import ComposeBulletinScreen
 from open_packet.ui.tui.screens.main import MainScreen
 from open_packet.ui.tui.screens.settings import SettingsScreen
 from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
@@ -291,7 +292,7 @@ class OpenPacketApp(App):
             from datetime import datetime
             status_bar.last_sync = datetime.now().strftime("%H:%M")
             self.notify(
-                f"Sync complete: {event.messages_retrieved} new, {event.messages_sent} sent"
+                f"Sync complete: {event.messages_retrieved} new, {event.bulletins_retrieved} bulletins, {event.messages_sent} sent"
             )
             self._refresh_message_list()
         elif isinstance(event, ErrorEvent):
@@ -337,7 +338,9 @@ class OpenPacketApp(App):
             self._cmd_queue.put(CheckMailCommand())
 
     def delete_selected_message(self) -> None:
-        if self._selected_message and self._engine:
+        if self._selected_message is None or not isinstance(self._selected_message, Message):
+            return
+        if self._engine:
             self._cmd_queue.put(DeleteMessageCommand(
                 message_id=self._selected_message.id,
                 bbs_id=self._selected_message.bbs_id,
@@ -345,6 +348,13 @@ class OpenPacketApp(App):
 
     def open_compose(self) -> None:
         self.push_screen(ComposeScreen(), callback=self._on_compose_result)
+
+    def open_compose_bulletin(self) -> None:
+        self.push_screen(ComposeBulletinScreen(), callback=self._on_compose_bulletin_result)
+
+    def _on_compose_bulletin_result(self, result) -> None:
+        if result and isinstance(result, PostBulletinCommand):
+            self._cmd_queue.put(result)
 
     def open_settings(self) -> None:
         self.push_screen(SettingsScreen(), callback=self._on_settings_result)

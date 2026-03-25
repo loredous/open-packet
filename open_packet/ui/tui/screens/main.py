@@ -28,6 +28,7 @@ class MainScreen(Screen):
     BINDINGS = [
         ("c", "check_mail", "Send/Receive"),
         ("n", "new_message", "New"),
+        ("b", "new_bulletin", "Bulletin"),
         ("d", "delete_message", "Delete"),
         ("r", "reply_message", "Reply"),
         ("s", "settings", "Settings"),
@@ -57,6 +58,9 @@ class MainScreen(Screen):
 
     def action_new_message(self) -> None:
         self.app.open_compose()
+
+    def action_new_bulletin(self) -> None:
+        self.app.open_compose_bulletin()
 
     def action_delete_message(self) -> None:
         self.app.delete_selected_message()
