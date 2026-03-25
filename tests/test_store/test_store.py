@@ -606,3 +606,23 @@ def test_bulletin_exists(store):
     s.save_bulletin(bul)
     assert s.bulletin_exists("BBS-999", node.id) is True
     assert s.bulletin_exists("BBS-999", node.id + 1) is False
+
+
+def test_post_bulletin_command_exists():
+    """PostBulletinCommand is a dataclass in the Command union."""
+    from open_packet.engine.commands import PostBulletinCommand, Command
+    cmd = PostBulletinCommand(category="WX", subject="Test", body="Body")
+    assert cmd.category == "WX"
+    assert cmd.subject == "Test"
+    import typing
+    args = typing.get_args(Command)
+    assert PostBulletinCommand in args
+
+
+def test_sync_complete_event_has_bulletins_retrieved():
+    """SyncCompleteEvent accepts bulletins_retrieved with default 0."""
+    from open_packet.engine.events import SyncCompleteEvent
+    e1 = SyncCompleteEvent(messages_retrieved=3, messages_sent=1)
+    assert e1.bulletins_retrieved == 0
+    e2 = SyncCompleteEvent(messages_retrieved=2, messages_sent=0, bulletins_retrieved=5)
+    assert e2.bulletins_retrieved == 5

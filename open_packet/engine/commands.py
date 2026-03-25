@@ -31,4 +31,11 @@ class DeleteMessageCommand:
     bbs_id: str      # BBS message id for the node command
 
 
-Command = ConnectCommand | DisconnectCommand | CheckMailCommand | SendMessageCommand | DeleteMessageCommand
+@dataclass
+class PostBulletinCommand:
+    category: str
+    subject: str
+    body: str
+
+
+Command = ConnectCommand | DisconnectCommand | CheckMailCommand | SendMessageCommand | DeleteMessageCommand | PostBulletinCommand

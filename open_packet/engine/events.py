@@ -33,6 +33,7 @@ class MessageReceivedEvent:
 class SyncCompleteEvent:
     messages_retrieved: int
     messages_sent: int
+    bulletins_retrieved: int = 0
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
