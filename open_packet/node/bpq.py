@@ -118,3 +118,13 @@ class BPQNode(NodeBase):
 
     def read_bulletin(self, bbs_id: str) -> Message:
         return self.read_message(bbs_id)
+
+    def post_bulletin(self, category: str, subject: str, body: str) -> None:
+        self._send_text(f"SB {category}")
+        self._recv_until_prompt(timeout=5.0)
+        self._send_text(subject)
+        self._recv_until_prompt(timeout=5.0)
+        for line in body.splitlines():
+            self._send_text(line)
+        self._send_text("/EX")
+        self._recv_until_prompt()

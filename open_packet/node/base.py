@@ -47,3 +47,6 @@ class NodeBase(ABC):
 
     @abstractmethod
     def read_bulletin(self, bbs_id: str) -> Message: ...
+
+    @abstractmethod
+    def post_bulletin(self, category: str, subject: str, body: str) -> None: ...

@@ -1,7 +1,7 @@
 # tests/test_node/test_bpq.py
 import pytest
 from open_packet.node.bpq import BPQNode, parse_message_list, parse_message_header
-from open_packet.node.base import MessageHeader, NodeError
+from open_packet.node.base import MessageHeader, NodeBase, NodeError
 
 
 # --- Parser unit tests (no connection needed) ---
@@ -85,3 +85,9 @@ def test_list_messages_sends_l_command():
     headers = node.list_messages()
     assert conn.sent[0] == b"L\r"
     assert len(headers) == 1
+
+
+def test_node_base_has_post_bulletin():
+    """NodeBase declares post_bulletin as abstract."""
+    abstract_methods = getattr(NodeBase, '__abstractmethods__', set())
+    assert 'post_bulletin' in abstract_methods
