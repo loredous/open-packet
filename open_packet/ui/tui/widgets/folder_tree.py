@@ -23,13 +23,11 @@ class FolderTree(Tree):
 
     def on_mount(self) -> None:
         self.root.expand()
-        self._inbox_node  = self.root.add_leaf("Inbox",  data="Inbox")
-        self._outbox_node = self.root.add_leaf("Outbox", data="Outbox")
-        self._sent_node   = self.root.add_leaf("Sent",   data="Sent")
-        bulletins = self.root.add("Bulletins", data="Bulletins")
-        bulletins.add_leaf("WX",  data="WX")
-        bulletins.add_leaf("NTS", data="NTS")
-        bulletins.add_leaf("ALL", data="ALL")
+        self._inbox_node    = self.root.add_leaf("Inbox",  data="Inbox")
+        self._outbox_node   = self.root.add_leaf("Outbox", data="Outbox")
+        self._sent_node     = self.root.add_leaf("Sent",   data="Sent")
+        self._bulletins_node = self.root.add("Bulletins", data="Bulletins")
+        self._bulletin_nodes: dict[str, TreeNode] = {}
 
     def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
         folder = event.node.data or str(event.node.label)
@@ -39,7 +37,7 @@ class FolderTree(Tree):
         else:
             self.post_message(self.FolderSelected(folder))
 
-    def update_counts(self, stats: dict[str, tuple[int, ...]]) -> None:
+    def update_counts(self, stats: dict) -> None:
         if not hasattr(self, "_inbox_node"):
             return  # called before on_mount(); nodes not yet created
         inbox_total, inbox_unread = stats.get("Inbox", (0, 0))
@@ -63,3 +61,25 @@ class FolderTree(Tree):
             self._outbox_node.set_label(Text("Outbox", style=Style()))
 
         self._sent_node.set_label(f"Sent ({sent_total})" if sent_total > 0 else "Sent")
+
+        # Dynamic bulletin category nodes
+        bulletin_stats: dict[str, tuple[int, int]] = stats.get("Bulletins", {})
+
+        # Add/update nodes for categories present in stats
+        for category, (total, unread) in bulletin_stats.items():
+            if category not in self._bulletin_nodes:
+                node = self._bulletins_node.add_leaf(category, data=category)
+                self._bulletin_nodes[category] = node
+            node = self._bulletin_nodes[category]
+            if total == 0 and unread == 0:
+                node.set_label(category)
+            elif unread == 0:
+                node.set_label(f"{category} ({total})")
+            else:
+                node.set_label(f"{category} ({total}/{unread} new)")
+
+        # Remove nodes for categories no longer in stats
+        for category in list(self._bulletin_nodes):
+            if category not in bulletin_stats:
+                self._bulletin_nodes[category].remove()
+                del self._bulletin_nodes[category]

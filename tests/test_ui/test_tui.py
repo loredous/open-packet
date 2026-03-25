@@ -263,3 +263,48 @@ def test_compose_bulletin_command_exists():
     from open_packet.ui.tui.screens.compose_bulletin import ComposeBulletinScreen
     from open_packet.engine.commands import PostBulletinCommand
     assert ComposeBulletinScreen is not None
+
+
+async def test_update_counts_bulletin_categories_dynamic(app_config, tmp_path):
+    """update_counts() creates and updates dynamic bulletin category nodes."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    iface = db.insert_interface(Interface(
+        label="Test", iface_type="kiss_tcp", host="localhost", port=8910
+    ))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        tree = app.query_one("FolderTree")
+
+        # Provide bulletin stats — WX with 3 total, 1 unread
+        tree.update_counts({
+            "Inbox": (0, 0), "Sent": (0,), "Outbox": (0,),
+            "Bulletins": {"WX": (3, 1), "NTS": (5, 0)},
+        })
+        # update_counts is synchronous; check immediately before pilot.pause()
+        # triggers _refresh_message_list which would reset nodes from DB state
+        assert "WX" in tree._bulletin_nodes
+        assert "NTS" in tree._bulletin_nodes
+        wx_label = str(tree._bulletin_nodes["WX"].label)
+        nts_label = str(tree._bulletin_nodes["NTS"].label)
+        assert "3" in wx_label and "1" in wx_label   # "WX (3/1 new)"
+        assert "5" in nts_label                       # "NTS (5)"
+        await pilot.pause()
+
+        # Remove NTS from stats — node should be removed
+        tree.update_counts({
+            "Inbox": (0, 0), "Sent": (0,), "Outbox": (0,),
+            "Bulletins": {"WX": (3, 1)},
+        })
+        assert "NTS" not in tree._bulletin_nodes
+        assert "WX" in tree._bulletin_nodes
+        await pilot.pause()
