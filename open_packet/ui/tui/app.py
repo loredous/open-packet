@@ -6,6 +6,7 @@ import queue
 from typing import Optional
 
 from textual.app import App
+from textual.css.query import NoMatches
 
 from open_packet.config.config import AppConfig, load_config
 from open_packet.engine.commands import (
@@ -62,6 +63,8 @@ class OpenPacketApp(App):
         self._selected_message = None
         self._store: Optional[Store] = None
         self._active_operator: Optional[Operator] = None
+        self._active_node: Optional[Node] = None
+        self._active_interface: Optional[Interface] = None
         self._active_folder = "Inbox"
         self._active_category = ""
         self._db: Optional[Database] = None
@@ -73,6 +76,7 @@ class OpenPacketApp(App):
         self._init_engine()
         self.set_interval(0.1, self._poll_events)
         self.call_after_refresh(self._refresh_message_list)
+        self.call_after_refresh(self._update_status_bar_identity)
 
     def _init_engine(self) -> None:
         db_path = os.path.expanduser(self.config.store.db_path)
@@ -86,11 +90,13 @@ class OpenPacketApp(App):
         node_record = db.get_default_node()
 
         if not operator:
+            self._update_status_bar_identity()
             self.call_after_refresh(
                 lambda: self.push_screen(OperatorSetupScreen(), callback=self._on_operator_setup_result)
             )
             return
         elif not node_record:
+            self._update_status_bar_identity()
             self.call_after_refresh(
                 lambda: self.push_screen(NodeSetupScreen(interfaces=self._db.list_interfaces(), db=self._db), callback=self._on_node_setup_result)
             )
@@ -104,10 +110,12 @@ class OpenPacketApp(App):
         self._active_operator = operator
 
         if node_record.interface_id is None:
+            self._update_status_bar_identity()
             return  # no interface configured; engine stays dormant
 
         iface = db.get_interface(node_record.interface_id)
         if iface is None:
+            self._update_status_bar_identity()
             return
 
         match iface.iface_type:
@@ -156,7 +164,10 @@ class OpenPacketApp(App):
             node=node,
             export_path=export_path,
         )
+        self._active_node = node_record
+        self._active_interface = iface
         self._engine.start()
+        self._update_status_bar_identity()
 
     def _restart_engine(self) -> None:
         if self._engine is not None:
@@ -166,8 +177,26 @@ class OpenPacketApp(App):
         self._engine = None
         self._store = None
         self._active_operator = None
+        self._active_node = None
+        self._active_interface = None
         self._db = None
+        self._update_status_bar_identity()
         self._init_engine()
+
+    def _update_status_bar_identity(self) -> None:
+        op = self._active_operator
+        node = self._active_node
+        iface = self._active_interface
+        try:
+            sb = self.query_one("StatusBar")
+        except NoMatches:
+            return
+        if op:
+            sb.operator = f"{op.callsign}-{op.ssid}" if op.ssid != 0 else op.callsign
+        else:
+            sb.operator = ""
+        sb.node = node.label if node else ""
+        sb.interface_label = iface.label if iface else ""
 
     def _save_operator(self, op: Operator) -> None:
         assert self._db is not None
