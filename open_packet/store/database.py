@@ -40,7 +40,7 @@ class Database:
                 self._conn.execute(sql)
                 self._conn.commit()
             except sqlite3.OperationalError:
-                pass
+                pass  # column already exists
 
     def close(self) -> None:
         if self._conn:
@@ -117,6 +117,8 @@ class Database:
                 body TEXT NOT NULL,
                 timestamp TEXT NOT NULL,
                 read INTEGER NOT NULL DEFAULT 0,
+                queued INTEGER NOT NULL DEFAULT 0,
+                sent INTEGER NOT NULL DEFAULT 0,
                 synced_at TEXT
             );
         """)
