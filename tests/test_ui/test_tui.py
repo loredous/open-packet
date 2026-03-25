@@ -256,3 +256,10 @@ async def test_status_bar_right_empty_when_no_operator(app_config, tmp_path):
         # The OperatorSetupScreen will be pushed, but we can still check the bar
         right = app.query_one("#status_right")
         assert _label_text(right) == ""
+
+
+def test_compose_bulletin_command_exists():
+    """Importing ComposeBulletinScreen succeeds and PostBulletinCommand is importable."""
+    from open_packet.ui.tui.screens.compose_bulletin import ComposeBulletinScreen
+    from open_packet.engine.commands import PostBulletinCommand
+    assert ComposeBulletinScreen is not None
