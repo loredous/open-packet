@@ -64,11 +64,11 @@ class Store:
     def list_outbox(self, operator_id: int) -> list[Message | Bulletin]:
         assert self._conn
         msg_rows = self._conn.execute(
-            "SELECT * FROM messages WHERE operator_id=? AND queued=1 AND sent=0 AND deleted=0 ORDER BY timestamp ASC",
+            "SELECT * FROM messages WHERE operator_id=? AND queued=1 AND sent=0 AND deleted=0",
             (operator_id,),
         ).fetchall()
         bul_rows = self._conn.execute(
-            "SELECT * FROM bulletins WHERE operator_id=? AND queued=1 AND sent=0 ORDER BY timestamp ASC",
+            "SELECT * FROM bulletins WHERE operator_id=? AND queued=1 AND sent=0",
             (operator_id,),
         ).fetchall()
         messages = [self._row_to_message(r) for r in msg_rows]
@@ -94,6 +94,11 @@ class Store:
         return [self._row_to_bulletin(r) for r in rows]
 
     def count_folder_stats(self, operator_id: int) -> dict[str, tuple | dict]:
+        # Return shape:
+        #   "Inbox":     (total: int, unread: int)
+        #   "Sent":      (total: int,)
+        #   "Outbox":    (total: int,)  — messages + bulletins combined
+        #   "Bulletins": dict[category: str, (total: int, unread: int)]
         assert self._conn
         row = self._conn.execute(
             """SELECT
