@@ -2,21 +2,12 @@
 from textual.app import App, ComposeResult
 from open_packet.ui.tui.widgets.status_bar import StatusBar
 from open_packet.engine.events import ConnectionStatus
+from tests.test_ui.conftest import _label_text
 
 
 class StatusBarApp(App):
     def compose(self) -> ComposeResult:
         yield StatusBar(id="status_bar")
-
-
-def _label_text(label) -> str:
-    """Return the text content of a Label, compatible across Textual versions.
-
-    Textual 0.x exposes ``label.renderable``; newer versions expose ``label.content``.
-    """
-    if hasattr(label, "renderable"):
-        return str(label.renderable)
-    return str(label.content)
 
 
 async def test_left_label_shows_emoji_and_app_name():

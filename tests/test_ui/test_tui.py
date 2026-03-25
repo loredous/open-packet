@@ -2,6 +2,7 @@
 import pytest
 from open_packet.ui.tui.app import OpenPacketApp
 from open_packet.config.config import AppConfig, StoreConfig, UIConfig
+from tests.test_ui.conftest import _label_text
 
 
 @pytest.fixture
@@ -197,14 +198,6 @@ async def test_update_counts_outbox_cleared(app_config, tmp_path):
         assert label.style.bgcolor is None
 
 
-def _label_text(label) -> str:
-    """Return the text content of a Label, compatible across Textual versions."""
-    if hasattr(label, "renderable"):
-        return str(label.renderable)
-    return str(label.content)
-
-
-@pytest.mark.asyncio
 async def test_status_bar_shows_operator_node_interface(app_config, tmp_path):
     """After mounting with full config, status bar right section shows callsign, node, interface."""
     from open_packet.store.database import Database
@@ -231,7 +224,6 @@ async def test_status_bar_shows_operator_node_interface(app_config, tmp_path):
         assert "Home TNC" in text
 
 
-@pytest.mark.asyncio
 async def test_status_bar_shows_ssid_when_nonzero(app_config, tmp_path):
     """Operator with ssid>0 is shown as callsign-ssid."""
     from open_packet.store.database import Database
@@ -255,7 +247,6 @@ async def test_status_bar_shows_ssid_when_nonzero(app_config, tmp_path):
         assert "W1AW-3" in _label_text(right)
 
 
-@pytest.mark.asyncio
 async def test_status_bar_right_empty_when_no_operator(app_config, tmp_path):
     """When no operator is configured, the right section of the status bar is empty."""
     # Don't insert any operator — DB is empty

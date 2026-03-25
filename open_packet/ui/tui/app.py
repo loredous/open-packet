@@ -110,11 +110,15 @@ class OpenPacketApp(App):
         self._active_operator = operator
 
         if node_record.interface_id is None:
+            self._active_node = None
+            self._active_interface = None
             self._update_status_bar_identity()
             return  # no interface configured; engine stays dormant
 
         iface = db.get_interface(node_record.interface_id)
         if iface is None:
+            self._active_node = None
+            self._active_interface = None
             self._update_status_bar_identity()
             return
 
