@@ -164,4 +164,5 @@ class Store:
             read=bool(row["read"]),
             queued=bool(row["queued"]),
             sent=bool(row["sent"]),
+            synced_at=datetime.fromisoformat(row["synced_at"]) if row["synced_at"] else None,
         )
