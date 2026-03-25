@@ -433,3 +433,144 @@ def test_row_to_bulletin_maps_queued_sent(store):
     fetched = s._get_bulletin(saved.id)
     assert fetched.queued is True
     assert fetched.sent is False
+
+
+def test_list_bulletins_excludes_queued(store):
+    """list_bulletins() does not return outgoing (queued) bulletins."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    s.save_bulletin(Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="BBS-001",
+        category="WX", from_call="W0TEST", subject="Received",
+        body="Body", timestamp=datetime.now(timezone.utc),
+    ))
+    s.save_bulletin(Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="OUT-aabb",
+        category="WX", from_call="KD9ABC", subject="Outgoing",
+        body="Body", timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+    bulletins = s.list_bulletins(operator_id=op.id)
+    assert len(bulletins) == 1
+    assert bulletins[0].subject == "Received"
+
+
+def test_list_outbox_includes_bulletins(store):
+    """list_outbox() returns both queued messages and queued bulletins."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    from open_packet.store.models import Message
+    s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC", to_call="W0TEST", subject="Msg",
+        body="Body", timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+    s.save_bulletin(Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="OUT-aabb",
+        category="WX", from_call="KD9ABC", subject="Bul",
+        body="Body", timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+    outbox = s.list_outbox(operator_id=op.id)
+    assert len(outbox) == 2
+    subjects = {item.subject for item in outbox}
+    assert "Msg" in subjects
+    assert "Bul" in subjects
+
+
+def test_list_outbox_messages_only(store):
+    """list_outbox_messages() returns only Message objects."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    from open_packet.store.models import Message
+    s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC", to_call="W0TEST", subject="Msg",
+        body="Body", timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+    s.save_bulletin(Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="OUT-aabb",
+        category="WX", from_call="KD9ABC", subject="Bul",
+        body="Body", timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+    msgs = s.list_outbox_messages(operator_id=op.id)
+    assert len(msgs) == 1
+    assert isinstance(msgs[0], Message)
+    assert msgs[0].subject == "Msg"
+
+
+def test_list_outbox_bulletins_only(store):
+    """list_outbox_bulletins() returns only Bulletin objects."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    from open_packet.store.models import Message
+    s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC", to_call="W0TEST", subject="Msg",
+        body="Body", timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+    s.save_bulletin(Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="OUT-aabb",
+        category="WX", from_call="KD9ABC", subject="Bul",
+        body="Body", timestamp=datetime.now(timezone.utc),
+        queued=True,
+    ))
+    buls = s.list_outbox_bulletins(operator_id=op.id)
+    assert len(buls) == 1
+    assert isinstance(buls[0], Bulletin)
+    assert buls[0].subject == "Bul"
+
+
+def test_count_folder_stats_includes_bulletin_counts(store):
+    """count_folder_stats() returns per-category bulletin counts under 'Bulletins' key."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    s.save_bulletin(Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="B001",
+        category="WX", from_call="W0TEST", subject="WX1",
+        body="Body", timestamp=datetime.now(timezone.utc), read=True,
+    ))
+    s.save_bulletin(Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="B002",
+        category="WX", from_call="W0TEST", subject="WX2",
+        body="Body", timestamp=datetime.now(timezone.utc), read=False,
+    ))
+    s.save_bulletin(Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="B003",
+        category="NTS", from_call="W0TEST", subject="NTS1",
+        body="Body", timestamp=datetime.now(timezone.utc), read=False,
+    ))
+    s.save_bulletin(Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="OUT-xx",
+        category="WX", from_call="KD9ABC", subject="Out",
+        body="Body", timestamp=datetime.now(timezone.utc), queued=True,
+    ))
+    stats = s.count_folder_stats(op.id)
+    assert "Bulletins" in stats
+    wx = stats["Bulletins"]["WX"]
+    nts = stats["Bulletins"]["NTS"]
+    assert wx == (2, 1)
+    assert nts == (1, 1)
+
+
+def test_count_folder_stats_outbox_includes_queued_bulletins(store):
+    """Outbox count includes both queued messages and queued bulletins."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    from open_packet.store.models import Message
+    s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC", to_call="W0TEST", subject="Msg",
+        body="Body", timestamp=datetime.now(timezone.utc), queued=True,
+    ))
+    s.save_bulletin(Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="OUT-aabb",
+        category="WX", from_call="KD9ABC", subject="Bul",
+        body="Body", timestamp=datetime.now(timezone.utc), queued=True,
+    ))
+    stats = s.count_folder_stats(op.id)
+    assert stats["Outbox"] == (2,)

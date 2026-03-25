@@ -61,7 +61,23 @@ class Store:
         rows = self._conn.execute(query, params).fetchall()
         return [self._row_to_message(r) for r in rows]
 
-    def list_outbox(self, operator_id: int) -> list[Message]:
+    def list_outbox(self, operator_id: int) -> list[Message | Bulletin]:
+        assert self._conn
+        msg_rows = self._conn.execute(
+            "SELECT * FROM messages WHERE operator_id=? AND queued=1 AND sent=0 AND deleted=0 ORDER BY timestamp ASC",
+            (operator_id,),
+        ).fetchall()
+        bul_rows = self._conn.execute(
+            "SELECT * FROM bulletins WHERE operator_id=? AND queued=1 AND sent=0 ORDER BY timestamp ASC",
+            (operator_id,),
+        ).fetchall()
+        messages = [self._row_to_message(r) for r in msg_rows]
+        bulletins = [self._row_to_bulletin(r) for r in bul_rows]
+        combined: list[Message | Bulletin] = messages + bulletins
+        combined.sort(key=lambda x: x.timestamp)
+        return combined
+
+    def list_outbox_messages(self, operator_id: int) -> list[Message]:
         assert self._conn
         rows = self._conn.execute(
             "SELECT * FROM messages WHERE operator_id=? AND queued=1 AND sent=0 AND deleted=0 ORDER BY timestamp ASC",
@@ -69,21 +85,48 @@ class Store:
         ).fetchall()
         return [self._row_to_message(r) for r in rows]
 
-    def count_folder_stats(self, operator_id: int) -> dict[str, tuple[int, ...]]:
+    def list_outbox_bulletins(self, operator_id: int) -> list[Bulletin]:
+        assert self._conn
+        rows = self._conn.execute(
+            "SELECT * FROM bulletins WHERE operator_id=? AND queued=1 AND sent=0 ORDER BY timestamp ASC",
+            (operator_id,),
+        ).fetchall()
+        return [self._row_to_bulletin(r) for r in rows]
+
+    def count_folder_stats(self, operator_id: int) -> dict[str, tuple | dict]:
         assert self._conn
         row = self._conn.execute(
             """SELECT
                    COALESCE(SUM(CASE WHEN queued=0 AND sent=0 AND deleted=0            THEN 1 ELSE 0 END), 0) AS inbox_total,
                    COALESCE(SUM(CASE WHEN queued=0 AND sent=0 AND deleted=0 AND read=0 THEN 1 ELSE 0 END), 0) AS inbox_unread,
                    COALESCE(SUM(CASE WHEN sent=1 AND deleted=0                         THEN 1 ELSE 0 END), 0) AS sent_total,
-                   COALESCE(SUM(CASE WHEN queued=1 AND sent=0 AND deleted=0            THEN 1 ELSE 0 END), 0) AS outbox_count
+                   COALESCE(SUM(CASE WHEN queued=1 AND sent=0 AND deleted=0            THEN 1 ELSE 0 END), 0) AS msg_outbox
                FROM messages WHERE operator_id=?""",
             (operator_id,),
         ).fetchone()
+        bul_outbox_row = self._conn.execute(
+            "SELECT COUNT(*) AS cnt FROM bulletins WHERE operator_id=? AND queued=1 AND sent=0",
+            (operator_id,),
+        ).fetchone()
+        outbox_count = row["msg_outbox"] + bul_outbox_row["cnt"]
+
+        bul_rows = self._conn.execute(
+            """SELECT category,
+                      COUNT(*) AS total,
+                      SUM(CASE WHEN read=0 THEN 1 ELSE 0 END) AS unread
+               FROM bulletins WHERE operator_id=? AND queued=0
+               GROUP BY category""",
+            (operator_id,),
+        ).fetchall()
+        bulletins_stats: dict[str, tuple[int, int]] = {
+            r["category"]: (r["total"], r["unread"]) for r in bul_rows
+        }
+
         return {
-            "Inbox":  (row["inbox_total"], row["inbox_unread"]),
-            "Sent":   (row["sent_total"],),
-            "Outbox": (row["outbox_count"],),
+            "Inbox":     (row["inbox_total"], row["inbox_unread"]),
+            "Sent":      (row["sent_total"],),
+            "Outbox":    (outbox_count,),
+            "Bulletins": bulletins_stats,
         }
 
     def mark_message_read(self, id: int) -> None:
@@ -129,7 +172,7 @@ class Store:
 
     def list_bulletins(self, operator_id: int, category: Optional[str] = None) -> list[Bulletin]:
         assert self._conn
-        query = "SELECT * FROM bulletins WHERE operator_id=?"
+        query = "SELECT * FROM bulletins WHERE operator_id=? AND queued=0"
         params: list = [operator_id]
         if category:
             query += " AND category=?"
