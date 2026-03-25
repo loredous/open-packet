@@ -574,3 +574,35 @@ def test_count_folder_stats_outbox_includes_queued_bulletins(store):
     ))
     stats = s.count_folder_stats(op.id)
     assert stats["Outbox"] == (2,)
+
+
+def test_mark_bulletin_sent(store):
+    """mark_bulletin_sent() sets sent=1 for the bulletin."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="OUT-abc",
+        category="WX", from_call="KD9ABC", subject="Test",
+        body="Body", timestamp=datetime.now(timezone.utc),
+        queued=True, sent=False,
+    )
+    saved = s.save_bulletin(bul)
+    assert saved.sent is False
+    s.mark_bulletin_sent(saved.id)
+    fetched = s._get_bulletin(saved.id)
+    assert fetched.sent is True
+
+
+def test_bulletin_exists(store):
+    """bulletin_exists() returns True only when bbs_id+node_id exists in DB."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="BBS-999",
+        category="WX", from_call="W0TEST", subject="Test",
+        body="Body", timestamp=datetime.now(timezone.utc),
+    )
+    assert s.bulletin_exists("BBS-999", node.id) is False
+    s.save_bulletin(bul)
+    assert s.bulletin_exists("BBS-999", node.id) is True
+    assert s.bulletin_exists("BBS-999", node.id + 1) is False

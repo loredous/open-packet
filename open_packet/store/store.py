@@ -214,3 +214,16 @@ class Store:
             sent=bool(row["sent"]),
             synced_at=datetime.fromisoformat(row["synced_at"]) if row["synced_at"] else None,
         )
+
+    def mark_bulletin_sent(self, id: int) -> None:
+        assert self._conn
+        self._conn.execute("UPDATE bulletins SET sent=1 WHERE id=?", (id,))
+        self._conn.commit()
+
+    def bulletin_exists(self, bbs_id: str, node_id: int) -> bool:
+        assert self._conn
+        row = self._conn.execute(
+            "SELECT id FROM bulletins WHERE bbs_id=? AND node_id=?",
+            (bbs_id, node_id),
+        ).fetchone()
+        return row is not None
