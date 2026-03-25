@@ -68,5 +68,7 @@ class Bulletin:
     body: str
     timestamp: datetime
     read: bool = False
+    queued: bool = False
+    sent: bool = False
     id: Optional[int] = None
     synced_at: Optional[datetime] = None

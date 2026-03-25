@@ -32,6 +32,16 @@ class Database:
         except sqlite3.OperationalError:
             pass  # column already exists
 
+        for sql in [
+            "ALTER TABLE bulletins ADD COLUMN queued INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE bulletins ADD COLUMN sent INTEGER NOT NULL DEFAULT 0",
+        ]:
+            try:
+                self._conn.execute(sql)
+                self._conn.commit()
+            except sqlite3.OperationalError:
+                pass
+
     def close(self) -> None:
         if self._conn:
             self._conn.close()

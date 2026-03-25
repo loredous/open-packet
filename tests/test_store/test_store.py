@@ -356,3 +356,33 @@ def test_migration_adds_queued_column_to_existing_db():
     db2.close()
     os.unlink(f.name)
     assert "queued" in cols
+
+
+def test_migration_adds_queued_sent_columns_to_bulletins():
+    """DB.initialize() on an existing bulletins table adds queued and sent columns."""
+    import sqlite3
+    f = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    f.close()
+    try:
+        # Create old schema without queued/sent
+        conn = sqlite3.connect(f.name)
+        conn.execute("""CREATE TABLE bulletins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            operator_id INTEGER, node_id INTEGER, bbs_id TEXT,
+            category TEXT, from_call TEXT, subject TEXT, body TEXT,
+            timestamp TEXT, read INTEGER NOT NULL DEFAULT 0,
+            synced_at TEXT
+        )""")
+        conn.commit()
+        conn.close()
+
+        db = Database(f.name)
+        db.initialize()
+        conn2 = sqlite3.connect(f.name)
+        cols = [r[1] for r in conn2.execute("PRAGMA table_info(bulletins)").fetchall()]
+        conn2.close()
+        db.close()
+        assert "queued" in cols
+        assert "sent" in cols
+    finally:
+        os.unlink(f.name)
