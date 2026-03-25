@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 from datetime import datetime, timezone
 
 from open_packet.engine.engine import Engine
-from open_packet.engine.commands import CheckMailCommand, DisconnectCommand, SendMessageCommand
+from open_packet.engine.commands import CheckMailCommand, DisconnectCommand, SendMessageCommand, PostBulletinCommand
 from open_packet.engine.events import (
     ConnectionStatusEvent, SyncCompleteEvent, ErrorEvent, ConnectionStatus,
     MessageQueuedEvent,
@@ -228,3 +228,78 @@ def test_multiple_compose_actions_each_queued(db_and_store):
 
     engine.stop()
     assert len(store.list_outbox(op.id)) == 3
+
+
+def test_engine_do_post_bulletin_saves_to_outbox(db_and_store):
+    """PostBulletinCommand saves a queued Bulletin to the store outbox."""
+    db, store, op, node_record = db_and_store
+    mock_node = make_mock_node()
+    mock_connection = MagicMock()
+
+    cmd_queue = queue.Queue()
+    evt_queue = queue.Queue()
+    engine = Engine(
+        command_queue=cmd_queue, event_queue=evt_queue,
+        store=store, operator=op, node_record=node_record,
+        connection=mock_connection, node=mock_node,
+    )
+    engine.start()
+    cmd_queue.put(PostBulletinCommand(category="WX", subject="WX Report", body="Sunny."))
+
+    events = []
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        try:
+            events.append(evt_queue.get(timeout=0.5))
+        except queue.Empty:
+            break
+    engine.stop()
+
+    assert any(isinstance(e, MessageQueuedEvent) for e in events)
+    outbox = store.list_outbox_bulletins(op.id)
+    assert len(outbox) == 1
+    assert outbox[0].category == "WX"
+    assert outbox[0].queued is True
+    assert outbox[0].sent is False
+
+
+def test_engine_check_mail_retrieves_bulletins(db_and_store):
+    """_do_check_mail() phase 4 saves retrieved bulletins and reports count."""
+    db, store, op, node_record = db_and_store
+    mock_node = make_mock_node(
+        bulletins=[
+            MessageHeader(bbs_id="BUL-1", to_call="WX", from_call="W0WX", subject="WX Alert"),
+        ]
+    )
+    mock_node.read_bulletin.return_value = NodeMessage(
+        header=mock_node.list_bulletins.return_value[0],
+        body="Tornado watch.",
+    )
+    mock_connection = MagicMock()
+
+    cmd_queue = queue.Queue()
+    evt_queue = queue.Queue()
+    engine = Engine(
+        command_queue=cmd_queue, event_queue=evt_queue,
+        store=store, operator=op, node_record=node_record,
+        connection=mock_connection, node=mock_node,
+    )
+    engine.start()
+    cmd_queue.put(CheckMailCommand())
+
+    events = []
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        try:
+            events.append(evt_queue.get(timeout=0.5))
+        except queue.Empty:
+            break
+    engine.stop()
+
+    sync_events = [e for e in events if isinstance(e, SyncCompleteEvent)]
+    assert sync_events
+    assert sync_events[0].bulletins_retrieved == 1
+    bulletins = store.list_bulletins(op.id)
+    assert len(bulletins) == 1
+    assert bulletins[0].bbs_id == "BUL-1"
+    assert bulletins[0].category == "WX"

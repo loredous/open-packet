@@ -8,7 +8,7 @@ from typing import Optional
 
 from open_packet.engine.commands import (
     Command, CheckMailCommand, ConnectCommand, DisconnectCommand,
-    SendMessageCommand, DeleteMessageCommand,
+    SendMessageCommand, DeleteMessageCommand, PostBulletinCommand,
 )
 from open_packet.engine.events import (
     ConnectionStatusEvent, ConnectionStatus, MessageReceivedEvent,
@@ -93,6 +93,8 @@ class Engine:
             self._do_send_message(cmd)
         elif isinstance(cmd, DeleteMessageCommand):
             self._do_delete_message(cmd)
+        elif isinstance(cmd, PostBulletinCommand):
+            self._do_post_bulletin(cmd)
         elif isinstance(cmd, ConnectCommand):
             self._do_connect()
         elif isinstance(cmd, DisconnectCommand):
@@ -149,20 +151,54 @@ class Engine:
                         subject=header.subject,
                     ))
 
-            # Send queued outbound messages
+            # Phase 2: Send queued outbound messages
             sent = 0
-            outbound = self._store.list_outbox(self._operator.id)
+            outbound = self._store.list_outbox_messages(self._operator.id)
             for m in outbound:
                 self._emit(ConsoleEvent(">", f"Sending to {m.to_call}: {m.subject}"))
                 self._node.send_message(m.to_call, m.subject, m.body)
                 self._store.mark_message_sent(m.id)
                 sent += 1
 
+            # Phase 3: Send queued bulletins
+            pending_bulletins = self._store.list_outbox_bulletins(self._operator.id)
+            for bul in pending_bulletins:
+                self._emit(ConsoleEvent(">", f"Posting bulletin to {bul.category}: {bul.subject}"))
+                self._node.post_bulletin(bul.category, bul.subject, bul.body)
+                self._store.mark_bulletin_sent(bul.id)
+
+            # Phase 4: Retrieve bulletins
+            bulletin_headers = self._node.list_bulletins()
+            bulletins_retrieved = 0
+            for header in bulletin_headers:
+                if self._store.bulletin_exists(header.bbs_id, self._node_record.id):
+                    continue
+                try:
+                    raw = self._node.read_bulletin(header.bbs_id)
+                except Exception:
+                    logger.exception("Failed to read bulletin %s", header.bbs_id)
+                    self._emit(ConsoleEvent("!", f"Failed to read bulletin {header.bbs_id}"))
+                    continue
+                bulletin = Bulletin(
+                    operator_id=self._operator.id,
+                    node_id=self._node_record.id,
+                    bbs_id=header.bbs_id,
+                    category=header.to_call,
+                    from_call=header.from_call,
+                    subject=header.subject,
+                    body=raw.body,
+                    timestamp=datetime.now(timezone.utc),
+                )
+                self._store.save_bulletin(bulletin)
+                bulletins_retrieved += 1
+                self._emit(ConsoleEvent("<", f"[{header.bbs_id}] {header.subject} from {header.from_call}"))
+
             self._last_sync = datetime.now(timezone.utc)
             self._messages_last_sync = retrieved
             self._emit(SyncCompleteEvent(
                 messages_retrieved=retrieved,
                 messages_sent=sent,
+                bulletins_retrieved=bulletins_retrieved,
             ))
         finally:
             self._connection.disconnect()
@@ -186,3 +222,20 @@ class Engine:
 
     def _do_delete_message(self, cmd: DeleteMessageCommand) -> None:
         self._store.delete_message(cmd.message_id)
+
+    def _do_post_bulletin(self, cmd: PostBulletinCommand) -> None:
+        from uuid import uuid4
+        bulletin = Bulletin(
+            operator_id=self._operator.id,
+            node_id=self._node_record.id,
+            bbs_id=f"OUT-{uuid4().hex[:8]}",
+            category=cmd.category,
+            from_call=self._operator.callsign,
+            subject=cmd.subject,
+            body=cmd.body,
+            timestamp=datetime.now(timezone.utc),
+            queued=True,
+            sent=False,
+        )
+        self._store.save_bulletin(bulletin)
+        self._emit(MessageQueuedEvent())
