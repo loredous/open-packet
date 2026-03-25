@@ -386,3 +386,50 @@ def test_migration_adds_queued_sent_columns_to_bulletins():
         assert "sent" in cols
     finally:
         os.unlink(f.name)
+
+
+def test_save_bulletin_queued_skips_dedup(store):
+    """Outgoing bulletins (queued=True) are always inserted fresh, not deduped."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="OUT-aabbccdd",
+        category="WX", from_call="KD9ABC", subject="WX Report",
+        body="Sunny.", timestamp=datetime.now(timezone.utc),
+        queued=True, sent=False,
+    )
+    b1 = s.save_bulletin(bul)
+    b2 = s.save_bulletin(bul)   # second save of same bbs_id
+    assert b1.id != b2.id       # both inserted (no dedup)
+    assert b1.queued is True
+    assert b1.sent is False
+
+
+def test_save_bulletin_received_deduplicates(store):
+    """Received bulletins (queued=False) are deduped by bbs_id + node_id."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="BBS-001",
+        category="NTS", from_call="W0TEST", subject="NTS msg",
+        body="Test.", timestamp=datetime.now(timezone.utc),
+    )
+    b1 = s.save_bulletin(bul)
+    b2 = s.save_bulletin(bul)
+    assert b1.id == b2.id   # deduped
+
+
+def test_row_to_bulletin_maps_queued_sent(store):
+    """Bulletins retrieved from DB have queued/sent fields correctly mapped."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="OUT-xyz",
+        category="WX", from_call="KD9ABC", subject="Test",
+        body="Body.", timestamp=datetime.now(timezone.utc),
+        queued=True, sent=False,
+    )
+    saved = s.save_bulletin(bul)
+    fetched = s._get_bulletin(saved.id)
+    assert fetched.queued is True
+    assert fetched.sent is False

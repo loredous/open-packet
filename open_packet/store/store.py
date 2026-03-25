@@ -103,23 +103,25 @@ class Store:
 
     def save_bulletin(self, bul: Bulletin) -> Bulletin:
         assert self._conn
-        existing = self._conn.execute(
-            "SELECT id FROM bulletins WHERE bbs_id=? AND node_id=?",
-            (bul.bbs_id, bul.node_id),
-        ).fetchone()
-        if existing:
-            return self._get_bulletin(existing["id"])  # type: ignore
+        if not bul.queued:
+            existing = self._conn.execute(
+                "SELECT id FROM bulletins WHERE bbs_id=? AND node_id=?",
+                (bul.bbs_id, bul.node_id),
+            ).fetchone()
+            if existing:
+                return self._get_bulletin(existing["id"])  # type: ignore
 
         cur = self._conn.execute(
             """INSERT INTO bulletins
                (operator_id, node_id, bbs_id, category, from_call, subject, body,
-                timestamp, read, synced_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                timestamp, read, queued, sent, synced_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 bul.operator_id, bul.node_id, bul.bbs_id, bul.category,
                 bul.from_call, bul.subject, bul.body,
                 bul.timestamp.isoformat(), int(bul.read),
-                datetime.now(timezone.utc).isoformat(),
+                int(bul.queued), int(bul.sent),
+                None if bul.queued else datetime.now(timezone.utc).isoformat(),
             ),
         )
         self._conn.commit()
@@ -160,4 +162,6 @@ class Store:
             subject=row["subject"], body=row["body"],
             timestamp=datetime.fromisoformat(row["timestamp"]),
             read=bool(row["read"]),
+            queued=bool(row["queued"]),
+            sent=bool(row["sent"]),
         )
