@@ -845,13 +845,28 @@ git commit -m "feat: add PostBulletinCommand and bulletins_retrieved to SyncComp
 
 - [ ] **Step 1: Write failing behavior tests**
 
-Add to `tests/test_engine/test_engine.py`. The file already has `db_and_store` and `make_mock_node` fixtures and imports — add these tests at the bottom:
+Add to `tests/test_engine/test_engine.py`. The file already has `db_and_store` and `make_mock_node` fixtures and imports.
+
+First, add `PostBulletinCommand` to the existing module-level command import (around line 11):
+
+```python
+from open_packet.engine.commands import CheckMailCommand, DisconnectCommand, SendMessageCommand, PostBulletinCommand
+```
+
+Also add `MessageQueuedEvent` to the existing events import if not already present:
+
+```python
+from open_packet.engine.events import (
+    ConnectionStatusEvent, SyncCompleteEvent, ErrorEvent, ConnectionStatus,
+    MessageQueuedEvent,
+)
+```
+
+Then add these tests at the bottom:
 
 ```python
 def test_engine_do_post_bulletin_saves_to_outbox(db_and_store):
     """PostBulletinCommand saves a queued Bulletin to the store outbox."""
-    from open_packet.engine.commands import PostBulletinCommand
-    from open_packet.engine.events import MessageQueuedEvent
     db, store, op, node_record = db_and_store
     mock_node = make_mock_node()
     mock_connection = MagicMock()
@@ -1035,10 +1050,10 @@ In `_do_check_mail()`, replace the message send block and the `SyncCompleteEvent
             ))
 ```
 
-- [ ] **Step 7: Run test to confirm it passes**
+- [ ] **Step 7: Run tests to confirm they pass**
 
 ```bash
-uv run pytest -k "test_engine_has_post_bulletin_method" -v
+uv run pytest tests/test_engine/test_engine.py::test_engine_do_post_bulletin_saves_to_outbox tests/test_engine/test_engine.py::test_engine_check_mail_retrieves_bulletins -v
 ```
 
 Expected: PASS
