@@ -29,8 +29,8 @@ class TelnetLink(ConnectionBase):
         self._password = password
         self._sock: socket.socket | None = None
 
-    def connect(self, callsign: str, ssid: int) -> None:
-        """Connect to Telnet BPQ node and log in. callsign/ssid are ignored."""
+    def connect(self, callsign: str, ssid: int, via_path=None) -> None:
+        """Connect to Telnet BPQ node and log in. callsign/ssid/via_path are ignored."""
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(TIMEOUT)
         try:

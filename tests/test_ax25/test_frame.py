@@ -5,6 +5,7 @@ from open_packet.ax25.frame import (
     is_i_frame, is_s_frame, is_u_frame, u_frame_type,
     U_SABM, U_UA, U_DISC, U_DM, P_BIT,
 )
+from open_packet.ax25.address import decode_address
 
 
 # --- Frame type identification ---
@@ -132,3 +133,33 @@ def test_decode_rr():
     assert f.frame_type == FrameType.RR
     assert f.nr == 5
     assert f.poll_final is True
+
+
+# --- VIA address encoding ---
+
+def test_encode_sabm_no_via():
+    """Baseline: 14-byte address field, last bit set on source."""
+    raw = encode_sabm("W0BPQ", 1, "KD9ABC", 0)
+    src = decode_address(raw[7:14])
+    assert src.last is True
+    assert len(raw) == 15  # 14-byte addr + 1-byte ctrl
+
+def test_encode_sabm_with_via():
+    """With one VIA hop: 21-byte address field, source last=False, VIA last=True."""
+    raw = encode_sabm("W0BPQ", 1, "KD9ABC", 0, via=[("W0RLY", 1)])
+    assert len(raw) == 22  # 21-byte addr + 1 ctrl
+    src = decode_address(raw[7:14])
+    assert src.last is False
+    via = decode_address(raw[14:21])
+    assert via.callsign.strip() == "W0RLY"
+    assert via.ssid == 1
+    assert via.last is True
+
+def test_encode_sabm_with_two_via():
+    """Two VIA hops: first VIA last=False, second VIA last=True."""
+    raw = encode_sabm("W0BPQ", 1, "KD9ABC", 0, via=[("W0R1", 0), ("W0R2", 0)])
+    assert len(raw) == 29  # 28-byte addr + 1 ctrl
+    v1 = decode_address(raw[14:21])
+    v2 = decode_address(raw[21:28])
+    assert v1.last is False
+    assert v2.last is True

@@ -4,7 +4,9 @@ from open_packet.ax25.frame import (
     encode_ua, encode_dm, encode_disc, encode_i_frame, encode_rr,
     decode_frame, FrameType,
 )
+from open_packet.ax25.address import decode_address
 from open_packet.link.base import ConnectionError as AXConnError
+from open_packet.store.models import NodeHop
 
 
 # --- Mock KISSLink ---
@@ -15,7 +17,7 @@ class MockKISS:
         self._rx: list[bytes] = []
         self.connected = False
 
-    def connect(self, callsign, ssid):
+    def connect(self, callsign, ssid, via_path=None):
         self.connected = True
 
     def disconnect(self):
@@ -213,3 +215,23 @@ def test_disconnect_enters_disconnected_state():
     ))
     conn.disconnect()
     assert conn.state == LinkState.DISCONNECTED
+
+
+# --- VIA path encoding ---
+
+def test_connect_with_via_path_encodes_via_in_sabm():
+    kiss = MockKISS()
+    conn = AX25Connection(kiss=kiss, my_callsign=MY_CALL, my_ssid=MY_SSID)
+    # Inject UA to satisfy the handshake
+    ua = encode_ua(MY_CALL, MY_SSID, DEST_CALL, DEST_SSID, final=True)
+    kiss.inject(ua)
+    via = [NodeHop(callsign="W0RLY-1")]
+    conn.connect(DEST_CALL, DEST_SSID, via_path=via)
+    sabm_raw = kiss.sent[0]
+    # Address field should be 21 bytes (dest 7 + src 7 + via 7)
+    src_addr = decode_address(sabm_raw[7:14])
+    assert src_addr.last is False  # source not last when via present
+    via_addr = decode_address(sabm_raw[14:21])
+    assert via_addr.callsign.strip() == "W0RLY"
+    assert via_addr.ssid == 1
+    assert via_addr.last is True

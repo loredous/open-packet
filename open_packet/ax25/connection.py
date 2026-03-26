@@ -14,6 +14,17 @@ from open_packet.ax25.frame import (
 from open_packet.ax25.timer import Timer
 from open_packet.link.base import ConnectionBase, ConnectionError
 
+
+def _split_callsign(s: str) -> tuple[str, int]:
+    """Split 'W0RELAY-1' → ('W0RELAY', 1). No dash → ssid 0."""
+    if "-" in s:
+        call, ssid_str = s.rsplit("-", 1)
+        try:
+            return call.upper(), int(ssid_str)
+        except ValueError:
+            pass
+    return s.upper(), 0
+
 logger = logging.getLogger(__name__)
 
 # AX.25 v2.2 defaults (§6.7)
@@ -82,15 +93,21 @@ class AX25Connection(ConnectionBase):
         # Unacknowledged I-frames for retransmission: seq_num → payload
         self._unacked: dict[int, bytes] = {}
 
+        # VIA path for SABM (list of (callsign, ssid) tuples or None)
+        self._via = None
+
     # ------------------------------------------------------------------ #
     # ConnectionBase interface                                             #
     # ------------------------------------------------------------------ #
 
-    def connect(self, callsign: str, ssid: int) -> None:
+    def connect(self, callsign: str, ssid: int, via_path=None) -> None:
         self._dest_call = callsign
         self._dest_ssid = ssid
         self._kiss.connect(callsign, ssid)
-        self._establish_data_link()
+        via_tuples = None
+        if via_path:
+            via_tuples = [_split_callsign(h.callsign) for h in via_path]
+        self._establish_data_link(via=via_tuples)
 
     def disconnect(self) -> None:
         if self.state not in (LinkState.CONNECTED, LinkState.TIMER_RECOVERY):
@@ -127,11 +144,12 @@ class AX25Connection(ConnectionBase):
     # Internal: connection setup                                           #
     # ------------------------------------------------------------------ #
 
-    def _establish_data_link(self) -> None:
+    def _establish_data_link(self, via=None) -> None:
+        self._via = via  # store for retry
         self.state = LinkState.AWAITING_CONNECTION
         self.RC = 0
         self._clear_exception_conditions()
-        self._send_sabm(poll=True)
+        self._send_sabm(poll=True, via=via)
         self._t1.start(self._t1_timeout)
 
         deadline = time.monotonic() + self._t1_timeout * (self._n2 + 1)
@@ -145,7 +163,7 @@ class AX25Connection(ConnectionBase):
                             f"No UA after {self._n2} SABM attempts"
                         )
                     self.RC += 1
-                    self._send_sabm(poll=True)
+                    self._send_sabm(poll=True, via=via)
                     self._t1.start(self._t1_timeout)
                 continue
 
@@ -332,11 +350,11 @@ class AX25Connection(ConnectionBase):
     # Internal: frame senders                                              #
     # ------------------------------------------------------------------ #
 
-    def _send_sabm(self, poll: bool = True) -> None:
+    def _send_sabm(self, poll: bool = True, via=None) -> None:
         raw = encode_sabm(self._dest_call, self._dest_ssid,
-                          self._my_call, self._my_ssid, poll=poll)
+                          self._my_call, self._my_ssid, poll=poll, via=via)
         self._kiss.send_frame(raw)
-        logger.debug("→ SABM (P=%s)", poll)
+        logger.debug("→ SABM (P=%s, via=%s)", poll, via)
 
     def _send_ua(self, final: bool = True) -> None:
         raw = encode_ua(self._dest_call, self._dest_ssid,

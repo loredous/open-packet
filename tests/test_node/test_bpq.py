@@ -39,7 +39,7 @@ class MockConn:
         self._responses = list(responses)
         self.sent: list[bytes] = []
 
-    def connect(self, callsign, ssid): pass
+    def connect(self, callsign, ssid, via_path=None): pass
     def disconnect(self): pass
     def send_frame(self, data: bytes): self.sent.append(data)
     def receive_frame(self, timeout=5.0) -> bytes:
@@ -91,3 +91,20 @@ def test_node_base_has_post_bulletin():
     """NodeBase declares post_bulletin as abstract."""
     abstract_methods = getattr(NodeBase, '__abstractmethods__', set())
     assert 'post_bulletin' in abstract_methods
+
+
+def test_post_bulletin_sends_correct_frames():
+    """post_bulletin sends SB {category}, subject, body lines, then /EX."""
+    conn = MockConn(responses=[
+        b"Subject: BPQ>",
+        b"Body: BPQ>",
+        b"BPQ>",
+    ])
+    node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
+                   my_callsign="KD9ABC", my_ssid=0)
+    node.post_bulletin("WX", "Storm warning", "Heavy rain\nHigh winds")
+    assert conn.sent[0] == b"SB WX\r"
+    assert conn.sent[1] == b"Storm warning\r"
+    assert conn.sent[2] == b"Heavy rain\r"
+    assert conn.sent[3] == b"High winds\r"
+    assert conn.sent[4] == b"/EX\r"

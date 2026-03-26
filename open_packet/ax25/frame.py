@@ -70,20 +70,24 @@ def u_frame_type(ctrl: int) -> int:
 # --- Address field builder ---
 
 def _addr_field(dest: str, dest_ssid: int, src: str, src_ssid: int,
-                command: bool) -> bytes:
-    """Build 14-byte address field with correct C bits (§6.1.2)."""
-    return (
-        encode_address(dest, dest_ssid, last=False, c_bit=command)
-        + encode_address(src, src_ssid, last=True, c_bit=not command)
-    )
+                command: bool, via: list[tuple[str, int]] | None = None) -> bytes:
+    """Build address field. via is list of (callsign, ssid) tuples."""
+    via = via or []
+    src_last = len(via) == 0
+    result = encode_address(dest, dest_ssid, last=False, c_bit=command)
+    result += encode_address(src, src_ssid, last=src_last, c_bit=not command)
+    for i, (v_call, v_ssid) in enumerate(via):
+        result += encode_address(v_call, v_ssid, last=(i == len(via) - 1))
+    return result
 
 
 # --- Encoders ---
 
 def encode_sabm(dest: str, dest_ssid: int, src: str, src_ssid: int,
-                poll: bool = True) -> bytes:
+                poll: bool = True,
+                via: list[tuple[str, int]] | None = None) -> bytes:
     ctrl = U_SABM | (P_BIT if poll else 0)
-    return _addr_field(dest, dest_ssid, src, src_ssid, command=True) + bytes([ctrl])
+    return _addr_field(dest, dest_ssid, src, src_ssid, command=True, via=via) + bytes([ctrl])
 
 
 def encode_sabme(dest: str, dest_ssid: int, src: str, src_ssid: int,
