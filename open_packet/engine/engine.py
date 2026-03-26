@@ -144,6 +144,123 @@ class Engine:
         self._connection.disconnect()
         self._set_status(ConnectionStatus.DISCONNECTED)
 
+    def _run_sync_phases(self, node) -> tuple[int, int, int]:
+        """Run the four mail sync phases. Returns (retrieved, sent, bulletins_retrieved).
+        Does NOT emit SyncCompleteEvent — caller is responsible for that."""
+        # Phase 1: Retrieve new messages
+        retrieved = 0
+        headers = node.list_messages()
+        self._emit(ConsoleEvent(">", f"Listing messages ({len(headers)} found)"))
+        for header in headers:
+            msg = node.read_message(header.bbs_id)
+            now = datetime.now(timezone.utc)
+            saved = self._store.save_message(Message(
+                operator_id=self._operator.id,
+                node_id=self._node_record.id,
+                bbs_id=header.bbs_id,
+                from_call=header.from_call,
+                to_call=header.to_call,
+                subject=header.subject,
+                body=msg.body,
+                timestamp=now,
+            ))
+            if saved:
+                retrieved += 1
+                self._emit(ConsoleEvent("<", f"[{header.bbs_id}] {header.subject} from {header.from_call}"))
+                self._emit(MessageReceivedEvent(
+                    message_id=saved.id,
+                    from_call=header.from_call,
+                    subject=header.subject,
+                ))
+
+        # Phase 2: Send queued outbound messages
+        sent = 0
+        outbound = self._store.list_outbox_messages(self._operator.id)
+        for m in outbound:
+            self._emit(ConsoleEvent(">", f"Sending to {m.to_call}: {m.subject}"))
+            node.send_message(m.to_call, m.subject, m.body)
+            self._store.mark_message_sent(m.id)
+            sent += 1
+
+        # Phase 3: Send queued bulletins
+        pending_bulletins = self._store.list_outbox_bulletins(self._operator.id)
+        for bul in pending_bulletins:
+            self._emit(ConsoleEvent(">", f"Posting bulletin to {bul.category}: {bul.subject}"))
+            node.post_bulletin(bul.category, bul.subject, bul.body)
+            self._store.mark_bulletin_sent(bul.id)
+
+        # Phase 4: Retrieve bulletins
+        bulletin_headers = node.list_bulletins()
+        bulletins_retrieved = 0
+        for header in bulletin_headers:
+            if self._store.bulletin_exists(header.bbs_id, self._node_record.id):
+                continue
+            try:
+                raw = node.read_bulletin(header.bbs_id)
+            except Exception:
+                logger.exception("Failed to read bulletin %s", header.bbs_id)
+                self._emit(ConsoleEvent("!", f"Failed to read bulletin {header.bbs_id}"))
+                continue
+            bulletin = Bulletin(
+                operator_id=self._operator.id,
+                node_id=self._node_record.id,
+                bbs_id=header.bbs_id,
+                category=header.to_call,
+                from_call=header.from_call,
+                subject=header.subject,
+                body=raw.body,
+                timestamp=datetime.now(timezone.utc),
+            )
+            self._store.save_bulletin(bulletin)
+            bulletins_retrieved += 1
+            self._emit(ConsoleEvent("<", f"[{header.bbs_id}] {header.subject} from {header.from_call}"))
+
+        return retrieved, sent, bulletins_retrieved
+
+    def _do_auto_forward(self) -> None:
+        neighbors = self._store.get_node_neighbors(self._node_record.id)
+        for hop in neighbors:
+            derived_path = self._node_record.hop_path + [hop]
+            try:
+                from open_packet.ax25.connection import _split_callsign
+                from open_packet.node.bpq import BPQNode
+                if self._node_record.path_strategy == "path_route":
+                    call, ax25_ssid = _split_callsign(derived_path[0].callsign)
+                    self._connection.connect(call, ax25_ssid)
+                    temp_node = BPQNode(
+                        connection=self._connection,
+                        node_callsign=self._node_record.callsign,
+                        node_ssid=self._node_record.ssid,
+                        my_callsign=self._operator.callsign,
+                        my_ssid=self._operator.ssid,
+                        hop_path=derived_path[1:],
+                        path_strategy="path_route",
+                    )
+                else:  # digipeat
+                    call, ax25_ssid = _split_callsign(hop.callsign)
+                    via = self._node_record.hop_path or None
+                    self._connection.connect(call, ax25_ssid, via_path=via)
+                    temp_node = BPQNode(
+                        connection=self._connection,
+                        node_callsign=self._node_record.callsign,
+                        node_ssid=self._node_record.ssid,
+                        my_callsign=self._operator.callsign,
+                        my_ssid=self._operator.ssid,
+                        hop_path=[],
+                        path_strategy="digipeat",
+                    )
+                self._emit(ConsoleEvent(">", f"Auto-forwarding via {hop.callsign}"))
+                temp_node.connect_node()
+                self._run_sync_phases(temp_node)
+            except Exception as e:
+                logger.exception("Auto-forward to %s failed", hop.callsign)
+                self._emit(ConsoleEvent("!", f"Auto-forward to {hop.callsign} failed: {e}"))
+            finally:
+                try:
+                    self._connection.disconnect()
+                except Exception:
+                    pass
+
     def _do_check_mail(self) -> None:
         node_addr = f"{self._node_record.callsign}-{self._node_record.ssid}"
         self._set_status(ConnectionStatus.CONNECTING)
@@ -176,72 +293,7 @@ class Engine:
             self._emit(ConsoleEvent("<", f"Connected to {node_addr}"))
             self._set_status(ConnectionStatus.SYNCING)
 
-            retrieved = 0
-            headers = self._node.list_messages()
-            self._emit(ConsoleEvent(">", f"Listing messages ({len(headers)} found)"))
-            for header in headers:
-                msg = self._node.read_message(header.bbs_id)
-                now = datetime.now(timezone.utc)
-                saved = self._store.save_message(Message(
-                    operator_id=self._operator.id,
-                    node_id=self._node_record.id,
-                    bbs_id=header.bbs_id,
-                    from_call=header.from_call,
-                    to_call=header.to_call,
-                    subject=header.subject,
-                    body=msg.body,
-                    timestamp=now,
-                ))
-                if saved:
-                    retrieved += 1
-                    self._emit(ConsoleEvent("<", f"[{header.bbs_id}] {header.subject} from {header.from_call}"))
-                    self._emit(MessageReceivedEvent(
-                        message_id=saved.id,
-                        from_call=header.from_call,
-                        subject=header.subject,
-                    ))
-
-            # Phase 2: Send queued outbound messages
-            sent = 0
-            outbound = self._store.list_outbox_messages(self._operator.id)
-            for m in outbound:
-                self._emit(ConsoleEvent(">", f"Sending to {m.to_call}: {m.subject}"))
-                self._node.send_message(m.to_call, m.subject, m.body)
-                self._store.mark_message_sent(m.id)
-                sent += 1
-
-            # Phase 3: Send queued bulletins
-            pending_bulletins = self._store.list_outbox_bulletins(self._operator.id)
-            for bul in pending_bulletins:
-                self._emit(ConsoleEvent(">", f"Posting bulletin to {bul.category}: {bul.subject}"))
-                self._node.post_bulletin(bul.category, bul.subject, bul.body)
-                self._store.mark_bulletin_sent(bul.id)
-
-            # Phase 4: Retrieve bulletins
-            bulletin_headers = self._node.list_bulletins()
-            bulletins_retrieved = 0
-            for header in bulletin_headers:
-                if self._store.bulletin_exists(header.bbs_id, self._node_record.id):
-                    continue
-                try:
-                    raw = self._node.read_bulletin(header.bbs_id)
-                except Exception:
-                    logger.exception("Failed to read bulletin %s", header.bbs_id)
-                    self._emit(ConsoleEvent("!", f"Failed to read bulletin {header.bbs_id}"))
-                    continue
-                bulletin = Bulletin(
-                    operator_id=self._operator.id,
-                    node_id=self._node_record.id,
-                    bbs_id=header.bbs_id,
-                    category=header.to_call,
-                    from_call=header.from_call,
-                    subject=header.subject,
-                    body=raw.body,
-                    timestamp=datetime.now(timezone.utc),
-                )
-                self._store.save_bulletin(bulletin)
-                bulletins_retrieved += 1
-                self._emit(ConsoleEvent("<", f"[{header.bbs_id}] {header.subject} from {header.from_call}"))
+            retrieved, sent, bulletins_retrieved = self._run_sync_phases(self._node)
 
             self._last_sync = datetime.now(timezone.utc)
             self._messages_last_sync = retrieved
@@ -260,6 +312,10 @@ class Engine:
                     new_neighbors=new_neighbors,
                     shorter_path_candidates=shorter_path_candidates,
                 ))
+
+        # Phase 5: Auto-forward via discovered neighbors
+        if self._node_record.auto_forward:
+            self._do_auto_forward()
 
     def _do_send_message(self, cmd: SendMessageCommand) -> None:
         now = datetime.now(timezone.utc)

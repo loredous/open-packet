@@ -445,3 +445,46 @@ def test_neighbors_discovered_event_fields(db_and_store):
     assert evt.node_id == 1
     assert evt.new_neighbors[0].callsign == "W0RELAY-1"
     assert evt.shorter_path_candidates[0][0].callsign == "W0BPQ"
+
+
+def test_auto_forward_syncs_via_neighbors(tmp_path):
+    """When auto_forward=True on a node, engine re-connects to each stored neighbor."""
+    f = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    f.close()
+    db = Database(f.name); db.initialize()
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="me", is_default=True))
+    node_rec = db.insert_node(Node(
+        label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+        is_default=True, auto_forward=True,
+    ))
+    store = Store(db)
+    # Pre-seed a neighbor
+    store.upsert_node_neighbor(node_rec.id, "W0RELAY-1", port=3)
+
+    connect_calls = []
+    class TrackingConnection:
+        def connect(self, *a, **kw): connect_calls.append((a, kw))
+        def disconnect(self): pass
+        def send_frame(self, d): pass
+        def receive_frame(self, timeout=5.0): return b""
+
+    mock_node = MockNodeWithNeighbors([])
+    cfg = AppConfig(nodes=NodesConfig(auto_discover=False))
+    cmd_q, evt_q = queue.Queue(), queue.Queue()
+    engine = Engine(
+        command_queue=cmd_q, event_queue=evt_q, store=store,
+        operator=op, node_record=node_rec,
+        connection=TrackingConnection(), node=mock_node, config=cfg,
+    )
+    engine.start()
+    cmd_q.put(CheckMailCommand())
+    import time
+    # Wait up to 3s for at least 2 connect calls
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline and len(connect_calls) < 2:
+        time.sleep(0.05)
+    engine.stop()
+    db.close()
+    os.unlink(f.name)
+    # Should have connected at least twice: primary + auto-forward neighbor
+    assert len(connect_calls) >= 2
