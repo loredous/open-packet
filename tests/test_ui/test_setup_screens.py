@@ -2,12 +2,44 @@ import pytest
 from textual.app import App
 from open_packet.ui.tui.screens.settings import SettingsScreen
 from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
-from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
+from open_packet.ui.tui.screens.setup_node import NodeSetupScreen, _hops_to_text, _text_to_hops
 from open_packet.ui.tui.screens.setup_interface import InterfaceSetupScreen
 from open_packet.ui.tui.app import OpenPacketApp
 from open_packet.config.config import AppConfig, StoreConfig, UIConfig
 from open_packet.store.database import Database
-from open_packet.store.models import Operator, Node, Interface
+from open_packet.store.models import Operator, Node, Interface, NodeHop
+
+
+def test_hops_to_text_empty():
+    assert _hops_to_text([]) == ""
+
+def test_hops_to_text_with_port():
+    assert _hops_to_text([NodeHop("W0RELAY", port=3)]) == "W0RELAY:3"
+
+def test_hops_to_text_no_port():
+    assert _hops_to_text([NodeHop("W0RELAY")]) == "W0RELAY"
+
+def test_hops_to_text_multiple():
+    result = _hops_to_text([NodeHop("W0R1", port=1), NodeHop("W0R2")])
+    assert result == "W0R1:1\nW0R2"
+
+def test_text_to_hops_empty():
+    assert _text_to_hops("") == []
+
+def test_text_to_hops_with_port():
+    hops = _text_to_hops("W0RELAY:3")
+    assert hops[0].callsign == "W0RELAY"
+    assert hops[0].port == 3
+
+def test_text_to_hops_no_port():
+    hops = _text_to_hops("W0RELAY")
+    assert hops[0].callsign == "W0RELAY"
+    assert hops[0].port is None
+
+def test_text_to_hops_invalid_port_falls_back():
+    hops = _text_to_hops("W0RELAY:notanint")
+    assert hops[0].callsign == "W0RELAY:notanint"
+    assert hops[0].port is None
 
 
 _SENTINEL = object()
@@ -140,7 +172,7 @@ def node_db(tmp_path):
 async def test_node_setup_telnet_creates_interface(node_db):
     """Saving a Telnet node creates an Interface record and links the Node to it."""
     app = _ScreenTestApp(lambda: NodeSetupScreen(interfaces=[], db=node_db))
-    async with app.run_test(size=(80, 80)) as pilot:
+    async with app.run_test(size=(80, 120)) as pilot:
         await pilot.click("#label_field")
         await pilot.press(*"Home BBS")
         await pilot.click("#callsign_field")
@@ -187,7 +219,7 @@ async def test_node_setup_reuses_existing_interface(node_db):
     app = _ScreenTestApp(lambda: NodeSetupScreen(
         interfaces=node_db.list_interfaces(), db=node_db
     ))
-    async with app.run_test(size=(80, 80)) as pilot:
+    async with app.run_test(size=(80, 120)) as pilot:
         await pilot.click("#label_field")
         await pilot.press(*"Remote BBS")
         await pilot.click("#callsign_field")
@@ -212,7 +244,7 @@ async def test_node_setup_reuses_existing_interface(node_db):
 async def test_node_setup_blank_host_does_not_dismiss(node_db):
     """Telnet with blank host should not dismiss."""
     app = _ScreenTestApp(lambda: NodeSetupScreen(interfaces=[], db=node_db))
-    async with app.run_test(size=(80, 80)) as pilot:
+    async with app.run_test(size=(80, 120)) as pilot:
         await pilot.click("#label_field")
         await pilot.press(*"BBS")
         await pilot.click("#callsign_field")
@@ -234,7 +266,7 @@ async def test_node_setup_blank_host_does_not_dismiss(node_db):
 @pytest.mark.asyncio
 async def test_node_setup_cancel(node_db):
     app = _ScreenTestApp(lambda: NodeSetupScreen(interfaces=[], db=node_db))
-    async with app.run_test(size=(80, 80)) as pilot:
+    async with app.run_test(size=(80, 120)) as pilot:
         await pilot.click("#cancel_btn")
         await pilot.pause()
     assert app.dismiss_result is None
@@ -382,7 +414,7 @@ async def test_first_run_node_missing_pushes_node_setup(base_config, tmp_path):
 async def test_partial_first_run_cancel_engine_stays_none(base_config):
     """Operator saved, NodeSetupScreen cancelled: engine stays uninitialized."""
     app = OpenPacketApp(config=base_config)
-    async with app.run_test(size=(80, 80)) as pilot:
+    async with app.run_test(size=(80, 120)) as pilot:
         await pilot.pause()
         await pilot.pause()
         assert isinstance(app.screen, OperatorSetupScreen)
@@ -408,7 +440,7 @@ async def test_partial_first_run_cancel_engine_stays_none(base_config):
 async def test_engine_reinit_after_full_setup(base_config):
     """Completing operator + node setup initializes the engine."""
     app = OpenPacketApp(config=base_config)
-    async with app.run_test(size=(80, 80)) as pilot:
+    async with app.run_test(size=(80, 120)) as pilot:
         await pilot.pause()
         await pilot.pause()
         # Fill operator

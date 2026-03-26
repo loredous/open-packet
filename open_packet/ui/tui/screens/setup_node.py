@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, Switch, Select
+from textual.widgets import Button, Input, Label, Switch, Select, TextArea
 from textual.containers import Vertical, Horizontal
 from open_packet.store.database import Database
 from open_packet.store.models import Node, Interface
@@ -11,6 +11,31 @@ from open_packet.ui.tui.screens import CALLSIGN_RE
 
 _NEW_IFACE = "__new__"
 _CONN_TYPES = [("Telnet", "telnet"), ("KISS TCP", "kiss_tcp"), ("KISS Serial", "kiss_serial")]
+
+
+def _hops_to_text(hops) -> str:
+    lines = []
+    for h in hops:
+        lines.append(f"{h.callsign}:{h.port}" if h.port is not None else h.callsign)
+    return "\n".join(lines)
+
+
+def _text_to_hops(text: str) -> list:
+    from open_packet.store.models import NodeHop
+    hops = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if ":" in line:
+            parts = line.rsplit(":", 1)
+            try:
+                hops.append(NodeHop(callsign=parts[0].strip(), port=int(parts[1])))
+            except ValueError:
+                hops.append(NodeHop(callsign=line))
+        else:
+            hops.append(NodeHop(callsign=line))
+    return hops
 
 
 class NodeSetupScreen(ModalScreen):
@@ -108,6 +133,22 @@ class NodeSetupScreen(ModalScreen):
                 yield Input(placeholder="auto-generated if blank", id="iface_label_kiss_serial")
 
             yield Label("", id="conn_error", classes="error")
+
+            yield Label("Path Strategy:", classes="section")
+            yield Select(
+                [("Path Route", "path_route"), ("Digipeat", "digipeat")],
+                value=getattr(n, "path_strategy", "path_route") if n else "path_route",
+                id="strategy_select",
+            )
+
+            yield Label("Hop Path (one per line, CALLSIGN or CALLSIGN:PORT):")
+            yield TextArea(
+                _hops_to_text(getattr(n, "hop_path", []) if n else []),
+                id="hop_path_area",
+            )
+
+            yield Label("Auto Forward:")
+            yield Switch(value=getattr(n, "auto_forward", False) if n else False, id="auto_forward_switch")
 
             with Horizontal():
                 yield Button("Save", variant="primary", id="save_btn")
@@ -293,6 +334,10 @@ class NodeSetupScreen(ModalScreen):
                     interface_id = self.query_one("#iface_selector", Select).value
                     assert isinstance(interface_id, int), f"Expected int interface id, got {interface_id!r}"
 
+                hop_path = _text_to_hops(self.query_one("#hop_path_area", TextArea).text)
+                path_strategy = str(self.query_one("#strategy_select", Select).value)
+                auto_forward = self.query_one("#auto_forward_switch", Switch).value
+
                 self.dismiss(Node(
                     label=label,
                     callsign=callsign,
@@ -301,6 +346,9 @@ class NodeSetupScreen(ModalScreen):
                     is_default=is_default,
                     interface_id=interface_id,
                     id=self._node.id if self._node else None,
+                    hop_path=hop_path,
+                    path_strategy=path_strategy,
+                    auto_forward=auto_forward,
                 ))
 
     def on_key(self, event) -> None:
