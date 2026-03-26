@@ -11,11 +11,11 @@ from open_packet.engine.engine import Engine
 from open_packet.engine.commands import CheckMailCommand, DisconnectCommand, SendMessageCommand, PostBulletinCommand
 from open_packet.engine.events import (
     ConnectionStatusEvent, SyncCompleteEvent, ErrorEvent, ConnectionStatus,
-    MessageQueuedEvent,
+    MessageQueuedEvent, Event, NeighborsDiscoveredEvent,
 )
 from open_packet.store.database import Database
 from open_packet.store.store import Store
-from open_packet.store.models import Operator, Node, Message, Bulletin
+from open_packet.store.models import Operator, Node, Message, Bulletin, NodeHop
 from open_packet.node.base import MessageHeader, Message as NodeMessage
 
 
@@ -303,3 +303,22 @@ def test_engine_check_mail_retrieves_bulletins(db_and_store):
     assert len(bulletins) == 1
     assert bulletins[0].bbs_id == "BUL-1"
     assert bulletins[0].category == "WX"
+
+
+def test_neighbors_discovered_event_in_union():
+    import typing
+    args = typing.get_args(Event)
+    assert NeighborsDiscoveredEvent in args
+
+
+def test_neighbors_discovered_event_fields(db_and_store):
+    db, store, op, node_record = db_and_store
+    node = Node(label="x", callsign="W0BPQ", ssid=0, node_type="bpq", id=1)
+    evt = NeighborsDiscoveredEvent(
+        node_id=1,
+        new_neighbors=[NodeHop("W0RELAY-1", port=3)],
+        shorter_path_candidates=[(node, [NodeHop("W0RELAY-1", port=3)])],
+    )
+    assert evt.node_id == 1
+    assert evt.new_neighbors[0].callsign == "W0RELAY-1"
+    assert evt.shorter_path_candidates[0][0].callsign == "W0BPQ"

@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from open_packet.store.models import Node, NodeHop
 
 
 class ConnectionStatus(Enum):
@@ -54,4 +57,11 @@ class ConsoleEvent:
     text: str
 
 
-Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent
+@dataclass
+class NeighborsDiscoveredEvent:
+    node_id: int
+    new_neighbors: list  # list[NodeHop]
+    shorter_path_candidates: list  # list[tuple[Node, list[NodeHop]]]
+
+
+Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent | NeighborsDiscoveredEvent
