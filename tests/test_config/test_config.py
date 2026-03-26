@@ -1,7 +1,7 @@
 import pytest
 import tempfile
 import os
-from open_packet.config.config import AppConfig, StoreConfig, UIConfig, load_config, ConfigError
+from open_packet.config.config import AppConfig, StoreConfig, UIConfig, NodesConfig, load_config, ConfigError
 
 
 MINIMAL_YAML = """
@@ -79,3 +79,22 @@ def test_console_log_optional():
         assert config.ui.console_log == "/tmp/console.log"
     finally:
         os.unlink(path)
+
+
+def test_nodes_config_default():
+    cfg = AppConfig()
+    assert cfg.nodes.auto_discover is True
+
+
+def test_nodes_config_from_yaml(tmp_path):
+    f = tmp_path / "config.yaml"
+    f.write_text("store:\n  db_path: /tmp/x.db\nnodes:\n  auto_discover: false\n")
+    cfg = load_config(str(f))
+    assert cfg.nodes.auto_discover is False
+
+
+def test_nodes_config_absent_key_defaults_true(tmp_path):
+    f = tmp_path / "config.yaml"
+    f.write_text("store:\n  db_path: /tmp/x.db\n")
+    cfg = load_config(str(f))
+    assert cfg.nodes.auto_discover is True
