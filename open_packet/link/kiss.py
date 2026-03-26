@@ -50,7 +50,7 @@ class KISSLink(ConnectionBase):
         self._transport = transport
         self._buffer = b""
 
-    def connect(self, callsign: str, ssid: int) -> None:
+    def connect(self, callsign: str, ssid: int, via_path=None) -> None:
         try:
             self._transport.connect()
         except TransportError as e:
