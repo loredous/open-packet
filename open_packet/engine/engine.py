@@ -113,7 +113,7 @@ class Engine:
         shorter_path_candidates = []
         existing_in_db = {
             n.callsign: n
-            for n in self._store._db.list_nodes()
+            for n in self._store.list_nodes()
             if n.interface_id == self._node_record.interface_id and n.id != self._node_record.id
         }
         known_callsigns = {

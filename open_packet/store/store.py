@@ -238,6 +238,9 @@ class Store:
         ).fetchone()
         return row is not None
 
+    def list_nodes(self) -> list:
+        return self._db.list_nodes()
+
     def upsert_node_neighbor(self, node_id: int, callsign: str, port: int | None) -> None:
         assert self._conn
         now = datetime.now(timezone.utc).isoformat()

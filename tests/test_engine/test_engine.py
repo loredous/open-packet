@@ -361,34 +361,44 @@ def _make_engine(neighbors, auto_discover):
         config=cfg,
     )
     engine.start()
-    return engine, store, mock_node
+    return engine, store, mock_node, db, f.name  # return db and path for cleanup
 
 
 @pytest.fixture
 def engine_with_discovery():
-    engine, store, node = _make_engine(
+    engine, store, node, db, tmp_path = _make_engine(
         neighbors=[NodeHop("W0RELAY-1", port=3)],
         auto_discover=True,
     )
     yield engine, store, node
     engine.stop()
+    db.close()
+    os.unlink(tmp_path)
 
 
 @pytest.fixture
 def engine_no_discovery():
-    engine, store, node = _make_engine(
+    engine, store, node, db, tmp_path = _make_engine(
         neighbors=[NodeHop("W0RELAY-1", port=3)],
         auto_discover=False,
     )
     yield engine, store, node
     engine.stop()
+    db.close()
+    os.unlink(tmp_path)
 
 
 def test_discovery_phase_upserts_neighbors(engine_with_discovery):
     """When auto_discover=True, check_mail upserts discovered neighbors."""
     engine, store, mock_node = engine_with_discovery
     engine._cmd_queue.put(CheckMailCommand())
-    time.sleep(0.3)
+    import time
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline:
+        neighbors = store.get_node_neighbors(engine._node_record.id)
+        if any(n.callsign == "W0RELAY-1" for n in neighbors):
+            break
+        time.sleep(0.05)
     neighbors = store.get_node_neighbors(engine._node_record.id)
     assert any(n.callsign == "W0RELAY-1" for n in neighbors)
 
@@ -396,11 +406,15 @@ def test_discovery_phase_upserts_neighbors(engine_with_discovery):
 def test_discovery_phase_emits_new_neighbor_event(engine_with_discovery):
     engine, store, mock_node = engine_with_discovery
     engine._cmd_queue.put(CheckMailCommand())
-    time.sleep(0.3)
-    events = []
-    while not engine._evt_queue.empty():
-        events.append(engine._evt_queue.get_nowait())
-    neighbor_events = [e for e in events if isinstance(e, NeighborsDiscoveredEvent)]
+    import time
+    neighbor_events = []
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline and not neighbor_events:
+        while not engine._evt_queue.empty():
+            evt = engine._evt_queue.get_nowait()
+            if isinstance(evt, NeighborsDiscoveredEvent):
+                neighbor_events.append(evt)
+        time.sleep(0.05)
     assert len(neighbor_events) == 1
     assert neighbor_events[0].new_neighbors[0].callsign == "W0RELAY-1"
 
@@ -408,7 +422,14 @@ def test_discovery_phase_emits_new_neighbor_event(engine_with_discovery):
 def test_discovery_phase_skipped_when_disabled(engine_no_discovery):
     engine, store, mock_node = engine_no_discovery
     engine._cmd_queue.put(CheckMailCommand())
-    time.sleep(0.3)
+    import time
+    # Wait for sync to complete (SyncCompleteEvent), then check neighbors
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline:
+        if not engine._evt_queue.empty():
+            break
+        time.sleep(0.05)
+    time.sleep(0.1)  # Small extra wait after first event
     neighbors = store.get_node_neighbors(engine._node_record.id)
     assert neighbors == []
 
