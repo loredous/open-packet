@@ -152,6 +152,8 @@ class OpenPacketApp(App):
             node_ssid=node_record.ssid,
             my_callsign=operator.callsign,
             my_ssid=operator.ssid,
+            hop_path=node_record.hop_path,
+            path_strategy=node_record.path_strategy,
         )
 
         export_path = (
@@ -168,6 +170,7 @@ class OpenPacketApp(App):
             connection=connection,
             node=node,
             export_path=export_path,
+            config=self.config,
         )
         self._active_node = node_record
         self._active_interface = iface
@@ -333,21 +336,37 @@ class OpenPacketApp(App):
         except Exception:
             logger.exception("Failed to refresh message list")
 
+    def _refresh_folder_counts(self) -> None:
+        if not self._store or not self._active_operator:
+            return
+        try:
+            stats = self._store.count_folder_stats(self._active_operator.id)
+            self.query_one("FolderTree").update_counts(stats)
+        except Exception:
+            logger.exception("Failed to refresh folder counts")
+
     def check_mail(self) -> None:
         if self._engine:
             self._cmd_queue.put(CheckMailCommand())
 
     def delete_selected_message(self) -> None:
-        if self._selected_message is None or not isinstance(self._selected_message, Message):
+        msg = self._selected_message
+        if msg is None or msg.id is None:
             return
-        if self._engine:
-            self._cmd_queue.put(DeleteMessageCommand(
-                message_id=self._selected_message.id,
-                bbs_id=self._selected_message.bbs_id,
-            ))
+        if isinstance(msg, Bulletin):
+            if self._store:
+                self._store.delete_bulletin(msg.id)
+                self._selected_message = None
+                self._refresh_message_list()
+        elif isinstance(msg, Message):
+            if self._engine:
+                self._cmd_queue.put(DeleteMessageCommand(
+                    message_id=msg.id,
+                    bbs_id=msg.bbs_id,
+                ))
 
-    def open_compose(self) -> None:
-        self.push_screen(ComposeScreen(), callback=self._on_compose_result)
+    def open_compose(self, to_call: str = "", subject: str = "") -> None:
+        self.push_screen(ComposeScreen(to_call=to_call, subject=subject), callback=self._on_compose_result)
 
     def open_compose_bulletin(self) -> None:
         self.push_screen(ComposeBulletinScreen(), callback=self._on_compose_bulletin_result)
@@ -360,8 +379,11 @@ class OpenPacketApp(App):
         self.push_screen(SettingsScreen(), callback=self._on_settings_result)
 
     def reply_to_selected(self) -> None:
-        if self._selected_message:
-            self.open_compose()
+        msg = self._selected_message
+        if not msg or not isinstance(msg, Message):
+            return
+        subject = msg.subject if msg.subject.startswith("Re: ") else f"Re: {msg.subject}"
+        self.open_compose(to_call=msg.from_call, subject=subject)
 
     def _on_compose_result(self, result) -> None:
         if result and isinstance(result, SendMessageCommand):
@@ -373,12 +395,23 @@ class OpenPacketApp(App):
             self.query_one("MessageBody").show_message(event.message)
         except Exception:
             pass
+        if self._store and event.message.id is not None and not event.message.read:
+            if isinstance(event.message, Message):
+                self._store.mark_message_read(event.message.id)
+            elif isinstance(event.message, Bulletin):
+                self._store.mark_bulletin_read(event.message.id)
+            event.message.read = True
+            self._refresh_folder_counts()
 
     def on_folder_tree_folder_selected(self, event) -> None:
         self._active_folder = event.folder
         self._active_category = getattr(event, "category", "")
         self._refresh_message_list()
 
+def serve() -> None:
+    from textual_serve.server import Server
+    server = Server("open-packet test.yaml")
+    server.serve()
 
 def main() -> None:
     import sys

@@ -13,6 +13,7 @@ from open_packet.engine.commands import (
 from open_packet.engine.events import (
     ConnectionStatusEvent, ConnectionStatus, MessageReceivedEvent,
     SyncCompleteEvent, ErrorEvent, MessageQueuedEvent, ConsoleEvent,
+    NeighborsDiscoveredEvent,
 )
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase
@@ -33,6 +34,7 @@ class Engine:
         connection: ConnectionBase,
         node: NodeBase,
         export_path: Optional[str] = None,
+        config=None,
     ):
         self._cmd_queue = command_queue
         self._evt_queue = event_queue
@@ -42,6 +44,8 @@ class Engine:
         self._connection = connection
         self._node = node
         self._export_path = export_path
+        from open_packet.config.config import AppConfig
+        self._config = config or AppConfig()
 
         # In-memory state
         self._status = ConnectionStatus.DISCONNECTED
@@ -100,6 +104,33 @@ class Engine:
         elif isinstance(cmd, DisconnectCommand):
             self._do_disconnect()
 
+    def _discover_neighbors(self) -> tuple[list, list]:
+        """Returns (new_neighbors, shorter_path_candidates).
+        Calls node.list_linked_nodes(), upserts all, classifies results.
+        Must be called while at the node prompt (before BBS)."""
+        hops = self._node.list_linked_nodes()
+        new_neighbors = []
+        shorter_path_candidates = []
+        existing_in_db = {
+            n.callsign: n
+            for n in self._store._db.list_nodes()
+            if n.interface_id == self._node_record.interface_id and n.id != self._node_record.id
+        }
+        known_callsigns = {
+            h.callsign for h in self._store.get_node_neighbors(self._node_record.id)
+        }
+        for hop in hops:
+            self._store.upsert_node_neighbor(self._node_record.id, hop.callsign, hop.port)
+            if hop.callsign not in known_callsigns:
+                new_neighbors.append(hop)
+            if hop.callsign in existing_in_db:
+                existing = existing_in_db[hop.callsign]
+                derived_len = len(self._node_record.hop_path) + 1
+                if derived_len < len(existing.hop_path):
+                    derived_path = self._node_record.hop_path + [hop]
+                    shorter_path_candidates.append((existing, derived_path))
+        return new_neighbors, shorter_path_candidates
+
     def _do_connect(self) -> None:
         self._set_status(ConnectionStatus.CONNECTING)
         self._connection.connect(
@@ -117,11 +148,30 @@ class Engine:
         node_addr = f"{self._node_record.callsign}-{self._node_record.ssid}"
         self._set_status(ConnectionStatus.CONNECTING)
         self._emit(ConsoleEvent(">", f"Connecting to {node_addr}..."))
+        new_neighbors: list = []
+        shorter_path_candidates: list = []
         try:
-            self._connection.connect(
-                callsign=self._node_record.callsign,
-                ssid=self._node_record.ssid,
-            )
+            if (self._node_record.path_strategy == "path_route"
+                    and self._node_record.hop_path):
+                first = self._node_record.hop_path[0]
+                from open_packet.ax25.connection import _split_callsign
+                call, ssid = _split_callsign(first.callsign)
+                self._connection.connect(call, ssid)
+            else:
+                via = self._node_record.hop_path if self._node_record.path_strategy == "digipeat" else None
+                if via:
+                    self._connection.connect(
+                        self._node_record.callsign,
+                        self._node_record.ssid,
+                        via_path=via,
+                    )
+                else:
+                    self._connection.connect(
+                        self._node_record.callsign,
+                        self._node_record.ssid,
+                    )
+            if self._config.nodes.auto_discover:
+                new_neighbors, shorter_path_candidates = self._discover_neighbors()
             self._node.connect_node()
             self._emit(ConsoleEvent("<", f"Connected to {node_addr}"))
             self._set_status(ConnectionStatus.SYNCING)
@@ -204,6 +254,12 @@ class Engine:
             self._connection.disconnect()
             self._emit(ConsoleEvent("<", "Disconnected"))
             self._set_status(ConnectionStatus.DISCONNECTED)
+            if new_neighbors or shorter_path_candidates:
+                self._emit(NeighborsDiscoveredEvent(
+                    node_id=self._node_record.id,
+                    new_neighbors=new_neighbors,
+                    shorter_path_candidates=shorter_path_candidates,
+                ))
 
     def _do_send_message(self, cmd: SendMessageCommand) -> None:
         now = datetime.now(timezone.utc)
@@ -222,6 +278,7 @@ class Engine:
 
     def _do_delete_message(self, cmd: DeleteMessageCommand) -> None:
         self._store.delete_message(cmd.message_id)
+        self._emit(MessageQueuedEvent())
 
     def _do_post_bulletin(self, cmd: PostBulletinCommand) -> None:
         from uuid import uuid4

@@ -15,6 +15,7 @@ from open_packet.store.models import Operator, Node
 from open_packet.node.bpq import BPQNode
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import MessageHeader, Message as NodeMessage
+from open_packet.config.config import AppConfig, NodesConfig
 
 
 class ReplayConnection(ConnectionBase):
@@ -83,6 +84,7 @@ def test_full_check_mail_cycle():
             command_queue=cmd_queue, event_queue=evt_queue,
             store=store, operator=op, node_record=node_record,
             connection=connection, node=node,
+            config=AppConfig(nodes=NodesConfig(auto_discover=False)),
         )
         engine.start()
         cmd_queue.put(CheckMailCommand())

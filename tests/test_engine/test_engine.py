@@ -311,6 +311,108 @@ def test_neighbors_discovered_event_in_union():
     assert NeighborsDiscoveredEvent in args
 
 
+# --- Discovery phase tests ---
+
+from open_packet.config.config import AppConfig, NodesConfig
+
+
+class MockConnection:
+    def connect(self, *a, **kw): pass
+    def disconnect(self): pass
+    def send_frame(self, d): pass
+    def receive_frame(self, timeout=5.0): return b""
+
+
+class MockNodeWithNeighbors:
+    """Like MockNode but list_linked_nodes returns a fixed list."""
+    def __init__(self, neighbors):
+        self._neighbors = neighbors
+        self.connected = False
+        self.messages = []
+        self.bulletins = []
+
+    def connect_node(self): self.connected = True
+    def list_messages(self): return []
+    def read_message(self, bbs_id): return None
+    def send_message(self, *a): pass
+    def delete_message(self, *a): pass
+    def list_bulletins(self, **kw): return []
+    def read_bulletin(self, bbs_id): return None
+    def post_bulletin(self, *a): pass
+    def list_linked_nodes(self): return self._neighbors
+
+
+def _make_engine(neighbors, auto_discover):
+    f = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    f.close()
+    db = Database(f.name)
+    db.initialize()
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="me", is_default=True))
+    node_rec = db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1,
+                                    node_type="bpq", is_default=True))
+    store = Store(db)
+    mock_node = MockNodeWithNeighbors(neighbors)
+    cfg = AppConfig(nodes=NodesConfig(auto_discover=auto_discover))
+    cmd_q, evt_q = queue.Queue(), queue.Queue()
+    engine = Engine(
+        command_queue=cmd_q, event_queue=evt_q, store=store,
+        operator=op, node_record=node_rec,
+        connection=MockConnection(), node=mock_node,
+        config=cfg,
+    )
+    engine.start()
+    return engine, store, mock_node
+
+
+@pytest.fixture
+def engine_with_discovery():
+    engine, store, node = _make_engine(
+        neighbors=[NodeHop("W0RELAY-1", port=3)],
+        auto_discover=True,
+    )
+    yield engine, store, node
+    engine.stop()
+
+
+@pytest.fixture
+def engine_no_discovery():
+    engine, store, node = _make_engine(
+        neighbors=[NodeHop("W0RELAY-1", port=3)],
+        auto_discover=False,
+    )
+    yield engine, store, node
+    engine.stop()
+
+
+def test_discovery_phase_upserts_neighbors(engine_with_discovery):
+    """When auto_discover=True, check_mail upserts discovered neighbors."""
+    engine, store, mock_node = engine_with_discovery
+    engine._cmd_queue.put(CheckMailCommand())
+    time.sleep(0.3)
+    neighbors = store.get_node_neighbors(engine._node_record.id)
+    assert any(n.callsign == "W0RELAY-1" for n in neighbors)
+
+
+def test_discovery_phase_emits_new_neighbor_event(engine_with_discovery):
+    engine, store, mock_node = engine_with_discovery
+    engine._cmd_queue.put(CheckMailCommand())
+    time.sleep(0.3)
+    events = []
+    while not engine._evt_queue.empty():
+        events.append(engine._evt_queue.get_nowait())
+    neighbor_events = [e for e in events if isinstance(e, NeighborsDiscoveredEvent)]
+    assert len(neighbor_events) == 1
+    assert neighbor_events[0].new_neighbors[0].callsign == "W0RELAY-1"
+
+
+def test_discovery_phase_skipped_when_disabled(engine_no_discovery):
+    engine, store, mock_node = engine_no_discovery
+    engine._cmd_queue.put(CheckMailCommand())
+    time.sleep(0.3)
+    neighbors = store.get_node_neighbors(engine._node_record.id)
+    assert neighbors == []
+
+
 def test_neighbors_discovered_event_fields(db_and_store):
     db, store, op, node_record = db_and_store
     node = Node(label="x", callsign="W0BPQ", ssid=0, node_type="bpq", id=1)
