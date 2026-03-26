@@ -1,9 +1,22 @@
 from __future__ import annotations
+import json as _json
 import sqlite3
 from datetime import datetime
 from typing import Optional
 
 from open_packet.store.models import Operator, Node, Message, Bulletin, Interface
+
+
+def _hops_to_json(hops) -> str:
+    return _json.dumps([{"callsign": h.callsign, "port": h.port} for h in hops])
+
+
+def _json_to_hops(s: str):
+    from open_packet.store.models import NodeHop
+    try:
+        return [NodeHop(**d) for d in _json.loads(s or "[]")]
+    except Exception:
+        return []
 
 
 class Database:
@@ -35,6 +48,17 @@ class Database:
         for sql in [
             "ALTER TABLE bulletins ADD COLUMN queued INTEGER NOT NULL DEFAULT 0",
             "ALTER TABLE bulletins ADD COLUMN sent INTEGER NOT NULL DEFAULT 0",
+        ]:
+            try:
+                self._conn.execute(sql)
+                self._conn.commit()
+            except sqlite3.OperationalError:
+                pass  # column already exists
+
+        for sql in [
+            "ALTER TABLE nodes ADD COLUMN hop_path TEXT NOT NULL DEFAULT '[]'",
+            "ALTER TABLE nodes ADD COLUMN path_strategy TEXT NOT NULL DEFAULT 'path_route'",
+            "ALTER TABLE nodes ADD COLUMN auto_forward INTEGER NOT NULL DEFAULT 0",
         ]:
             try:
                 self._conn.execute(sql)
@@ -121,6 +145,16 @@ class Database:
                 sent INTEGER NOT NULL DEFAULT 0,
                 synced_at TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS node_neighbors (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                node_id     INTEGER NOT NULL REFERENCES nodes(id),
+                callsign    TEXT NOT NULL,
+                port        INTEGER,
+                first_seen  TEXT NOT NULL,
+                last_seen   TEXT NOT NULL,
+                UNIQUE(node_id, callsign)
+            );
         """)
         self._conn.commit()
 
@@ -155,11 +189,28 @@ class Database:
             label=row["label"], is_default=bool(row["is_default"]),
         )
 
+    def _row_to_node(self, row) -> Node:
+        keys = row.keys()
+        return Node(
+            id=row["id"], label=row["label"], callsign=row["callsign"],
+            ssid=row["ssid"], node_type=row["node_type"],
+            is_default=bool(row["is_default"]),
+            interface_id=row["interface_id"],
+            hop_path=_json_to_hops(row["hop_path"] if "hop_path" in keys else "[]"),
+            path_strategy=row["path_strategy"] if "path_strategy" in keys else "path_route",
+            auto_forward=bool(row["auto_forward"]) if "auto_forward" in keys else False,
+        )
+
     def insert_node(self, node: Node) -> Node:
         assert self._conn
         cur = self._conn.execute(
-            "INSERT INTO nodes (label, callsign, ssid, node_type, is_default, interface_id) VALUES (?, ?, ?, ?, ?, ?)",
-            (node.label, node.callsign, node.ssid, node.node_type, int(node.is_default), node.interface_id),
+            """INSERT INTO nodes
+               (label, callsign, ssid, node_type, is_default, interface_id,
+                hop_path, path_strategy, auto_forward)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (node.label, node.callsign, node.ssid, node.node_type,
+             int(node.is_default), node.interface_id,
+             _hops_to_json(node.hop_path), node.path_strategy, int(node.auto_forward)),
         )
         self._conn.commit()
         return self.get_node(cur.lastrowid)  # type: ignore
@@ -169,12 +220,7 @@ class Database:
         row = self._conn.execute("SELECT * FROM nodes WHERE id=?", (id,)).fetchone()
         if not row:
             return None
-        return Node(
-            id=row["id"], label=row["label"], callsign=row["callsign"],
-            ssid=row["ssid"], node_type=row["node_type"],
-            is_default=bool(row["is_default"]),
-            interface_id=row["interface_id"],
-        )
+        return self._row_to_node(row)
 
     def get_default_node(self) -> Optional[Node]:
         assert self._conn
@@ -183,12 +229,7 @@ class Database:
         ).fetchone()
         if not row:
             return None
-        return Node(
-            id=row["id"], label=row["label"], callsign=row["callsign"],
-            ssid=row["ssid"], node_type=row["node_type"],
-            is_default=bool(row["is_default"]),
-            interface_id=row["interface_id"],
-        )
+        return self._row_to_node(row)
 
     def list_operators(self) -> list[Operator]:
         assert self._conn
@@ -202,14 +243,7 @@ class Database:
     def list_nodes(self) -> list[Node]:
         assert self._conn
         rows = self._conn.execute("SELECT * FROM nodes ORDER BY id").fetchall()
-        return [
-            Node(
-                id=r["id"], label=r["label"], callsign=r["callsign"],
-                ssid=r["ssid"], node_type=r["node_type"], is_default=bool(r["is_default"]),
-                interface_id=r["interface_id"],
-            )
-            for r in rows
-        ]
+        return [self._row_to_node(r) for r in rows]
 
     def update_operator(self, op: Operator) -> None:
         assert self._conn
@@ -224,9 +258,13 @@ class Database:
         assert self._conn
         assert node.id is not None, "Cannot update node without id"
         self._conn.execute(
-            "UPDATE nodes SET label=?, callsign=?, ssid=?, node_type=?, is_default=?, interface_id=? WHERE id=?",
+            """UPDATE nodes SET label=?, callsign=?, ssid=?, node_type=?,
+               is_default=?, interface_id=?, hop_path=?, path_strategy=?, auto_forward=?
+               WHERE id=?""",
             (node.label, node.callsign, node.ssid, node.node_type,
-             int(node.is_default), node.interface_id, node.id),
+             int(node.is_default), node.interface_id,
+             _hops_to_json(node.hop_path), node.path_strategy, int(node.auto_forward),
+             node.id),
         )
         self._conn.commit()
 

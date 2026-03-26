@@ -653,3 +653,49 @@ def test_nodehop_json_roundtrip():
     assert parsed[0].callsign == "W0RELAY-1"
     assert parsed[0].port == 3
     assert parsed[1].port is None
+
+
+def test_nodes_table_has_hop_path_column(db):
+    cols = [r[1] for r in db._conn.execute("PRAGMA table_info(nodes)").fetchall()]
+    assert "hop_path" in cols
+    assert "path_strategy" in cols
+    assert "auto_forward" in cols
+
+
+def test_node_neighbors_table_exists(db):
+    assert "node_neighbors" in db.table_names()
+
+
+def test_node_neighbors_table_has_columns(db):
+    cols = [r[1] for r in db._conn.execute("PRAGMA table_info(node_neighbors)").fetchall()]
+    for c in ("id", "node_id", "callsign", "port", "first_seen", "last_seen"):
+        assert c in cols
+
+
+def test_node_hop_path_roundtrip(db):
+    node = Node(
+        label="Relay BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+        hop_path=[NodeHop("W0RELAY", port=3)],
+        path_strategy="path_route",
+        auto_forward=True,
+    )
+    inserted = db.insert_node(node)
+    fetched = db.get_node(inserted.id)
+    assert fetched.hop_path[0].callsign == "W0RELAY"
+    assert fetched.hop_path[0].port == 3
+    assert fetched.path_strategy == "path_route"
+    assert fetched.auto_forward is True
+
+
+def test_node_hop_path_defaults_on_existing_rows(db):
+    # Simulate a node inserted without the new columns (migration scenario)
+    db._conn.execute(
+        "INSERT INTO nodes (label, callsign, ssid, node_type, is_default) VALUES (?, ?, ?, ?, ?)",
+        ("Old Node", "W0OLD", 0, "bpq", 0),
+    )
+    db._conn.commit()
+    nodes = db.list_nodes()
+    old = next(n for n in nodes if n.callsign == "W0OLD")
+    assert old.hop_path == []
+    assert old.path_strategy == "path_route"
+    assert old.auto_forward is False
