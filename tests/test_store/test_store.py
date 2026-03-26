@@ -1,8 +1,9 @@
 import pytest
 import tempfile
 import os
+import json
 from open_packet.store.database import Database
-from open_packet.store.models import Operator, Node, Message, Bulletin
+from open_packet.store.models import Operator, Node, Message, Bulletin, NodeHop
 
 
 @pytest.fixture
@@ -626,3 +627,29 @@ def test_sync_complete_event_has_bulletins_retrieved():
     assert e1.bulletins_retrieved == 0
     e2 = SyncCompleteEvent(messages_retrieved=2, messages_sent=0, bulletins_retrieved=5)
     assert e2.bulletins_retrieved == 5
+
+
+def test_nodehop_defaults():
+    h = NodeHop(callsign="W0RELAY-1")
+    assert h.port is None
+
+
+def test_nodehop_with_port():
+    h = NodeHop(callsign="W0RELAY-1", port=3)
+    assert h.port == 3
+
+
+def test_node_has_hop_path():
+    n = Node(label="x", callsign="W0BPQ", ssid=0, node_type="bpq")
+    assert n.hop_path == []
+    assert n.path_strategy == "path_route"
+    assert n.auto_forward is False
+
+
+def test_nodehop_json_roundtrip():
+    hops = [NodeHop(callsign="W0RELAY-1", port=3), NodeHop(callsign="W0DIST")]
+    serialized = json.dumps([{"callsign": h.callsign, "port": h.port} for h in hops])
+    parsed = [NodeHop(**d) for d in json.loads(serialized)]
+    assert parsed[0].callsign == "W0RELAY-1"
+    assert parsed[0].port == 3
+    assert parsed[1].port is None

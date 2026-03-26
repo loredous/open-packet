@@ -28,6 +28,12 @@ class Operator:
 
 
 @dataclass
+class NodeHop:
+    callsign: str
+    port: int | None = None
+
+
+@dataclass
 class Node:
     label: str
     callsign: str
@@ -37,6 +43,9 @@ class Node:
     interface_id: Optional[int] = None
     id: Optional[int] = None
     created_at: Optional[datetime] = None
+    hop_path: list["NodeHop"] = field(default_factory=list)
+    path_strategy: str = "path_route"
+    auto_forward: bool = False
 
 
 @dataclass
