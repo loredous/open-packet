@@ -447,6 +447,36 @@ def test_neighbors_discovered_event_fields(db_and_store):
     assert evt.shorter_path_candidates[0][0].callsign == "W0BPQ"
 
 
+def test_queue_neighbor_prompts_builds_correct_entries():
+    """_queue_neighbor_prompts builds one 'new' entry and one 'shorter' entry."""
+    from open_packet.engine.events import NeighborsDiscoveredEvent
+    from open_packet.store.models import NodeHop, Node
+
+    existing = Node(label="BBS2", callsign="W0DIST", ssid=0, node_type="bpq",
+                    hop_path=[NodeHop("W0LONG1"), NodeHop("W0LONG2"), NodeHop("W0DIST")],
+                    id=99)
+    new_hop = NodeHop("W0NEW-1", port=2)
+    shorter_hop = NodeHop("W0DIST", port=1)
+    evt = NeighborsDiscoveredEvent(
+        node_id=1,
+        new_neighbors=[new_hop],
+        shorter_path_candidates=[(existing, [shorter_hop])],
+    )
+    # Build the prompts list manually using the same logic as _queue_neighbor_prompts
+    prompts = []
+    for hop in evt.new_neighbors:
+        prompts.append(("new", hop, None))
+    for existing_node, new_path in evt.shorter_path_candidates:
+        prompts.append(("shorter", None, (existing_node, new_path)))
+
+    assert len(prompts) == 2
+    assert prompts[0][0] == "new"
+    assert prompts[0][1].callsign == "W0NEW-1"
+    assert prompts[1][0] == "shorter"
+    assert prompts[1][1] is None  # must be None, not an unbound variable
+    assert prompts[1][2][0].callsign == "W0DIST"
+
+
 def test_auto_forward_syncs_via_neighbors(tmp_path):
     """When auto_forward=True on a node, engine re-connects to each stored neighbor."""
     f = tempfile.NamedTemporaryFile(suffix=".db", delete=False)

@@ -16,7 +16,9 @@ from open_packet.engine.engine import Engine
 from open_packet.engine.events import (
     ConnectionStatusEvent, MessageReceivedEvent, SyncCompleteEvent,
     ErrorEvent, ConnectionStatus, MessageQueuedEvent, ConsoleEvent,
+    NeighborsDiscoveredEvent,
 )
+from open_packet.ui.tui.screens.shorter_path_confirm import ShorterPathConfirmScreen
 from open_packet.ax25.connection import AX25Connection
 from open_packet.link.kiss import KISSLink
 from open_packet.link.telnet import TelnetLink
@@ -69,6 +71,7 @@ class OpenPacketApp(App):
         self._active_folder = "Inbox"
         self._active_category = ""
         self._db: Optional[Database] = None
+        self._pending_neighbor_prompts: list = []
 
     def get_default_screen(self) -> MainScreen:
         return MainScreen()
@@ -300,6 +303,71 @@ class OpenPacketApp(App):
             self._refresh_message_list()
         elif isinstance(event, ErrorEvent):
             self.notify(f"Error: {event.message}", severity="error")
+        elif isinstance(event, NeighborsDiscoveredEvent):
+            self._queue_neighbor_prompts(event)
+
+    def _queue_neighbor_prompts(self, event: NeighborsDiscoveredEvent) -> None:
+        """Build a sequential queue of prompts and start showing them."""
+        if not self._store or not self._active_node:
+            return
+        prompts = []
+        for hop in event.new_neighbors:
+            prompts.append(("new", hop, None))
+        for existing_node, new_path in event.shorter_path_candidates:
+            prompts.append(("shorter", None, (existing_node, new_path)))
+        self._pending_neighbor_prompts = prompts
+        self._show_next_neighbor_prompt()
+
+    def _show_next_neighbor_prompt(self) -> None:
+        if not self._pending_neighbor_prompts:
+            return
+        kind, hop, extra = self._pending_neighbor_prompts.pop(0)
+        if kind == "new":
+            node_rec = self._active_node
+            pre_hop_path = list(node_rec.hop_path) + [hop]
+            from open_packet.store.models import Node
+            stub = Node(
+                label=hop.callsign,
+                callsign=hop.callsign,
+                ssid=0,
+                node_type="bpq",
+                hop_path=pre_hop_path,
+                path_strategy=node_rec.path_strategy,
+                interface_id=node_rec.interface_id,
+            )
+            self.push_screen(
+                NodeSetupScreen(
+                    node=stub,
+                    interfaces=self._db.list_interfaces() if self._db else [],
+                    db=self._db,
+                ),
+                callback=self._on_new_neighbor_result,
+            )
+        else:
+            existing_node, new_path = extra
+            summary = " → ".join(
+                f"{h.callsign}:{h.port}" if h.port else h.callsign for h in new_path
+            )
+            self.push_screen(
+                ShorterPathConfirmScreen(
+                    node_label=existing_node.label,
+                    current_len=len(existing_node.hop_path),
+                    new_path_summary=summary,
+                ),
+                callback=lambda accepted, n=existing_node, p=new_path:
+                    self._on_shorter_path_result(accepted, n, p),
+            )
+
+    def _on_new_neighbor_result(self, result) -> None:
+        if result is not None and self._db:
+            self._save_node(result)
+        self._show_next_neighbor_prompt()
+
+    def _on_shorter_path_result(self, accepted: bool, node, new_path) -> None:
+        if accepted and self._db:
+            node.hop_path = new_path
+            self._db.update_node(node)
+        self._show_next_neighbor_prompt()
 
     def _refresh_message_list(self) -> None:
         if not self._store or not self._active_operator:
