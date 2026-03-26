@@ -699,3 +699,43 @@ def test_node_hop_path_defaults_on_existing_rows(db):
     assert old.hop_path == []
     assert old.path_strategy == "path_route"
     assert old.auto_forward is False
+
+
+def test_upsert_neighbor_inserts_new(store):
+    s, op, sample_node = store
+    s.upsert_node_neighbor(sample_node.id, "W0RELAY-1", port=3)
+    neighbors = s.get_node_neighbors(sample_node.id)
+    assert len(neighbors) == 1
+    assert neighbors[0].callsign == "W0RELAY-1"
+    assert neighbors[0].port == 3
+
+
+def test_upsert_neighbor_updates_last_seen(store):
+    s, op, sample_node = store
+    s.upsert_node_neighbor(sample_node.id, "W0RELAY-1", port=3)
+    import time
+    time.sleep(0.01)
+    s.upsert_node_neighbor(sample_node.id, "W0RELAY-1", port=3)
+    # Verify only one record (not two insertions)
+    assert len(s.get_node_neighbors(sample_node.id)) == 1
+    # Verify last_seen was updated by checking directly in DB
+    row = s._conn.execute(
+        "SELECT first_seen, last_seen FROM node_neighbors WHERE node_id=? AND callsign=?",
+        (sample_node.id, "W0RELAY-1")
+    ).fetchone()
+    assert row["last_seen"] >= row["first_seen"]
+
+
+def test_upsert_neighbor_does_not_duplicate(store):
+    s, op, sample_node = store
+    s.upsert_node_neighbor(sample_node.id, "W0RELAY-1", port=3)
+    s.upsert_node_neighbor(sample_node.id, "W0RELAY-1", port=3)
+    assert len(s.get_node_neighbors(sample_node.id)) == 1
+
+
+def test_get_node_neighbors_returns_nodehop(store):
+    s, op, sample_node = store
+    s.upsert_node_neighbor(sample_node.id, "W0DIST", port=None)
+    neighbors = s.get_node_neighbors(sample_node.id)
+    assert isinstance(neighbors[0], NodeHop)
+    assert neighbors[0].port is None

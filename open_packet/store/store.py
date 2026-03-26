@@ -215,6 +215,16 @@ class Store:
             synced_at=datetime.fromisoformat(row["synced_at"]) if row["synced_at"] else None,
         )
 
+    def delete_bulletin(self, id: int) -> None:
+        assert self._conn
+        self._conn.execute("DELETE FROM bulletins WHERE id=?", (id,))
+        self._conn.commit()
+
+    def mark_bulletin_read(self, id: int) -> None:
+        assert self._conn
+        self._conn.execute("UPDATE bulletins SET read=1 WHERE id=?", (id,))
+        self._conn.commit()
+
     def mark_bulletin_sent(self, id: int) -> None:
         assert self._conn
         self._conn.execute("UPDATE bulletins SET sent=1 WHERE id=?", (id,))
@@ -227,3 +237,23 @@ class Store:
             (bbs_id, node_id),
         ).fetchone()
         return row is not None
+
+    def upsert_node_neighbor(self, node_id: int, callsign: str, port: int | None) -> None:
+        assert self._conn
+        now = datetime.now(timezone.utc).isoformat()
+        self._conn.execute(
+            """INSERT INTO node_neighbors (node_id, callsign, port, first_seen, last_seen)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(node_id, callsign) DO UPDATE SET last_seen=excluded.last_seen""",
+            (node_id, callsign, port, now, now),
+        )
+        self._conn.commit()
+
+    def get_node_neighbors(self, node_id: int) -> list:
+        assert self._conn
+        from open_packet.store.models import NodeHop
+        rows = self._conn.execute(
+            "SELECT callsign, port FROM node_neighbors WHERE node_id=? ORDER BY callsign",
+            (node_id,),
+        ).fetchall()
+        return [NodeHop(callsign=r["callsign"], port=r["port"]) for r in rows]
