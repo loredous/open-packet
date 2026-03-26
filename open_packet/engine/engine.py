@@ -233,7 +233,7 @@ class Engine:
                         node_ssid=self._node_record.ssid,
                         my_callsign=self._operator.callsign,
                         my_ssid=self._operator.ssid,
-                        hop_path=derived_path[1:],
+                        hop_path=derived_path,
                         path_strategy="path_route",
                     )
                 else:  # digipeat
