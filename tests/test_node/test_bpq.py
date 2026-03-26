@@ -2,6 +2,7 @@
 import pytest
 from open_packet.node.bpq import BPQNode, parse_message_list, parse_message_header
 from open_packet.node.base import MessageHeader, NodeBase, NodeError
+from open_packet.store.models import NodeHop
 
 
 # --- Parser unit tests (no connection needed) ---
@@ -108,3 +109,103 @@ def test_post_bulletin_sends_correct_frames():
     assert conn.sent[2] == b"Heavy rain\r"
     assert conn.sent[3] == b"High winds\r"
     assert conn.sent[4] == b"/EX\r"
+
+
+# --- Hop traversal and node discovery tests ---
+
+NODES_OUTPUT = """\
+Nodes
+Callsign  Port  Quality  Hops
+W0RELAY-1    3      200     1
+W0DIST       1      150     2
+:
+BPQ>
+"""
+
+
+def test_parse_nodes_list():
+    from open_packet.node.bpq import parse_nodes_list
+    hops = parse_nodes_list(NODES_OUTPUT)
+    assert len(hops) == 2
+    assert hops[0].callsign == "W0RELAY-1"
+    assert hops[0].port == 3
+    assert hops[1].callsign == "W0DIST"
+    assert hops[1].port == 1
+
+
+def test_parse_nodes_list_missing_port():
+    from open_packet.node.bpq import parse_nodes_list
+    output = "Nodes\nW0RELAY-1    bad   200   1\nBPQ>\n"
+    hops = parse_nodes_list(output)
+    assert hops[0].port is None
+
+
+def test_parse_nodes_list_empty():
+    from open_packet.node.bpq import parse_nodes_list
+    assert parse_nodes_list("No nodes\nBPQ>\n") == []
+
+
+def test_list_linked_nodes_sends_nodes_command():
+    conn = MockConn(responses=[
+        (NODES_OUTPUT).encode(),
+    ])
+    node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
+                   my_callsign="KD9ABC", my_ssid=0)
+    hops = node.list_linked_nodes()
+    assert conn.sent[0] == b"NODES\r"
+    assert len(hops) == 2
+
+
+def test_connect_node_single_hop_sends_only_bbs():
+    """Single hop: hop_path[1:] is empty, so no C command — only BBS\r.
+    hop_path[0] is the link-layer target; connect_node only traverses [1:]."""
+    conn = MockConn(responses=[b"BPQ>"])
+    node = BPQNode(
+        connection=conn, node_callsign="W0BPQ", node_ssid=1,
+        my_callsign="KD9ABC", my_ssid=0,
+        hop_path=[NodeHop(callsign="W0RELAY", port=3)],
+        path_strategy="path_route",
+    )
+    node.connect_node()
+    assert conn.sent[0] == b"BBS\r"
+
+
+def test_connect_node_path_route_two_hops():
+    """Two hops: connect_node traverses hop_path[1:] only — one C command then BBS."""
+    conn = MockConn(responses=[b"W0HOP2>", b"BPQ>"])
+    node = BPQNode(
+        connection=conn, node_callsign="W0BPQ", node_ssid=1,
+        my_callsign="KD9ABC", my_ssid=0,
+        hop_path=[NodeHop("W0HOP1", port=2), NodeHop("W0HOP2", port=1)],
+        path_strategy="path_route",
+    )
+    node.connect_node()
+    # hop_path[0] handled by link layer; hop_path[1:] = [W0HOP2:1]
+    assert conn.sent[0] == b"C 1 W0HOP2\r"
+    assert conn.sent[1] == b"BBS\r"
+
+
+def test_connect_node_path_route_two_hops_no_port():
+    """Second hop with no port: C command has no port prefix."""
+    conn = MockConn(responses=[b"W0HOP2>", b"BPQ>"])
+    node = BPQNode(
+        connection=conn, node_callsign="W0BPQ", node_ssid=1,
+        my_callsign="KD9ABC", my_ssid=0,
+        hop_path=[NodeHop("W0HOP1"), NodeHop("W0HOP2")],
+        path_strategy="path_route",
+    )
+    node.connect_node()
+    assert conn.sent[0] == b"C W0HOP2\r"
+
+
+def test_connect_node_digipeat_no_c_commands():
+    """Digipeat strategy: connect_node sends BBS only regardless of hop_path."""
+    conn = MockConn(responses=[b"BPQ>"])
+    node = BPQNode(
+        connection=conn, node_callsign="W0BPQ", node_ssid=1,
+        my_callsign="KD9ABC", my_ssid=0,
+        hop_path=[NodeHop(callsign="W0RELAY", port=3)],
+        path_strategy="digipeat",
+    )
+    node.connect_node()
+    assert conn.sent[0] == b"BBS\r"

@@ -50,3 +50,6 @@ class NodeBase(ABC):
 
     @abstractmethod
     def post_bulletin(self, category: str, subject: str, body: str) -> None: ...
+
+    @abstractmethod
+    def list_linked_nodes(self) -> list: ...

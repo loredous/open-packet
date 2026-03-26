@@ -25,6 +25,28 @@ def parse_message_list(text: str) -> list[MessageHeader]:
     return headers
 
 
+def parse_nodes_list(text: str) -> list:
+    from open_packet.store.models import NodeHop
+    hops = []
+    for line in text.splitlines():
+        if line.rstrip().endswith(">"):
+            break
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        callsign = parts[0]
+        # Real callsigns always contain at least one digit — filters out header
+        # lines like "Callsign", "Nodes", "Hops".
+        if not re.search(r'\d', callsign):
+            continue
+        try:
+            port = int(parts[1])
+        except (ValueError, IndexError):
+            port = None
+        hops.append(NodeHop(callsign=callsign, port=port))
+    return hops
+
+
 def parse_message_header(line: str) -> MessageHeader | None:
     m = re.match(r'^\s*(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)$', line)
     if not m:
@@ -38,12 +60,15 @@ def parse_message_header(line: str) -> MessageHeader | None:
 
 class BPQNode(NodeBase):
     def __init__(self, connection: ConnectionBase, node_callsign: str,
-                 node_ssid: int, my_callsign: str, my_ssid: int):
+                 node_ssid: int, my_callsign: str, my_ssid: int,
+                 hop_path=None, path_strategy: str = "path_route"):
         self._conn = connection
         self._node_callsign = node_callsign
         self._node_ssid = node_ssid
         self._my_callsign = my_callsign
         self._my_ssid = my_ssid
+        self._hop_path = hop_path or []
+        self._path_strategy = path_strategy
 
     def _send_text(self, text: str) -> None:
         self._conn.send_frame((text + "\r").encode())
@@ -60,6 +85,17 @@ class BPQNode(NodeBase):
         return buffer
 
     def connect_node(self) -> None:
+        # Traverse hop_path[1:] with C commands for path_route strategy.
+        # hop_path[0] is already handled by the link layer (connection.connect()).
+        if self._path_strategy == "path_route" and len(self._hop_path) > 1:
+            for hop in self._hop_path[1:]:
+                if hop.port is not None:
+                    self._send_text(f"C {hop.port} {hop.callsign}")
+                else:
+                    self._send_text(f"C {hop.callsign}")
+                response = self._recv_until_prompt()
+                if not response.rstrip().endswith(">"):
+                    raise NodeError(f"No prompt after C command to {hop.callsign}. Got: {response!r}")
         # Navigate from node to BBS, then trigger the prompt.
         self._send_text("BBS")
         response = self._recv_until_prompt()
@@ -75,6 +111,11 @@ class BPQNode(NodeBase):
             response = self._recv_until_prompt()
         if not response.rstrip().endswith(">"):
             raise NodeError(f"No BBS prompt received. Got: {response!r}")
+
+    def list_linked_nodes(self) -> list:
+        self._send_text("NODES")
+        response = self._recv_until_prompt()
+        return parse_nodes_list(response)
 
     def list_messages(self) -> list[MessageHeader]:
         self._send_text("L")
