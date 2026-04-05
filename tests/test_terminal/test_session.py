@@ -13,8 +13,8 @@ from open_packet.store.models import Interface
 def test_poll_drains_queue():
     conn = MagicMock()
     session = TerminalSession(label="W0TEST", connection=conn)
-    session._rx_queue.put("hello")
-    session._rx_queue.put("world")
+    session._rx_queue.put("hello\r")
+    session._rx_queue.put("world\r")
     lines = session.poll()
     assert lines == ["hello", "world"]
     assert session.poll() == []
@@ -136,3 +136,41 @@ def test_terminal_connect_result_fields():
     assert result.interface is iface
     assert result.target_callsign == "W0XYZ"
     assert result.target_ssid == 3
+
+
+# --- Line buffering across frame boundaries ---
+
+def test_poll_buffers_incomplete_line_across_frames():
+    """Data split mid-line across two frames is reassembled into one complete line."""
+    conn = MagicMock()
+    session = TerminalSession(label="W0TEST", connection=conn)
+    # First frame ends mid-word, no CR yet
+    session._rx_queue.put("Type RMS to connect to W")
+    assert session.poll() == []          # no complete line yet
+    assert session._recv_buffer == "Type RMS to connect to W"
+
+    # Second frame completes the line with a CR
+    session._rx_queue.put("inLink.\r")
+    lines = session.poll()
+    assert lines == ["Type RMS to connect to WinLink."]
+    assert session._recv_buffer == ""
+
+
+def test_poll_emits_complete_lines_and_buffers_tail():
+    """Multiple CR-terminated lines in one frame are all emitted; unterminated tail is held."""
+    conn = MagicMock()
+    session = TerminalSession(label="W0TEST", connection=conn)
+    session._rx_queue.put("line1\rline2\rpartial")
+    lines = session.poll()
+    assert lines == ["line1", "line2"]
+    assert session._recv_buffer == "partial"
+
+
+def test_poll_normalises_crlf():
+    """CRLF is treated as a single line terminator."""
+    conn = MagicMock()
+    session = TerminalSession(label="W0TEST", connection=conn)
+    session._rx_queue.put("hello\r\nworld\r\n")
+    lines = session.poll()
+    assert lines == ["hello", "world"]
+    assert session._recv_buffer == ""

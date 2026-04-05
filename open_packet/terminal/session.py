@@ -34,6 +34,7 @@ class TerminalSession:
         self._target_callsign = target_callsign
         self._target_ssid = target_ssid
         self._rx_queue: queue.Queue[str] = queue.Queue()
+        self._recv_buffer: str = ""
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
 
@@ -55,13 +56,19 @@ class TerminalSession:
         self.status = "disconnected"
 
     def poll(self) -> list[str]:
-        lines: list[str] = []
+        chunks: list[str] = []
         while not self._rx_queue.empty():
             try:
-                lines.append(self._rx_queue.get_nowait())
+                chunks.append(self._rx_queue.get_nowait())
             except queue.Empty:
                 break
-        return lines
+        if not chunks:
+            return []
+        self._recv_buffer += "".join(chunks)
+        self._recv_buffer = self._recv_buffer.replace("\r\n", "\r")
+        parts = self._recv_buffer.split("\r")
+        self._recv_buffer = parts[-1]
+        return parts[:-1]
 
     def _run(self) -> None:
         try:
@@ -69,7 +76,7 @@ class TerminalSession:
             self.status = "connected"
         except Exception as e:
             self.status = "error"
-            self._rx_queue.put(f"[connection error: {e}]")
+            self._rx_queue.put(f"[connection error: {e}]\r")
             return
         while not self._stop_event.is_set():
             try:
@@ -78,7 +85,7 @@ class TerminalSession:
                     self._rx_queue.put(data.decode(errors="replace"))
             except Exception as e:
                 self.status = "error"
-                self._rx_queue.put(f"[error: {e}]")
+                self._rx_queue.put(f"[error: {e}]\r")
                 break
         if self.status not in ("error", "disconnected"):
             self.status = "disconnected"

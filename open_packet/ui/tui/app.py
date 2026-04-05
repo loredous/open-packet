@@ -294,9 +294,8 @@ class OpenPacketApp(App):
                 if i == self._active_session_idx:
                     try:
                         tv = self.query_one("TerminalView")
-                        for chunk in lines:
-                            for line in chunk.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
-                                tv.append_line(line)
+                        for line in lines:
+                            tv.append_line(line)
                     except Exception:
                         pass
                 else:
