@@ -82,7 +82,7 @@ class ConnectTerminalScreen(ModalScreen):
         if node.interface_id is not None:
             self.query_one("#iface_select", Select).value = str(node.interface_id)
         self.query_one("#callsign_field", Input).value = node.callsign
-        ssid_val = str(node.ssid) if node.ssid else ""
+        ssid_val = str(node.ssid) if node.ssid is not None else ""
         self.query_one("#ssid_field", Input).value = ssid_val
         self._refresh_callsign_state()
 
