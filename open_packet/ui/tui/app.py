@@ -501,7 +501,14 @@ class OpenPacketApp(App):
         )
         session.start()
         self._terminal_sessions.append(session)
+        self._active_session_idx = len(self._terminal_sessions) - 1
         self._refresh_sessions()
+        try:
+            main = self.query_one(MainScreen)
+            main.show_terminal()
+            main.query_one("TerminalView").set_header(f"{session.label} — {session.status}")
+        except Exception:
+            pass
 
     def disconnect_session(self) -> None:
         idx = self._active_session_idx
