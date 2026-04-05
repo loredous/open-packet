@@ -28,8 +28,10 @@ from open_packet.store.models import Operator, Node, Interface, Message, Bulleti
 from open_packet.store.store import Store
 from open_packet.transport.tcp import TCPTransport
 from open_packet.transport.serial import SerialTransport
+from open_packet.terminal.session import TerminalSession, TerminalConnectResult
 from open_packet.ui.tui.screens.compose import ComposeScreen
 from open_packet.ui.tui.screens.compose_bulletin import ComposeBulletinScreen
+from open_packet.ui.tui.screens.connect_terminal import ConnectTerminalScreen
 from open_packet.ui.tui.screens.main import MainScreen
 from open_packet.ui.tui.screens.settings import SettingsScreen
 from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
@@ -72,6 +74,8 @@ class OpenPacketApp(App):
         self._active_category = ""
         self._db: Optional[Database] = None
         self._pending_neighbor_prompts: list = []
+        self._terminal_sessions: list[TerminalSession] = []
+        self._active_session_idx: Optional[int] = None
 
     def get_default_screen(self) -> MainScreen:
         return MainScreen()
@@ -275,6 +279,27 @@ class OpenPacketApp(App):
             except queue.Empty:
                 break
 
+        if not self._terminal_sessions:
+            return
+
+        needs_sidebar_refresh = False
+        for i, session in enumerate(self._terminal_sessions):
+            lines = session.poll()
+            if lines:
+                if i == self._active_session_idx:
+                    try:
+                        tv = self.query_one("TerminalView")
+                        for line in lines:
+                            tv.append_line(line)
+                    except Exception:
+                        pass
+                else:
+                    session.has_unread = True
+                    needs_sidebar_refresh = True
+
+        if needs_sidebar_refresh:
+            self._refresh_sessions()
+
     def _handle_event(self, event) -> None:
         if isinstance(event, MessageQueuedEvent):
             self._refresh_message_list()
@@ -443,6 +468,74 @@ class OpenPacketApp(App):
         if result and isinstance(result, PostBulletinCommand):
             self._cmd_queue.put(result)
 
+    def open_terminal_connect(self) -> None:
+        if self._db is None:
+            return
+        self.push_screen(
+            ConnectTerminalScreen(db=self._db),
+            callback=self._on_connect_terminal_result,
+        )
+
+    def _on_connect_terminal_result(self, result: Optional[TerminalConnectResult]) -> None:
+        if result is None:
+            return
+        iface = result.interface
+        op = self._active_operator
+        if op is None:
+            return
+
+        match iface.iface_type:
+            case "telnet":
+                connection = TelnetLink(
+                    host=iface.host, port=iface.port,
+                    username=iface.username, password=iface.password,
+                )
+            case "kiss_tcp":
+                transport = TCPTransport(host=iface.host, port=iface.port)
+                connection = AX25Connection(
+                    kiss=KISSLink(transport=transport),
+                    my_callsign=op.callsign,
+                    my_ssid=op.ssid,
+                )
+            case "kiss_serial":
+                transport = SerialTransport(device=iface.device, baud=iface.baud)
+                connection = AX25Connection(
+                    kiss=KISSLink(transport=transport),
+                    my_callsign=op.callsign,
+                    my_ssid=op.ssid,
+                )
+            case _:
+                return
+
+        session = TerminalSession(
+            label=result.label,
+            connection=connection,
+            target_callsign=result.target_callsign,
+            target_ssid=result.target_ssid,
+        )
+        session.start()
+        self._terminal_sessions.append(session)
+        self._refresh_sessions()
+
+    def disconnect_session(self) -> None:
+        idx = self._active_session_idx
+        if idx is None or idx >= len(self._terminal_sessions):
+            return
+        self._terminal_sessions[idx].disconnect()
+        self._terminal_sessions.pop(idx)
+        self._active_session_idx = None
+        self._refresh_sessions()
+        try:
+            self.query_one("MainScreen").show_messages()
+        except Exception:
+            pass
+
+    def _refresh_sessions(self) -> None:
+        try:
+            self.query_one("FolderTree").update_sessions(self._terminal_sessions)
+        except Exception:
+            pass
+
     def open_settings(self) -> None:
         self.push_screen(SettingsScreen(), callback=self._on_settings_result)
 
@@ -475,6 +568,34 @@ class OpenPacketApp(App):
         self._active_folder = event.folder
         self._active_category = getattr(event, "category", "")
         self._refresh_message_list()
+
+    def on_folder_tree_session_selected(self, event) -> None:
+        idx = event.session_idx
+        if idx >= len(self._terminal_sessions):
+            return
+        self._active_session_idx = idx
+        session = self._terminal_sessions[idx]
+        session.has_unread = False
+        self._refresh_sessions()
+        try:
+            from open_packet.ui.tui.screens.main import MainScreen
+            main = self.query_one(MainScreen)
+            main.show_terminal()
+            tv = main.query_one("TerminalView")
+            tv.set_header(f"{session.label} — {session.status}")
+        except Exception:
+            pass
+
+    def on_terminal_view_line_submitted(self, event) -> None:
+        idx = self._active_session_idx
+        if idx is None or idx >= len(self._terminal_sessions):
+            return
+        session = self._terminal_sessions[idx]
+        session.send(event.text)
+        try:
+            self.query_one("TerminalView").append_line(f"> {event.text}")
+        except Exception:
+            pass
 
 def serve() -> None:
     from textual_serve.server import Server

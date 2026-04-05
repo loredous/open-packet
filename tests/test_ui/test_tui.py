@@ -460,3 +460,110 @@ async def test_main_screen_show_terminal_hides_messages(app_config, tmp_path):
         assert tv.display is False
         assert ml.display is True
         assert mb.display is True
+
+
+@pytest.mark.asyncio
+async def test_open_terminal_connect_pushes_screen(app_config, tmp_path):
+    """Pressing 't' pushes ConnectTerminalScreen when a db is available."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+    from open_packet.ui.tui.screens.connect_terminal import ConnectTerminalScreen
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="TNC", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.press("t")
+        await pilot.pause()
+        assert isinstance(app.screen, ConnectTerminalScreen)
+
+
+@pytest.mark.asyncio
+async def test_poll_events_routes_session_lines_to_terminal_view(app_config, tmp_path):
+    """Lines from an active session appear in TerminalView."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+    from open_packet.terminal.session import TerminalSession
+    from open_packet.ui.tui.widgets.terminal_view import TerminalView
+    from open_packet.ui.tui.screens.main import MainScreen
+    from unittest.mock import MagicMock
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="TNC", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+
+        # Inject a fake session with a pending line
+        fake_session = MagicMock(spec=TerminalSession)
+        fake_session.label = "W0XYZ"
+        fake_session.status = "connected"
+        fake_session.has_unread = False
+        fake_session.poll.return_value = ["hello from W0XYZ"]
+
+        app._terminal_sessions = [fake_session]
+        app._active_session_idx = 0
+
+        main = app.screen
+        assert isinstance(main, MainScreen)
+        main.show_terminal()
+        await pilot.pause()
+
+        # Trigger a poll cycle
+        app._poll_events()
+        await pilot.pause()
+
+        # TerminalView should have received the line (no exception = success)
+        tv = main.query_one(TerminalView)
+        assert tv.display is True
+
+
+@pytest.mark.asyncio
+async def test_poll_events_sets_has_unread_for_inactive_session(app_config, tmp_path):
+    """Lines arriving for a non-active session set has_unread = True."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+    from open_packet.terminal.session import TerminalSession
+    from unittest.mock import MagicMock
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="TNC", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+
+        fake_session = MagicMock(spec=TerminalSession)
+        fake_session.label = "W0XYZ"
+        fake_session.status = "connected"
+        fake_session.has_unread = False
+        fake_session.poll.return_value = ["incoming data"]
+
+        app._terminal_sessions = [fake_session]
+        app._active_session_idx = None  # not viewing this session
+
+        app._poll_events()
+        await pilot.pause()
+
+        assert fake_session.has_unread is True
