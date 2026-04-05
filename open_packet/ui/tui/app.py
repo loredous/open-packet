@@ -504,8 +504,10 @@ class OpenPacketApp(App):
         self._active_session_idx = len(self._terminal_sessions) - 1
         self._refresh_sessions()
         if isinstance(self.screen, MainScreen):
+            tv = self.screen.query_one("TerminalView")
+            tv.clear()
+            tv.set_header(f"{session.label} — {session.status}")
             self.screen.show_terminal()
-            self.screen.query_one("TerminalView").set_header(f"{session.label} — {session.status}")
 
     def disconnect_session(self) -> None:
         idx = self._active_session_idx
@@ -566,8 +568,10 @@ class OpenPacketApp(App):
         session.has_unread = False
         self._refresh_sessions()
         if isinstance(self.screen, MainScreen):
+            tv = self.screen.query_one("TerminalView")
+            tv.clear()
+            tv.set_header(f"{session.label} — {session.status}")
             self.screen.show_terminal()
-            self.screen.query_one("TerminalView").set_header(f"{session.label} — {session.status}")
 
     def on_terminal_view_line_submitted(self, event) -> None:
         idx = self._active_session_idx

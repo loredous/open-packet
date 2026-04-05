@@ -1,12 +1,15 @@
 # open_packet/ui/tui/widgets/terminal_view.py
 from __future__ import annotations
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Vertical
 from textual.message import Message as TMessage
 from textual.widgets import Input, Label, RichLog
 
 
 class TerminalView(Vertical):
+    BINDINGS = [Binding("ctrl+d", "disconnect", "Disconnect", show=False)]
+
     DEFAULT_CSS = """
     TerminalView {
         height: 1fr;
@@ -21,7 +24,7 @@ class TerminalView(Vertical):
         height: 1fr;
     }
     TerminalView #terminal_input {
-        height: 3;
+        border: none;
         border-top: solid $primary;
     }
     """
@@ -44,6 +47,9 @@ class TerminalView(Vertical):
 
     def clear(self) -> None:
         self.query_one("#terminal_log", RichLog).clear()
+
+    def action_disconnect(self) -> None:
+        self.app.disconnect_session()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         text = event.value.strip()
