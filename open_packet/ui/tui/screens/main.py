@@ -1,6 +1,7 @@
 # open_packet/ui/tui/screens/main.py
 from __future__ import annotations
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.screen import Screen
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer
@@ -27,16 +28,16 @@ class MainScreen(Screen):
     """
 
     BINDINGS = [
-        ("c", "check_mail", "Send/Receive"),
-        ("n", "new_message", "New"),
-        ("b", "new_bulletin", "Bulletin"),
-        ("t", "terminal_connect", "Terminal"),
-        ("d", "delete_message", "Delete"),
-        ("r", "reply_message", "Reply"),
-        ("s", "settings", "Settings"),
-        ("`", "toggle_console", "Console"),
-        ("ctrl+d", "disconnect_session", "Disconnect"),
-        ("q", "quit", "Quit"),
+        Binding("ctrl+c", "check_mail", "Send/Receive", priority=True),
+        Binding("ctrl+n", "new_message", "New", priority=True),
+        Binding("ctrl+b", "new_bulletin", "Bulletin", priority=True),
+        Binding("ctrl+t", "terminal_connect", "Terminal", priority=True),
+        Binding("ctrl+x", "delete_message", "Delete", priority=True),
+        Binding("ctrl+r", "reply_message", "Reply", priority=True),
+        Binding("ctrl+s", "settings", "Settings", priority=True),
+        Binding("`", "toggle_console", "Console", priority=True),
+        Binding("ctrl+d", "disconnect_session", "Disconnect", priority=True),
+        Binding("ctrl+q", "quit", "Quit", priority=True),
     ]
 
     def compose(self) -> ComposeResult:

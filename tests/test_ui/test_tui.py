@@ -481,7 +481,7 @@ async def test_open_terminal_connect_pushes_screen(app_config, tmp_path):
     app = OpenPacketApp(config=app_config)
     async with app.run_test() as pilot:
         await pilot.pause()
-        await pilot.press("t")
+        await pilot.press("ctrl+t")
         await pilot.pause()
         assert isinstance(app.screen, ConnectTerminalScreen)
 
