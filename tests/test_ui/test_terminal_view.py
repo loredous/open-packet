@@ -42,10 +42,9 @@ async def test_append_line_adds_to_log():
         tv = app.query_one(TerminalView)
         tv.append_line("hello world")
         await pilot.pause()
-        # RichLog contains content — just verify no exception raised
         from textual.widgets import RichLog
         log = tv.query_one(RichLog)
-        assert log is not None
+        assert len(log.lines) > 0
 
 
 @pytest.mark.asyncio
