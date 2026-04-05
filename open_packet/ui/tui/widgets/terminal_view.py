@@ -50,3 +50,4 @@ class TerminalView(Vertical):
         if text:
             self.post_message(self.LineSubmitted(text))
             event.input.clear()
+        event.stop()
