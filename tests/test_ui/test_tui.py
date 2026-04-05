@@ -414,3 +414,49 @@ async def test_folder_tree_session_child_node_click_posts_message(app_config, tm
         # No exception should be raised, and the message should be posted
         ft.on_tree_node_selected(mock_event)
         await pilot.pause()
+
+
+@pytest.mark.asyncio
+async def test_main_screen_show_terminal_hides_messages(app_config, tmp_path):
+    """show_terminal() hides MessageList/MessageBody and shows TerminalView."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+    from open_packet.ui.tui.screens.main import MainScreen
+    from open_packet.ui.tui.widgets.terminal_view import TerminalView
+    from open_packet.ui.tui.widgets.message_list import MessageList
+    from open_packet.ui.tui.widgets.message_body import MessageBody
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="TNC", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        main = app.screen
+        assert isinstance(main, MainScreen)
+        tv = main.query_one(TerminalView)
+        ml = main.query_one(MessageList)
+        mb = main.query_one(MessageBody)
+
+        # Initially messages visible, terminal hidden
+        assert tv.display is False
+        assert ml.display is True
+        assert mb.display is True
+
+        main.show_terminal()
+        await pilot.pause()
+        assert tv.display is True
+        assert ml.display is False
+        assert mb.display is False
+
+        main.show_messages()
+        await pilot.pause()
+        assert tv.display is False
+        assert ml.display is True
+        assert mb.display is True
