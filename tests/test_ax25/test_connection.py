@@ -235,3 +235,64 @@ def test_connect_with_via_path_encodes_via_in_sabm():
     assert via_addr.callsign.strip() == "W0RLY"
     assert via_addr.ssid == 1
     assert via_addr.last is True
+
+
+# --- Frame filtering (relay scenario) ---
+
+def _foreign_sabm():
+    """A SABM from a relay's outbound callsign to a third party — not for us."""
+    from open_packet.ax25.frame import encode_sabm
+    return encode_sabm(
+        dest="K0ARK", dest_ssid=7,
+        src="K0JLB", src_ssid=14,   # relay using our base callsign with different SSID
+        poll=True,
+    )
+
+
+def _foreign_i_frame():
+    """An I-frame between two third-party stations — not for us."""
+    return encode_i_frame(
+        dest="K0JLB", dest_ssid=14,
+        src="K0ARK", src_ssid=7,
+        ns=0, nr=0, payload=b"hello",
+    )
+
+
+def test_foreign_sabm_does_not_disrupt_connected_session():
+    """Relay traffic with our base callsign must not trigger _handle_sabm_reset."""
+    conn, mock = make_conn()
+    mock.inject(ua_frame())
+    conn.connect(DEST_CALL, DEST_SSID)
+    assert conn.state == LinkState.CONNECTED
+
+    # Simulate normal exchange that advances sequence numbers
+    mock.inject(i_frame(b"data", ns=0, nr=0))
+    conn.receive_frame(timeout=0.1)
+    assert conn.V_R == 1
+
+    # Inject a foreign SABM (relay traffic not addressed to us)
+    mock.inject(_foreign_sabm())
+    conn.receive_frame(timeout=0.1)
+
+    # State and sequence numbers must be undisturbed
+    assert conn.state == LinkState.CONNECTED
+    assert conn.V_R == 1
+    # Must NOT have sent a UA in response to the foreign SABM
+    ua_responses = [f for f in mock.sent if decode_frame(f).frame_type == FrameType.UA]
+    assert len(ua_responses) == 0
+
+
+def test_foreign_i_frame_does_not_affect_sequence_numbers():
+    """I-frames for third-party stations must be silently ignored."""
+    conn, mock = make_conn()
+    mock.inject(ua_frame())
+    conn.connect(DEST_CALL, DEST_SSID)
+
+    # Inject foreign I-frame (K0ARK→K0JLB-14, not for K0JLB-0)
+    mock.inject(_foreign_i_frame())
+    result = conn.receive_frame(timeout=0.1)
+
+    assert result == b""
+    assert conn.V_R == 0  # unchanged
+    # Must not have sent any supervisory response to it
+    assert len(mock.sent) == 1  # only the original SABM

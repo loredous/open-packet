@@ -169,6 +169,9 @@ class AX25Connection(ConnectionBase):
 
             f = decode_frame(raw)
 
+            if not self._is_for_us(f):
+                continue
+
             if f.frame_type == FrameType.UA and f.poll_final:
                 self._t1.stop()
                 self._t3.stop()
@@ -202,6 +205,8 @@ class AX25Connection(ConnectionBase):
                     self._t1.start(self._t1_timeout)
                 continue
             f = decode_frame(raw)
+            if not self._is_for_us(f):
+                continue
             if f.frame_type in (FrameType.UA, FrameType.DM):
                 self._t1.stop()
                 break
@@ -211,10 +216,23 @@ class AX25Connection(ConnectionBase):
     # Internal: frame processing                                           #
     # ------------------------------------------------------------------ #
 
+    def _is_for_us(self, f) -> bool:
+        """True iff this frame is from our peer addressed to our station."""
+        return (
+            f.destination.upper() == self._my_call.upper()
+            and f.destination_ssid == self._my_ssid
+            and self._dest_call is not None
+            and f.source.upper() == self._dest_call.upper()
+            and f.source_ssid == self._dest_ssid
+        )
+
     def _process_frame(self, raw: bytes) -> Optional[bytes]:
         try:
             f = decode_frame(raw)
         except ValueError:
+            return None
+
+        if not self._is_for_us(f):
             return None
 
         if f.frame_type == FrameType.I:
