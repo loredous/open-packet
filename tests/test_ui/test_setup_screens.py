@@ -264,6 +264,32 @@ async def test_node_setup_blank_host_does_not_dismiss(node_db):
 
 
 @pytest.mark.asyncio
+async def test_node_setup_blank_ssid_defaults_to_zero(node_db):
+    """Blank SSID field on node setup should default to 0, not error."""
+    app = _ScreenTestApp(lambda: NodeSetupScreen(interfaces=[], db=node_db))
+    async with app.run_test(size=(80, 120)) as pilot:
+        await pilot.click("#label_field")
+        await pilot.press(*"Home BBS")
+        await pilot.click("#callsign_field")
+        await pilot.press(*"w0bpq")
+        # leave ssid_field blank
+        await pilot.click("#telnet_host")
+        await pilot.press(*"192.168.1.209")
+        await pilot.click("#telnet_port")
+        await pilot.press(*"8023")
+        await pilot.click("#telnet_user")
+        await pilot.press(*"K0JLB")
+        await pilot.click("#telnet_pass")
+        await pilot.press(*"password")
+        await pilot.click("#save_btn")
+        await pilot.pause()
+    result = app.dismiss_result
+    assert result is not _SENTINEL
+    assert result is not None
+    assert result.ssid == 0
+
+
+@pytest.mark.asyncio
 async def test_node_setup_cancel(node_db):
     app = _ScreenTestApp(lambda: NodeSetupScreen(interfaces=[], db=node_db))
     async with app.run_test(size=(80, 120)) as pilot:

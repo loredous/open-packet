@@ -91,7 +91,7 @@ class NodeSetupScreen(ModalScreen):
             yield Input(placeholder="e.g. W0BPQ", id="callsign_field",
                         value=n.callsign if n else "")
             yield Label("", id="callsign_error", classes="error")
-            yield Label("SSID (0-15):")
+            yield Label("SSID (optional, 0–15):")
             yield Input(placeholder="0", id="ssid_field",
                         value=str(n.ssid) if n else "")
             yield Label("", id="ssid_error", classes="error")
@@ -223,7 +223,7 @@ class NodeSetupScreen(ModalScreen):
             self.query_one("#callsign_error", Label).update("")
 
         try:
-            ssid = int(ssid_str)
+            ssid = int(ssid_str) if ssid_str else 0
             if not 0 <= ssid <= 15:
                 raise ValueError
             self.query_one("#ssid_error", Label).update("")
@@ -325,7 +325,7 @@ class NodeSetupScreen(ModalScreen):
             if self._validate():
                 label = self.query_one("#label_field", Input).value.strip()
                 callsign = self.query_one("#callsign_field", Input).value.strip().upper()
-                ssid = int(self.query_one("#ssid_field", Input).value.strip())
+                ssid = int(self.query_one("#ssid_field", Input).value.strip() or "0")
                 is_default = self.query_one("#default_switch", Switch).value
 
                 if self._using_new_iface():
