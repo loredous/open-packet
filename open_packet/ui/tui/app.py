@@ -503,12 +503,9 @@ class OpenPacketApp(App):
         self._terminal_sessions.append(session)
         self._active_session_idx = len(self._terminal_sessions) - 1
         self._refresh_sessions()
-        try:
-            main = self.query_one(MainScreen)
-            main.show_terminal()
-            main.query_one("TerminalView").set_header(f"{session.label} — {session.status}")
-        except Exception:
-            pass
+        if isinstance(self.screen, MainScreen):
+            self.screen.show_terminal()
+            self.screen.query_one("TerminalView").set_header(f"{session.label} — {session.status}")
 
     def disconnect_session(self) -> None:
         idx = self._active_session_idx
@@ -518,10 +515,8 @@ class OpenPacketApp(App):
         self._terminal_sessions.pop(idx)
         self._active_session_idx = None
         self._refresh_sessions()
-        try:
-            self.query_one("MainScreen").show_messages()
-        except Exception:
-            pass
+        if isinstance(self.screen, MainScreen):
+            self.screen.show_messages()
 
     def _refresh_sessions(self) -> None:
         try:
@@ -570,13 +565,9 @@ class OpenPacketApp(App):
         session = self._terminal_sessions[idx]
         session.has_unread = False
         self._refresh_sessions()
-        try:
-            main = self.query_one(MainScreen)
-            main.show_terminal()
-            tv = main.query_one("TerminalView")
-            tv.set_header(f"{session.label} — {session.status}")
-        except Exception:
-            pass
+        if isinstance(self.screen, MainScreen):
+            self.screen.show_terminal()
+            self.screen.query_one("TerminalView").set_header(f"{session.label} — {session.status}")
 
     def on_terminal_view_line_submitted(self, event) -> None:
         idx = self._active_session_idx
