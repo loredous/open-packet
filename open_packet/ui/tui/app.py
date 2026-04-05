@@ -112,6 +112,30 @@ class OpenPacketApp(App):
 
         self._start_engine(db, operator, node_record)
 
+    def _build_connection(self, iface: Interface, op: Operator):
+        match iface.iface_type:
+            case "telnet":
+                return TelnetLink(
+                    host=iface.host, port=iface.port,
+                    username=iface.username, password=iface.password,
+                )
+            case "kiss_tcp":
+                transport = TCPTransport(host=iface.host, port=iface.port)
+                return AX25Connection(
+                    kiss=KISSLink(transport=transport),
+                    my_callsign=op.callsign,
+                    my_ssid=op.ssid,
+                )
+            case "kiss_serial":
+                transport = SerialTransport(device=iface.device, baud=iface.baud)
+                return AX25Connection(
+                    kiss=KISSLink(transport=transport),
+                    my_callsign=op.callsign,
+                    my_ssid=op.ssid,
+                )
+            case _:
+                return None
+
     def _start_engine(self, db: Database, operator: Operator, node_record: Node) -> None:
         store = Store(db)
         self._store = store
@@ -130,28 +154,9 @@ class OpenPacketApp(App):
             self._update_status_bar_identity()
             return
 
-        match iface.iface_type:
-            case "telnet":
-                connection = TelnetLink(
-                    host=iface.host, port=iface.port,
-                    username=iface.username, password=iface.password,
-                )
-            case "kiss_tcp":
-                transport = TCPTransport(host=iface.host, port=iface.port)
-                connection = AX25Connection(
-                    kiss=KISSLink(transport=transport),
-                    my_callsign=operator.callsign,
-                    my_ssid=operator.ssid,
-                )
-            case "kiss_serial":
-                transport = SerialTransport(device=iface.device, baud=iface.baud)
-                connection = AX25Connection(
-                    kiss=KISSLink(transport=transport),
-                    my_callsign=operator.callsign,
-                    my_ssid=operator.ssid,
-                )
-            case _:
-                raise ValueError(f"Unknown interface type: {iface.iface_type!r}")
+        connection = self._build_connection(iface, operator)
+        if connection is None:
+            raise ValueError(f"Unknown interface type: {iface.iface_type!r}")
 
         node = BPQNode(
             connection=connection,
@@ -484,28 +489,9 @@ class OpenPacketApp(App):
         if op is None:
             return
 
-        match iface.iface_type:
-            case "telnet":
-                connection = TelnetLink(
-                    host=iface.host, port=iface.port,
-                    username=iface.username, password=iface.password,
-                )
-            case "kiss_tcp":
-                transport = TCPTransport(host=iface.host, port=iface.port)
-                connection = AX25Connection(
-                    kiss=KISSLink(transport=transport),
-                    my_callsign=op.callsign,
-                    my_ssid=op.ssid,
-                )
-            case "kiss_serial":
-                transport = SerialTransport(device=iface.device, baud=iface.baud)
-                connection = AX25Connection(
-                    kiss=KISSLink(transport=transport),
-                    my_callsign=op.callsign,
-                    my_ssid=op.ssid,
-                )
-            case _:
-                return
+        connection = self._build_connection(iface, op)
+        if connection is None:
+            return
 
         session = TerminalSession(
             label=result.label,
@@ -571,14 +557,13 @@ class OpenPacketApp(App):
 
     def on_folder_tree_session_selected(self, event) -> None:
         idx = event.session_idx
-        if idx >= len(self._terminal_sessions):
+        if idx < 0 or idx >= len(self._terminal_sessions):
             return
         self._active_session_idx = idx
         session = self._terminal_sessions[idx]
         session.has_unread = False
         self._refresh_sessions()
         try:
-            from open_packet.ui.tui.screens.main import MainScreen
             main = self.query_one(MainScreen)
             main.show_terminal()
             tv = main.query_one("TerminalView")
