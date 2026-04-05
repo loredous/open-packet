@@ -5,7 +5,8 @@ import time
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase, NodeError, MessageHeader, Message
 
-TIMEOUT = 10.0
+TIMEOUT = 30.0        # max wait for the first data after a command (RF links can be slow)
+IDLE_TIMEOUT = 5.0    # max silence after last data before considering response complete
 
 
 def parse_message_list(text: str) -> list[MessageHeader]:
@@ -75,11 +76,19 @@ class BPQNode(NodeBase):
 
     def _recv_until_prompt(self, timeout: float = TIMEOUT) -> str:
         buffer = ""
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
+        first_data_deadline = time.monotonic() + timeout
+        idle_deadline: float | None = None
+        while True:
+            now = time.monotonic()
+            if idle_deadline is not None:
+                if now >= idle_deadline:
+                    break
+            elif now >= first_data_deadline:
+                break
             data = self._conn.receive_frame(timeout=1.0)
             if data:
                 buffer += data.decode(errors="replace")
+                idle_deadline = time.monotonic() + IDLE_TIMEOUT
                 if buffer.rstrip().endswith(">"):
                     break
         return buffer

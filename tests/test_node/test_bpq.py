@@ -209,3 +209,21 @@ def test_connect_node_digipeat_no_c_commands():
     )
     node.connect_node()
     assert conn.sent[0] == b"BBS\r"
+
+
+# --- Multi-chunk and slow response handling ---
+
+def test_list_linked_nodes_collects_response_across_multiple_frames():
+    """Nodes list arriving across several receive_frame calls is fully assembled."""
+    # Response split: body in one frame, prompt in the next (simulates slow BPQ32 node)
+    conn = MockConn(responses=[
+        b"K0ARK-7} Nodes\rK0RELAY 1\r",
+        b"",           # one empty poll between chunks
+        b"K0TEST 2\rk0ark> ",    # rest of data + prompt in a later frame
+    ])
+    node = BPQNode(connection=conn, node_callsign="K0ARK", node_ssid=7,
+                   my_callsign="KD9ABC", my_ssid=0)
+    hops = node.list_linked_nodes()
+    callsigns = [h.callsign for h in hops]
+    assert "K0RELAY" in callsigns
+    assert "K0TEST" in callsigns
