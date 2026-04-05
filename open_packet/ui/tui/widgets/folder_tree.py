@@ -52,8 +52,8 @@ class FolderTree(Tree):
 
     def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
         data = event.node.data or str(event.node.label)
-        if isinstance(data, str) and data.startswith("__session_"):
-            idx = int(data.split("_")[-1])
+        if isinstance(data, str) and data.startswith("__session_item_"):
+            idx = int(data[len("__session_item_"):-2])
             self.post_message(self.SessionSelected(idx))
             return
         parent = event.node.parent
@@ -114,7 +114,7 @@ class FolderTree(Tree):
 
         for i, session in enumerate(sessions):
             label = _session_label(session)
-            node = self._sessions_node.add_leaf(label, data=f"__session_{i}__")
+            node = self._sessions_node.add_leaf(label, data=f"__session_item_{i}__")
             self._session_nodes.append(node)
 
         if sessions:

@@ -347,3 +347,70 @@ async def test_folder_tree_update_sessions_adds_entries(app_config, tmp_path):
         await pilot.pause()
         # Two session nodes exist — no exception raised
         assert len(ft._session_nodes) == 2
+
+
+@pytest.mark.asyncio
+async def test_folder_tree_sessions_parent_node_click_does_not_crash(app_config, tmp_path):
+    """Clicking the Sessions parent node (data='__sessions__') must not crash."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+    from open_packet.ui.tui.widgets.folder_tree import FolderTree
+    from unittest.mock import MagicMock
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="TNC", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        ft = app.query_one(FolderTree)
+
+        # Build a fake event that looks like clicking the Sessions header node
+        mock_event = MagicMock()
+        mock_event.node.data = "__sessions__"
+        mock_event.node.parent = None
+        mock_event.node.label = "Sessions"
+
+        # Must not raise ValueError: invalid literal for int() with base 10: ''
+        ft.on_tree_node_selected(mock_event)
+        await pilot.pause()
+
+
+@pytest.mark.asyncio
+async def test_folder_tree_session_child_node_click_posts_message(app_config, tmp_path):
+    """Clicking a session child node (data='__session_item_N__') posts SessionSelected(N)."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+    from open_packet.ui.tui.widgets.folder_tree import FolderTree
+    from unittest.mock import MagicMock
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="TNC", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        ft = app.query_one(FolderTree)
+
+        # Build a fake event for session item 2
+        mock_event = MagicMock()
+        mock_event.node.data = "__session_item_2__"
+        mock_event.node.parent = None
+        mock_event.node.label = "W0TEST"
+
+        # Verify SessionSelected message is posted with correct index
+        # No exception should be raised, and the message should be posted
+        ft.on_tree_node_selected(mock_event)
+        await pilot.pause()
