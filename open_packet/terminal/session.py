@@ -3,7 +3,7 @@ from __future__ import annotations
 import queue
 import threading
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from open_packet.link.base import ConnectionBase
 
@@ -28,7 +28,7 @@ class TerminalSession:
         target_ssid: int = 0,
     ) -> None:
         self.label = label
-        self.status = "connecting"
+        self.status: Literal["connecting", "connected", "disconnected", "error"] = "connecting"
         self.has_unread = False
         self._connection = connection
         self._target_callsign = target_callsign
@@ -41,6 +41,8 @@ class TerminalSession:
         self._thread.start()
 
     def send(self, text: str) -> None:
+        if self.status != "connected":
+            return
         self._connection.send_frame((text + "\r").encode())
 
     def disconnect(self) -> None:

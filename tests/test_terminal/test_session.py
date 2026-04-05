@@ -29,8 +29,17 @@ def test_poll_empty_returns_empty_list():
 def test_send_encodes_text_with_carriage_return():
     conn = MagicMock()
     session = TerminalSession(label="W0TEST", connection=conn)
+    session.status = "connected"
     session.send("hello")
     conn.send_frame.assert_called_once_with(b"hello\r")
+
+
+def test_send_is_noop_when_not_connected():
+    conn = MagicMock()
+    session = TerminalSession(label="W0TEST", connection=conn)
+    # status is "connecting" — send should not call send_frame
+    session.send("hello")
+    conn.send_frame.assert_not_called()
 
 
 def test_initial_status_is_connecting():
