@@ -308,3 +308,42 @@ async def test_update_counts_bulletin_categories_dynamic(app_config, tmp_path):
         assert "NTS" not in tree._bulletin_nodes
         assert "WX" in tree._bulletin_nodes
         await pilot.pause()
+
+
+@pytest.mark.asyncio
+async def test_folder_tree_update_sessions_adds_entries(app_config, tmp_path):
+    """update_sessions() adds session entries to the tree without crashing."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+    from open_packet.ui.tui.widgets.folder_tree import FolderTree
+    from unittest.mock import MagicMock
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="TNC", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        ft = app.query_one(FolderTree)
+
+        # Build fake sessions
+        session_a = MagicMock()
+        session_a.label = "W0XYZ"
+        session_a.status = "connected"
+        session_a.has_unread = False
+
+        session_b = MagicMock()
+        session_b.label = "K0TEST"
+        session_b.status = "error"
+        session_b.has_unread = False
+
+        ft.update_sessions([session_a, session_b])
+        await pilot.pause()
+        # Two session nodes exist — no exception raised
+        assert len(ft._session_nodes) == 2
