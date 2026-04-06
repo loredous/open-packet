@@ -534,6 +534,135 @@ async def test_poll_events_routes_session_lines_to_terminal_view(app_config, tmp
 
 
 @pytest.mark.asyncio
+async def test_message_list_has_sent_and_retrieved_columns(app_config, tmp_path):
+    """MessageList must expose 'Sent' and 'Retrieved' columns (not 'Date')."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="Test", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        msg_list = app.query_one("MessageList")
+        col_names = [col.label.plain.strip() for col in msg_list.columns.values()]
+        assert "Sent" in col_names
+        assert "Retrieved" in col_names
+        assert "Date" not in col_names
+
+
+@pytest.mark.asyncio
+async def test_message_list_shows_retrieved_date_and_dash_for_none(app_config, tmp_path):
+    """Rows show formatted synced_at in Retrieved col; '—' when synced_at is None."""
+    from open_packet.store.database import Database
+    from open_packet.store.store import Store
+    from open_packet.store.models import Operator, Node, Message, Bulletin
+    from datetime import datetime, timezone
+    from textual.coordinate import Coordinate
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    node = db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    store = Store(db)
+
+    msg = store.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="001",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Hello", body="Body",
+        timestamp=datetime(2025, 6, 1, 12, 0, tzinfo=timezone.utc),
+    ))
+    assert msg.synced_at is not None
+
+    app_config.store.db_path = str(tmp_path / "test.db")
+    app = OpenPacketApp(config=app_config)
+    app._store = store
+    app._active_operator = op
+    app._active_folder = "Inbox"
+    app._active_category = ""
+
+    async with app.run_test() as pilot:
+        app._refresh_message_list()
+        await pilot.pause()
+        msg_list = app.query_one("MessageList")
+        assert msg_list.row_count == 1
+
+        sent_val = msg_list.get_cell_at(Coordinate(0, 3))
+        assert sent_val == "06/01 12:00"
+
+        retrieved_val = msg_list.get_cell_at(Coordinate(0, 4))
+        assert retrieved_val != "—", "non-queued message must show a retrieved date"
+
+    queued_msg = store.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="",
+        from_call="KD9ABC", to_call="W0TEST",
+        subject="Queued", body="Draft",
+        timestamp=datetime(2025, 6, 2, 9, 0, tzinfo=timezone.utc),
+        queued=True,
+    ))
+    assert queued_msg.synced_at is None
+
+    app2 = OpenPacketApp(config=app_config)
+    app2._store = store
+    app2._active_operator = op
+    app2._active_folder = "Outbox"
+    app2._active_category = ""
+
+    async with app2.run_test() as pilot2:
+        app2._refresh_message_list()
+        await pilot2.pause()
+        msg_list2 = app2.query_one("MessageList")
+        assert msg_list2.row_count == 1
+        retrieved_val2 = msg_list2.get_cell_at(Coordinate(0, 4))
+        assert retrieved_val2 == "—"
+
+
+@pytest.mark.asyncio
+async def test_mark_row_read_clears_unread_indicator(app_config, tmp_path):
+    """mark_row_read(0) replaces '●' with ' ' in column 0 of the given row."""
+    from open_packet.store.database import Database
+    from open_packet.store.store import Store
+    from open_packet.store.models import Operator, Node, Message
+    from datetime import datetime, timezone
+    from textual.coordinate import Coordinate
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    node = db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    store = Store(db)
+    store.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="001",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Unread", body="Body",
+        timestamp=datetime.now(timezone.utc),
+        read=False,
+    ))
+
+    app_config.store.db_path = str(tmp_path / "test.db")
+    app = OpenPacketApp(config=app_config)
+    app._store = store
+    app._active_operator = op
+    app._active_folder = "Inbox"
+
+    async with app.run_test() as pilot:
+        app._refresh_message_list()
+        await pilot.pause()
+        msg_list = app.query_one("MessageList")
+
+        assert msg_list.get_cell_at(Coordinate(0, 0)) == "●"
+
+        msg_list.mark_row_read(0)
+        assert msg_list.get_cell_at(Coordinate(0, 0)) == " "
+
+
+@pytest.mark.asyncio
 async def test_poll_events_sets_has_unread_for_inactive_session(app_config, tmp_path):
     """Lines arriving for a non-active session set has_unread = True."""
     from open_packet.store.database import Database
