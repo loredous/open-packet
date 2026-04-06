@@ -322,6 +322,7 @@ class OpenPacketApp(App):
 
         if isinstance(event, ConnectionStatusEvent):
             status_bar.status = event.status
+            status_bar.sync_detail = event.detail if event.status == ConnectionStatus.SYNCING else ""
             if event.status == ConnectionStatus.ERROR:
                 self.notify(f"Error: {event.detail}", severity="error")
         elif isinstance(event, SyncCompleteEvent):
@@ -553,6 +554,10 @@ class OpenPacketApp(App):
                 self._store.mark_bulletin_read(event.message.id)
             event.message.read = True
             self._refresh_folder_counts()
+            try:
+                self.query_one("MessageList").mark_row_read(event.row_index)
+            except Exception:
+                pass
 
     def on_folder_tree_folder_selected(self, event) -> None:
         self._active_folder = event.folder

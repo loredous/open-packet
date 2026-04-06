@@ -770,3 +770,48 @@ async def test_folder_tree_width_capped_at_32(app_config, tmp_path):
             "Bulletins": {"AVERYLONGCATEGORYNAME": (100, 50)},
         })
         assert tree.styles.width.value == 32
+
+
+@pytest.mark.asyncio
+async def test_selecting_message_clears_unread_indicator(app_config, tmp_path):
+    """Selecting an unread message marks it read in DB and clears '●' in the list row."""
+    from open_packet.store.database import Database
+    from open_packet.store.store import Store
+    from open_packet.store.models import Operator, Node, Message
+    from datetime import datetime, timezone
+    from textual.coordinate import Coordinate
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    node = db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+    store = Store(db)
+    store.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="001",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Unread msg", body="Body",
+        timestamp=datetime.now(timezone.utc),
+        read=False,
+    ))
+
+    app_config.store.db_path = str(tmp_path / "test.db")
+    app = OpenPacketApp(config=app_config)
+    app._store = store
+    app._active_operator = op
+    app._active_folder = "Inbox"
+
+    async with app.run_test() as pilot:
+        app._refresh_message_list()
+        await pilot.pause()
+        msg_list = app.query_one("MessageList")
+
+        # Confirm unread
+        assert msg_list.get_cell_at(Coordinate(0, 0)) == "●"
+
+        # Post MessageSelected directly (bypasses DataTable; row_index carried in event)
+        from open_packet.ui.tui.widgets.message_list import MessageList as MLWidget
+        msg_list.post_message(MLWidget.MessageSelected(msg_list._messages[0], row_index=0))
+        await pilot.pause()
+
+        # The indicator must now be cleared
+        assert msg_list.get_cell_at(Coordinate(0, 0)) == " "
