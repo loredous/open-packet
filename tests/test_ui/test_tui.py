@@ -696,3 +696,77 @@ async def test_poll_events_sets_has_unread_for_inactive_session(app_config, tmp_
         await pilot.pause()
 
         assert fake_session.has_unread is True
+
+
+@pytest.mark.asyncio
+async def test_folder_tree_width_minimum_when_no_content(app_config, tmp_path):
+    """Width stays at 18 (minimum) when all labels are short."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="Test", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        tree = app.query_one("FolderTree")
+        tree.update_counts({"Inbox": (0, 0), "Sent": (0,), "Outbox": (0,)})
+        assert tree.styles.width.value == 18
+
+
+@pytest.mark.asyncio
+async def test_folder_tree_width_expands_for_long_bulletin_category(app_config, tmp_path):
+    """Width grows to fit long bulletin category labels (depth-2 nodes need +8 indent)."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="Test", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        tree = app.query_one("FolderTree")
+        # "LONGNEWSCAT (5/2 new)" = 21 chars; depth-2 needs 21 + 8 = 29
+        tree.update_counts({
+            "Inbox": (0, 0), "Sent": (0,), "Outbox": (0,),
+            "Bulletins": {"LONGNEWSCAT": (5, 2)},
+        })
+        assert tree.styles.width.value == 29
+
+
+@pytest.mark.asyncio
+async def test_folder_tree_width_capped_at_32(app_config, tmp_path):
+    """Width never exceeds 32 regardless of label length."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    iface = db.insert_interface(Interface(label="Test", iface_type="kiss_tcp", host="localhost", port=8910))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    app_config.store.db_path = str(tmp_path / "test.db")
+
+    app = OpenPacketApp(config=app_config)
+    async with app.run_test() as pilot:
+        tree = app.query_one("FolderTree")
+        # "AVERYLONGCATEGORYNAME (100/50 new)" = 34 chars; 34 + 8 = 42 → capped at 32
+        tree.update_counts({
+            "Inbox": (0, 0), "Sent": (0,), "Outbox": (0,),
+            "Bulletins": {"AVERYLONGCATEGORYNAME": (100, 50)},
+        })
+        assert tree.styles.width.value == 32

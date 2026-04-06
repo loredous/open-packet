@@ -105,6 +105,8 @@ class FolderTree(Tree):
                 self._bulletin_nodes[category].remove()
                 del self._bulletin_nodes[category]
 
+        self._recompute_width()
+
     def update_sessions(self, sessions: list) -> None:
         if not hasattr(self, "_sessions_node"):
             return
@@ -119,3 +121,33 @@ class FolderTree(Tree):
 
         if sessions:
             self._sessions_node.expand()
+
+        self._recompute_width()
+
+    def _recompute_width(self) -> None:
+        """Set width to fit the longest visible label, clamped to [18, 32].
+
+        Depth-1 nodes (Inbox, Outbox, Sent) get +4 for tree indent.
+        Depth-2 nodes (bulletin categories, sessions) get +8.
+        """
+        def _plain(label) -> str:
+            return label.plain if hasattr(label, "plain") else str(label)
+
+        depth1: list[str] = []
+        depth2: list[str] = []
+
+        if hasattr(self, "_inbox_node"):
+            depth1.append(_plain(self._inbox_node.label))
+            depth1.append(_plain(self._outbox_node.label))
+            depth1.append(_plain(self._sent_node.label))
+            for node in self._bulletin_nodes.values():
+                depth2.append(_plain(node.label))
+
+        if hasattr(self, "_session_nodes"):
+            for node in self._session_nodes:
+                depth2.append(_plain(node.label))
+
+        max1 = max((len(s) for s in depth1), default=0)
+        max2 = max((len(s) for s in depth2), default=0)
+        needed = max(max1 + 4, max2 + 8)
+        self.styles.width = max(18, min(32, needed))
