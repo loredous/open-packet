@@ -201,6 +201,7 @@ class Store:
             timestamp=datetime.fromisoformat(row["timestamp"]),
             read=bool(row["read"]), sent=bool(row["sent"]), deleted=bool(row["deleted"]),
             queued=bool(row["queued"]),
+            synced_at=datetime.fromisoformat(row["synced_at"]) if row["synced_at"] else None,
         )
 
     def _row_to_bulletin(self, row) -> Bulletin:

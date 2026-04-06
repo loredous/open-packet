@@ -739,3 +739,26 @@ def test_get_node_neighbors_returns_nodehop(store):
     neighbors = s.get_node_neighbors(sample_node.id)
     assert isinstance(neighbors[0], NodeHop)
     assert neighbors[0].port is None
+
+
+def test_row_to_message_populates_synced_at(tmp_path):
+    """Messages retrieved from DB carry synced_at, matching bulletin behaviour."""
+    from open_packet.store.database import Database
+    from open_packet.store.store import Store
+    from open_packet.store.models import Message, Operator, Node
+    from datetime import datetime, timezone
+
+    db = Database(str(tmp_path / "test.db"))
+    db.initialize()
+    store = Store(db)
+
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="test", is_default=True))
+    node = db.insert_node(Node(label="Test BBS", callsign="W0BPQ", ssid=1, node_type="bpq", is_default=True))
+
+    msg = store.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="001",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Hello", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    ))
+    assert msg.synced_at is not None, "synced_at must be set on retrieval"
