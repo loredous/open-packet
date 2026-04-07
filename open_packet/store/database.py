@@ -74,10 +74,39 @@ class Database:
             except sqlite3.OperationalError:
                 pass  # column already exists
 
+        for key, value in [
+            ("export_path", "~/.local/share/open-packet/export"),
+            ("console_visible", "false"),
+            ("console_buffer", "500"),
+            ("auto_discover", "true"),
+        ]:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
+                (key, value),
+            )
+        self._conn.commit()
+
     def close(self) -> None:
         if self._conn:
             self._conn.close()
             self._conn = None
+
+    def get_setting(self, key: str) -> str:
+        assert self._conn
+        row = self._conn.execute(
+            "SELECT value FROM settings WHERE key=?", (key,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(f"Unknown setting: {key!r}")
+        return row[0]
+
+    def set_setting(self, key: str, value: str) -> None:
+        assert self._conn
+        self._conn.execute(
+            "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+            (key, value),
+        )
+        self._conn.commit()
 
     def table_names(self) -> list[str]:
         assert self._conn
@@ -162,6 +191,11 @@ class Database:
                 first_seen  TEXT NOT NULL,
                 last_seen   TEXT NOT NULL,
                 UNIQUE(node_id, callsign)
+            );
+
+            CREATE TABLE IF NOT EXISTS settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT NOT NULL
             );
         """)
         self._conn.commit()
