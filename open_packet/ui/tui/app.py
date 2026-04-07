@@ -464,6 +464,13 @@ class OpenPacketApp(App):
                     bbs_id=msg.bbs_id,
                 ))
 
+    def queue_bulletin_retrieval(self) -> None:
+        msg = self._selected_message
+        if not isinstance(msg, Bulletin) or msg.body is not None or not self._store:
+            return
+        self._store.mark_bulletin_wants_retrieval(msg.id)
+        self._refresh_message_list()
+
     def open_compose(self, to_call: str = "", subject: str = "") -> None:
         self.push_screen(ComposeScreen(to_call=to_call, subject=subject), callback=self._on_compose_result)
 

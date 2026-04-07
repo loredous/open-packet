@@ -34,6 +34,7 @@ class MainScreen(Screen):
         Binding("ctrl+t", "terminal_connect", "Terminal", priority=True),
         Binding("ctrl+x", "delete_message", "Delete", priority=True),
         Binding("ctrl+r", "reply_message", "Reply", priority=True),
+        Binding("r", "queue_bulletin_retrieval", "Queue Retrieval", priority=True),
         Binding("ctrl+s", "settings", "Settings", priority=True),
         Binding("`", "toggle_console", "Console", priority=True),
         Binding("ctrl+d", "disconnect_session", "Disconnect", priority=True),
@@ -92,6 +93,9 @@ class MainScreen(Screen):
 
     def action_disconnect_session(self) -> None:
         self.app.disconnect_session()
+
+    def action_queue_bulletin_retrieval(self) -> None:
+        self.app.queue_bulletin_retrieval()
 
     def action_quit(self) -> None:
         self.app.exit()
