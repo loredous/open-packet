@@ -120,7 +120,7 @@ def test_update_interface(db):
 
 def test_delete_interface(db):
     iface = db.insert_interface(Interface(label="Temp", iface_type="kiss_serial", device="/dev/ttyUSB0", baud=9600))
-    db.delete_interface(iface.id)
+    db.soft_delete_interface(iface.id)
     assert db.get_interface(iface.id) is None
 
 
@@ -200,12 +200,12 @@ def test_interface_id_migration_on_db_with_interfaces_table(tmp_path):
 
 
 def test_delete_interface_with_linked_node_raises(db):
-    """Deleting an interface that a node references raises ValueError."""
+    """Soft-deleting an interface that a non-deleted node references raises ValueError."""
     iface = db.insert_interface(Interface(label="TNC", iface_type="kiss_tcp", host="localhost", port=8910))
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     with pytest.raises(ValueError, match="referenced by one or more nodes"):
-        db.delete_interface(iface.id)
+        db.soft_delete_interface(iface.id)
 
 
 def test_interface_id_migration_on_existing_db(tmp_path):

@@ -94,6 +94,15 @@ class Database:
             )
         self._conn.commit()
 
+        for table in ("operators", "nodes", "interfaces", "bulletins"):
+            try:
+                self._conn.execute(
+                    f"ALTER TABLE {table} ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0"
+                )
+                self._conn.commit()
+            except sqlite3.OperationalError:
+                pass  # column already exists
+
     def close(self) -> None:
         if self._conn:
             self._conn.close()
@@ -221,7 +230,7 @@ class Database:
 
     def get_operator(self, id: int) -> Optional[Operator]:
         assert self._conn
-        row = self._conn.execute("SELECT * FROM operators WHERE id=?", (id,)).fetchone()
+        row = self._conn.execute("SELECT * FROM operators WHERE id=? AND deleted=0", (id,)).fetchone()
         if not row:
             return None
         return Operator(
@@ -232,7 +241,7 @@ class Database:
     def get_default_operator(self) -> Optional[Operator]:
         assert self._conn
         row = self._conn.execute(
-            "SELECT * FROM operators WHERE is_default=1 LIMIT 1"
+            "SELECT * FROM operators WHERE is_default=1 AND deleted=0 LIMIT 1"
         ).fetchone()
         if not row:
             return None
@@ -269,7 +278,7 @@ class Database:
 
     def get_node(self, id: int) -> Optional[Node]:
         assert self._conn
-        row = self._conn.execute("SELECT * FROM nodes WHERE id=?", (id,)).fetchone()
+        row = self._conn.execute("SELECT * FROM nodes WHERE id=? AND deleted=0", (id,)).fetchone()
         if not row:
             return None
         return self._row_to_node(row)
@@ -277,7 +286,7 @@ class Database:
     def get_default_node(self) -> Optional[Node]:
         assert self._conn
         row = self._conn.execute(
-            "SELECT * FROM nodes WHERE is_default=1 LIMIT 1"
+            "SELECT * FROM nodes WHERE is_default=1 AND deleted=0 LIMIT 1"
         ).fetchone()
         if not row:
             return None
@@ -285,7 +294,7 @@ class Database:
 
     def list_operators(self) -> list[Operator]:
         assert self._conn
-        rows = self._conn.execute("SELECT * FROM operators ORDER BY id").fetchall()
+        rows = self._conn.execute("SELECT * FROM operators WHERE deleted=0 ORDER BY id").fetchall()
         return [
             Operator(id=r["id"], callsign=r["callsign"], ssid=r["ssid"],
                      label=r["label"], is_default=bool(r["is_default"]))
@@ -294,7 +303,7 @@ class Database:
 
     def list_nodes(self) -> list[Node]:
         assert self._conn
-        rows = self._conn.execute("SELECT * FROM nodes ORDER BY id").fetchall()
+        rows = self._conn.execute("SELECT * FROM nodes WHERE deleted=0 ORDER BY id").fetchall()
         return [self._row_to_node(r) for r in rows]
 
     def update_operator(self, op: Operator) -> None:
@@ -333,7 +342,7 @@ class Database:
 
     def get_interface(self, id: int) -> Optional[Interface]:
         assert self._conn
-        row = self._conn.execute("SELECT * FROM interfaces WHERE id=?", (id,)).fetchone()
+        row = self._conn.execute("SELECT * FROM interfaces WHERE id=? AND deleted=0", (id,)).fetchone()
         if not row:
             return None
         return Interface(
@@ -345,7 +354,7 @@ class Database:
 
     def list_interfaces(self) -> list[Interface]:
         assert self._conn
-        rows = self._conn.execute("SELECT * FROM interfaces ORDER BY id").fetchall()
+        rows = self._conn.execute("SELECT * FROM interfaces WHERE deleted=0 ORDER BY id").fetchall()
         return [
             Interface(
                 id=r["id"], label=r["label"], iface_type=r["iface_type"],
@@ -386,3 +395,51 @@ class Database:
         assert self._conn
         self._conn.execute("UPDATE nodes SET is_default=0 WHERE is_default=1")
         self._conn.commit()
+
+    def soft_delete_operator(self, op_id: int) -> None:
+        assert self._conn
+        self._conn.execute(
+            "UPDATE operators SET deleted=1, is_default=0 WHERE id=?", (op_id,)
+        )
+        self._conn.commit()
+
+    def soft_delete_node(self, node_id: int) -> None:
+        assert self._conn
+        self._conn.execute(
+            "UPDATE nodes SET deleted=1, is_default=0 WHERE id=?", (node_id,)
+        )
+        self._conn.commit()
+
+    def soft_delete_interface(self, iface_id: int) -> None:
+        assert self._conn
+        count = self._conn.execute(
+            "SELECT COUNT(*) FROM nodes WHERE interface_id=? AND deleted=0", (iface_id,)
+        ).fetchone()[0]
+        if count > 0:
+            raise ValueError(
+                f"Cannot delete interface {iface_id}: it is referenced by one or more nodes"
+            )
+        self._conn.execute(
+            "UPDATE interfaces SET deleted=1 WHERE id=?", (iface_id,)
+        )
+        self._conn.commit()
+
+    def count_operator_dependents(self, op_id: int) -> tuple[int, int]:
+        assert self._conn
+        msg_count = self._conn.execute(
+            "SELECT COUNT(*) FROM messages WHERE operator_id=?", (op_id,)
+        ).fetchone()[0]
+        bul_count = self._conn.execute(
+            "SELECT COUNT(*) FROM bulletins WHERE operator_id=?", (op_id,)
+        ).fetchone()[0]
+        return (msg_count, bul_count)
+
+    def count_node_dependents(self, node_id: int) -> tuple[int, int]:
+        assert self._conn
+        msg_count = self._conn.execute(
+            "SELECT COUNT(*) FROM messages WHERE node_id=?", (node_id,)
+        ).fetchone()[0]
+        bul_count = self._conn.execute(
+            "SELECT COUNT(*) FROM bulletins WHERE node_id=?", (node_id,)
+        ).fetchone()[0]
+        return (msg_count, bul_count)
