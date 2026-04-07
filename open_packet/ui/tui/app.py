@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 def _setup_logging(log_path: str) -> None:
     from logging.handlers import RotatingFileHandler
-    os.makedirs(os.path.dirname(os.path.expanduser(log_path)), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.expanduser(log_path)) or ".", exist_ok=True)
     handler = RotatingFileHandler(
         os.path.expanduser(log_path), maxBytes=5_000_000, backupCount=5
     )
@@ -82,13 +82,18 @@ class OpenPacketApp(App):
 
     def on_mount(self) -> None:
         self._init_engine()
+        if self._console_log:
+            try:
+                self.query_one("ConsolePanel").set_log_file(self._console_log)
+            except Exception:
+                pass
         self.set_interval(0.1, self._poll_events)
         self.call_after_refresh(self._refresh_message_list)
         self.call_after_refresh(self._update_status_bar_identity)
 
     def _init_engine(self) -> None:
         db_path = os.path.expanduser(self._db_path)
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
         db = Database(db_path)
         db.initialize()
         self._settings = Settings(db)
@@ -604,7 +609,7 @@ class OpenPacketApp(App):
 
 def serve() -> None:
     from textual_serve.server import Server
-    server = Server("open-packet test.yaml")
+    server = Server("open-packet")
     server.serve()
 
 def main() -> None:
