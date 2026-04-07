@@ -5,7 +5,6 @@ from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
 from open_packet.ui.tui.screens.setup_node import NodeSetupScreen, _hops_to_text, _text_to_hops
 from open_packet.ui.tui.screens.setup_interface import InterfaceSetupScreen
 from open_packet.ui.tui.app import OpenPacketApp
-from open_packet.config.config import AppConfig, StoreConfig, UIConfig
 from open_packet.store.database import Database
 from open_packet.store.models import Operator, Node, Interface, NodeHop
 
@@ -402,19 +401,13 @@ async def test_interface_manage_close_returns_false(node_db):
 
 @pytest.fixture
 def base_config(tmp_path):
-    return AppConfig(
-        store=StoreConfig(
-            db_path=str(tmp_path / "test.db"),
-            export_path=str(tmp_path / "export"),
-        ),
-        ui=UIConfig(),
-    )
+    return str(tmp_path / "test.db")
 
 
 @pytest.mark.asyncio
 async def test_first_run_pushes_operator_setup(base_config):
     """Empty DB: OperatorSetupScreen is pushed on mount."""
-    app = OpenPacketApp(config=base_config)
+    app = OpenPacketApp(db_path=base_config)
     async with app.run_test() as pilot:
         await pilot.pause()
         await pilot.pause()
@@ -429,7 +422,7 @@ async def test_first_run_node_missing_pushes_node_setup(base_config, tmp_path):
     db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
     db.close()
 
-    app = OpenPacketApp(config=base_config)
+    app = OpenPacketApp(db_path=base_config)
     async with app.run_test() as pilot:
         await pilot.pause()
         await pilot.pause()
@@ -439,7 +432,7 @@ async def test_first_run_node_missing_pushes_node_setup(base_config, tmp_path):
 @pytest.mark.asyncio
 async def test_partial_first_run_cancel_engine_stays_none(base_config):
     """Operator saved, NodeSetupScreen cancelled: engine stays uninitialized."""
-    app = OpenPacketApp(config=base_config)
+    app = OpenPacketApp(db_path=base_config)
     async with app.run_test(size=(80, 120)) as pilot:
         await pilot.pause()
         await pilot.pause()
@@ -465,7 +458,7 @@ async def test_partial_first_run_cancel_engine_stays_none(base_config):
 @pytest.mark.asyncio
 async def test_engine_reinit_after_full_setup(base_config):
     """Completing operator + node setup initializes the engine."""
-    app = OpenPacketApp(config=base_config)
+    app = OpenPacketApp(db_path=base_config)
     async with app.run_test(size=(80, 120)) as pilot:
         await pilot.pause()
         await pilot.pause()

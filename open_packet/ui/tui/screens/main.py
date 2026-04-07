@@ -53,7 +53,8 @@ class MainScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        self.query_one("ConsolePanel").display = self.app.config.ui.console_visible
+        settings = getattr(self.app, "_settings", None)
+        self.query_one("ConsolePanel").display = settings.console_visible if settings else False
         self.query_one(TerminalView).display = False
 
     def show_terminal(self) -> None:

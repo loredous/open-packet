@@ -1,19 +1,12 @@
 # tests/test_ui/test_tui.py
 import pytest
 from open_packet.ui.tui.app import OpenPacketApp
-from open_packet.config.config import AppConfig, StoreConfig, UIConfig
 from tests.test_ui.conftest import _label_text
 
 
 @pytest.fixture
-def app_config(tmp_path):
-    return AppConfig(
-        store=StoreConfig(
-            db_path=str(tmp_path / "test.db"),
-            export_path=str(tmp_path / "export"),
-        ),
-        ui=UIConfig(),
-    )
+def app_db_path(tmp_path):
+    return str(tmp_path / "test.db")
 
 
 def test_app_store_has_outbox_methods():
@@ -24,7 +17,7 @@ def test_app_store_has_outbox_methods():
 
 
 @pytest.mark.asyncio
-async def test_app_mounts(app_config, tmp_path):
+async def test_app_mounts(app_db_path, tmp_path):
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
 
@@ -38,9 +31,8 @@ async def test_app_mounts(app_config, tmp_path):
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         assert app.query_one("StatusBar") is not None
         assert app.query_one("FolderTree") is not None
@@ -49,7 +41,7 @@ async def test_app_mounts(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_console_toggle(app_config, tmp_path):
+async def test_console_toggle(app_db_path, tmp_path):
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
 
@@ -63,9 +55,8 @@ async def test_console_toggle(app_config, tmp_path):
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         # Console starts hidden by default
         console = app.query_one("ConsolePanel")
@@ -78,7 +69,7 @@ async def test_console_toggle(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_folder_selection_loads_inbox(app_config, tmp_path):
+async def test_folder_selection_loads_inbox(app_db_path, tmp_path):
     """Selecting Inbox in the folder tree populates the message list."""
     from open_packet.store.database import Database
     from open_packet.store.store import Store
@@ -99,8 +90,7 @@ async def test_folder_selection_loads_inbox(app_config, tmp_path):
         body="Body", timestamp=datetime.now(timezone.utc),
     ))
 
-    app_config.store.db_path = str(tmp_path / "test.db")
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     # Inject store/operator directly to bypass engine init
     app._store = store
     app._active_operator = op
@@ -115,7 +105,7 @@ async def test_folder_selection_loads_inbox(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_update_counts_inbox_labels(app_config, tmp_path):
+async def test_update_counts_inbox_labels(app_db_path, tmp_path):
     """update_counts() sets correct Inbox label variants on the mounted FolderTree."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -129,9 +119,8 @@ async def test_update_counts_inbox_labels(app_config, tmp_path):
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         tree = app.query_one("FolderTree")
 
@@ -166,7 +155,7 @@ async def test_update_counts_inbox_labels(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_update_counts_outbox_cleared(app_config, tmp_path):
+async def test_update_counts_outbox_cleared(app_db_path, tmp_path):
     """When Outbox count drops to 0, label returns to plain 'Outbox' with no background."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -181,9 +170,8 @@ async def test_update_counts_outbox_cleared(app_config, tmp_path):
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         tree = app.query_one("FolderTree")
         tree.update_counts({"Inbox": (0, 0), "Sent": (0,), "Outbox": (2,)})
@@ -198,7 +186,7 @@ async def test_update_counts_outbox_cleared(app_config, tmp_path):
         assert label.style.bgcolor is None
 
 
-async def test_status_bar_shows_operator_node_interface(app_config, tmp_path):
+async def test_status_bar_shows_operator_node_interface(app_db_path, tmp_path):
     """After mounting with full config, status bar right section shows callsign, node, interface."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -212,9 +200,8 @@ async def test_status_bar_shows_operator_node_interface(app_config, tmp_path):
     db.insert_node(Node(label="Home BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
         right = app.query_one("#status_right")
@@ -224,7 +211,7 @@ async def test_status_bar_shows_operator_node_interface(app_config, tmp_path):
         assert "Home TNC" in text
 
 
-async def test_status_bar_shows_ssid_when_nonzero(app_config, tmp_path):
+async def test_status_bar_shows_ssid_when_nonzero(app_db_path, tmp_path):
     """Operator with ssid>0 is shown as callsign-ssid."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -238,19 +225,18 @@ async def test_status_bar_shows_ssid_when_nonzero(app_config, tmp_path):
     db.insert_node(Node(label="Local BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
         right = app.query_one("#status_right")
         assert "W1AW-3" in _label_text(right)
 
 
-async def test_status_bar_right_empty_when_no_operator(app_config, tmp_path):
+async def test_status_bar_right_empty_when_no_operator(app_db_path, tmp_path):
     """When no operator is configured, the right section of the status bar is empty."""
     # Don't insert any operator — DB is empty
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
         # The OperatorSetupScreen will be pushed, but we can still check the bar
@@ -265,7 +251,7 @@ def test_compose_bulletin_command_exists():
     assert ComposeBulletinScreen is not None
 
 
-async def test_update_counts_bulletin_categories_dynamic(app_config, tmp_path):
+async def test_update_counts_bulletin_categories_dynamic(app_db_path, tmp_path):
     """update_counts() creates and updates dynamic bulletin category nodes."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -279,9 +265,8 @@ async def test_update_counts_bulletin_categories_dynamic(app_config, tmp_path):
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         tree = app.query_one("FolderTree")
 
@@ -311,7 +296,7 @@ async def test_update_counts_bulletin_categories_dynamic(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_folder_tree_update_sessions_adds_entries(app_config, tmp_path):
+async def test_folder_tree_update_sessions_adds_entries(app_db_path, tmp_path):
     """update_sessions() adds session entries to the tree without crashing."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -325,9 +310,8 @@ async def test_folder_tree_update_sessions_adds_entries(app_config, tmp_path):
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
         ft = app.query_one(FolderTree)
@@ -350,7 +334,7 @@ async def test_folder_tree_update_sessions_adds_entries(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_folder_tree_sessions_parent_node_click_does_not_crash(app_config, tmp_path):
+async def test_folder_tree_sessions_parent_node_click_does_not_crash(app_db_path, tmp_path):
     """Clicking the Sessions parent node (data='__sessions__') must not crash."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -364,9 +348,8 @@ async def test_folder_tree_sessions_parent_node_click_does_not_crash(app_config,
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
         ft = app.query_one(FolderTree)
@@ -383,7 +366,7 @@ async def test_folder_tree_sessions_parent_node_click_does_not_crash(app_config,
 
 
 @pytest.mark.asyncio
-async def test_folder_tree_session_child_node_click_posts_message(app_config, tmp_path):
+async def test_folder_tree_session_child_node_click_posts_message(app_db_path, tmp_path):
     """Clicking a session child node (data='__session_item_N__') posts SessionSelected(N)."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -397,9 +380,8 @@ async def test_folder_tree_session_child_node_click_posts_message(app_config, tm
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
         ft = app.query_one(FolderTree)
@@ -417,7 +399,7 @@ async def test_folder_tree_session_child_node_click_posts_message(app_config, tm
 
 
 @pytest.mark.asyncio
-async def test_main_screen_show_terminal_hides_messages(app_config, tmp_path):
+async def test_main_screen_show_terminal_hides_messages(app_db_path, tmp_path):
     """show_terminal() hides MessageList/MessageBody and shows TerminalView."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -433,9 +415,8 @@ async def test_main_screen_show_terminal_hides_messages(app_config, tmp_path):
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
         main = app.screen
@@ -463,7 +444,7 @@ async def test_main_screen_show_terminal_hides_messages(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_open_terminal_connect_pushes_screen(app_config, tmp_path):
+async def test_open_terminal_connect_pushes_screen(app_db_path, tmp_path):
     """Pressing 't' pushes ConnectTerminalScreen when a db is available."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -476,9 +457,8 @@ async def test_open_terminal_connect_pushes_screen(app_config, tmp_path):
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
         await pilot.press("ctrl+t")
@@ -487,7 +467,7 @@ async def test_open_terminal_connect_pushes_screen(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_poll_events_routes_session_lines_to_terminal_view(app_config, tmp_path):
+async def test_poll_events_routes_session_lines_to_terminal_view(app_db_path, tmp_path):
     """Lines from an active session appear in TerminalView."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -503,9 +483,8 @@ async def test_poll_events_routes_session_lines_to_terminal_view(app_config, tmp
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
 
@@ -534,7 +513,7 @@ async def test_poll_events_routes_session_lines_to_terminal_view(app_config, tmp
 
 
 @pytest.mark.asyncio
-async def test_message_list_has_sent_and_retrieved_columns(app_config, tmp_path):
+async def test_message_list_has_sent_and_retrieved_columns(app_db_path, tmp_path):
     """MessageList must expose 'Sent' and 'Retrieved' columns (not 'Date')."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -546,9 +525,8 @@ async def test_message_list_has_sent_and_retrieved_columns(app_config, tmp_path)
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         msg_list = app.query_one("MessageList")
         col_names = [col.label.plain.strip() for col in msg_list.columns.values()]
@@ -558,7 +536,7 @@ async def test_message_list_has_sent_and_retrieved_columns(app_config, tmp_path)
 
 
 @pytest.mark.asyncio
-async def test_message_list_shows_retrieved_date_and_dash_for_none(app_config, tmp_path):
+async def test_message_list_shows_retrieved_date_and_dash_for_none(app_db_path, tmp_path):
     """Rows show formatted synced_at in Retrieved col; '—' when synced_at is None."""
     from open_packet.store.database import Database
     from open_packet.store.store import Store
@@ -580,8 +558,7 @@ async def test_message_list_shows_retrieved_date_and_dash_for_none(app_config, t
     ))
     assert msg.synced_at is not None
 
-    app_config.store.db_path = str(tmp_path / "test.db")
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     app._store = store
     app._active_operator = op
     app._active_folder = "Inbox"
@@ -608,7 +585,7 @@ async def test_message_list_shows_retrieved_date_and_dash_for_none(app_config, t
     ))
     assert queued_msg.synced_at is None
 
-    app2 = OpenPacketApp(config=app_config)
+    app2 = OpenPacketApp(db_path=app_db_path)
     app2._store = store
     app2._active_operator = op
     app2._active_folder = "Outbox"
@@ -624,7 +601,7 @@ async def test_message_list_shows_retrieved_date_and_dash_for_none(app_config, t
 
 
 @pytest.mark.asyncio
-async def test_mark_row_read_clears_unread_indicator(app_config, tmp_path):
+async def test_mark_row_read_clears_unread_indicator(app_db_path, tmp_path):
     """mark_row_read(0) replaces '●' with ' ' in column 0 of the given row."""
     from open_packet.store.database import Database
     from open_packet.store.store import Store
@@ -645,8 +622,7 @@ async def test_mark_row_read_clears_unread_indicator(app_config, tmp_path):
         read=False,
     ))
 
-    app_config.store.db_path = str(tmp_path / "test.db")
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     app._store = store
     app._active_operator = op
     app._active_folder = "Inbox"
@@ -663,7 +639,7 @@ async def test_mark_row_read_clears_unread_indicator(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_poll_events_sets_has_unread_for_inactive_session(app_config, tmp_path):
+async def test_poll_events_sets_has_unread_for_inactive_session(app_db_path, tmp_path):
     """Lines arriving for a non-active session set has_unread = True."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -677,9 +653,8 @@ async def test_poll_events_sets_has_unread_for_inactive_session(app_config, tmp_
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=0, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
 
@@ -699,7 +674,7 @@ async def test_poll_events_sets_has_unread_for_inactive_session(app_config, tmp_
 
 
 @pytest.mark.asyncio
-async def test_folder_tree_width_minimum_when_no_content(app_config, tmp_path):
+async def test_folder_tree_width_minimum_when_no_content(app_db_path, tmp_path):
     """Width stays at 18 (minimum) when all labels are short."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -711,9 +686,8 @@ async def test_folder_tree_width_minimum_when_no_content(app_config, tmp_path):
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         tree = app.query_one("FolderTree")
         tree.update_counts({"Inbox": (0, 0), "Sent": (0,), "Outbox": (0,)})
@@ -721,7 +695,7 @@ async def test_folder_tree_width_minimum_when_no_content(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_folder_tree_width_expands_for_long_bulletin_category(app_config, tmp_path):
+async def test_folder_tree_width_expands_for_long_bulletin_category(app_db_path, tmp_path):
     """Width grows to fit long bulletin category labels (depth-2 nodes need +8 indent)."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -733,9 +707,8 @@ async def test_folder_tree_width_expands_for_long_bulletin_category(app_config, 
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         tree = app.query_one("FolderTree")
         # "LONGNEWSCAT (5/2 new)" = 21 chars; depth-2 needs 21 + 8 = 29
@@ -747,7 +720,7 @@ async def test_folder_tree_width_expands_for_long_bulletin_category(app_config, 
 
 
 @pytest.mark.asyncio
-async def test_folder_tree_width_capped_at_32(app_config, tmp_path):
+async def test_folder_tree_width_capped_at_32(app_db_path, tmp_path):
     """Width never exceeds 32 regardless of label length."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
@@ -759,9 +732,8 @@ async def test_folder_tree_width_capped_at_32(app_config, tmp_path):
     db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
                         is_default=True, interface_id=iface.id))
     db.close()
-    app_config.store.db_path = str(tmp_path / "test.db")
 
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         tree = app.query_one("FolderTree")
         # "AVERYLONGCATEGORYNAME (100/50 new)" = 34 chars; 34 + 8 = 42 → capped at 32
@@ -773,7 +745,7 @@ async def test_folder_tree_width_capped_at_32(app_config, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_selecting_message_clears_unread_indicator(app_config, tmp_path):
+async def test_selecting_message_clears_unread_indicator(app_db_path, tmp_path):
     """Selecting an unread message marks it read in DB and clears '●' in the list row."""
     from open_packet.store.database import Database
     from open_packet.store.store import Store
@@ -794,8 +766,7 @@ async def test_selecting_message_clears_unread_indicator(app_config, tmp_path):
         read=False,
     ))
 
-    app_config.store.db_path = str(tmp_path / "test.db")
-    app = OpenPacketApp(config=app_config)
+    app = OpenPacketApp(db_path=app_db_path)
     app._store = store
     app._active_operator = op
     app._active_folder = "Inbox"

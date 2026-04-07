@@ -8,7 +8,6 @@ from typing import Optional
 from textual.app import App
 from textual.css.query import NoMatches
 
-from open_packet.config.config import AppConfig, load_config
 from open_packet.engine.commands import (
     CheckMailCommand, DeleteMessageCommand, SendMessageCommand, PostBulletinCommand
 )
@@ -25,6 +24,7 @@ from open_packet.link.telnet import TelnetLink
 from open_packet.node.bpq import BPQNode
 from open_packet.store.database import Database
 from open_packet.store.models import Operator, Node, Interface, Message, Bulletin
+from open_packet.store.settings import Settings
 from open_packet.store.store import Store
 from open_packet.transport.tcp import TCPTransport
 from open_packet.transport.serial import SerialTransport
@@ -38,8 +38,6 @@ from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
 from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_CONFIG_PATH = "~/.config/open-packet/config.yaml"
 
 
 def _setup_logging(log_path: str) -> None:
@@ -59,14 +57,16 @@ class OpenPacketApp(App):
     SCREENS = {"compose": ComposeScreen}
     TITLE = "open-packet"
 
-    def __init__(self, config: AppConfig, **kwargs):
+    def __init__(self, db_path: str, console_log: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
-        self.config = config
+        self._db_path = db_path
+        self._console_log = console_log
         self._cmd_queue: queue.Queue = queue.Queue()
         self._evt_queue: queue.Queue = queue.Queue()
         self._engine: Optional[Engine] = None
         self._selected_message = None
         self._store: Optional[Store] = None
+        self._settings: Optional[Settings] = None
         self._active_operator: Optional[Operator] = None
         self._active_node: Optional[Node] = None
         self._active_interface: Optional[Interface] = None
@@ -87,10 +87,11 @@ class OpenPacketApp(App):
         self.call_after_refresh(self._update_status_bar_identity)
 
     def _init_engine(self) -> None:
-        db_path = os.path.expanduser(self.config.store.db_path)
+        db_path = os.path.expanduser(self._db_path)
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         db = Database(db_path)
         db.initialize()
+        self._settings = Settings(db)
         # Assign self._db BEFORE any early return so _restart_engine can close it.
         self._db = db
 
@@ -169,8 +170,8 @@ class OpenPacketApp(App):
         )
 
         export_path = (
-            os.path.expanduser(self.config.store.export_path)
-            if self.config.store.export_path else None
+            os.path.expanduser(self._settings.export_path)
+            if self._settings and self._settings.export_path else None
         )
 
         self._engine = Engine(
@@ -182,7 +183,7 @@ class OpenPacketApp(App):
             connection=connection,
             node=node,
             export_path=export_path,
-            config=self.config,
+            auto_discover=self._settings.auto_discover if self._settings else True,
         )
         self._active_node = node_record
         self._active_interface = iface
@@ -607,13 +608,25 @@ def serve() -> None:
     server.serve()
 
 def main() -> None:
-    import sys
-    config_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_CONFIG_PATH
-    _setup_logging("~/.local/share/open-packet/open-packet.log")
-    try:
-        config = load_config(os.path.expanduser(config_path))
-    except Exception as e:
-        print(f"Error loading config: {e}", file=sys.stderr)
-        sys.exit(1)
-    app = OpenPacketApp(config=config)
+    import argparse
+    parser = argparse.ArgumentParser(prog="open-packet")
+    parser.add_argument("--db-path", default=None, help="Path to SQLite database")
+    parser.add_argument("--log-path", default=None, help="Path to log file")
+    parser.add_argument("--console-log", default=None, help="Path to console frame log")
+    args = parser.parse_args()
+
+    db_path = (
+        args.db_path
+        or os.environ.get("OPEN_PACKET_DB_PATH")
+        or "~/.local/share/open-packet/messages.db"
+    )
+    log_path = (
+        args.log_path
+        or os.environ.get("OPEN_PACKET_LOG_PATH")
+        or "~/.local/share/open-packet/open-packet.log"
+    )
+    console_log = args.console_log or os.environ.get("OPEN_PACKET_CONSOLE_LOG")
+
+    _setup_logging(log_path)
+    app = OpenPacketApp(db_path=db_path, console_log=console_log)
     app.run()

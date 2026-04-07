@@ -49,6 +49,10 @@ Schema migrations use `ALTER TABLE ... ADD COLUMN` in `Database.initialize()` wi
 | Composed, awaiting send | 1 | 0 |
 | Composed, transmitted | 1 | 1 |
 
+**Bulletin body sentinel:** `Bulletin.body` is `Optional[str]` — `None` means header-only (not yet retrieved). Because the SQLite `body` column has `NOT NULL`, header-only rows are stored as `"\x00"` (NUL byte); `_row_to_bulletin` maps `"\x00"` back to `None`. Do not change this to `""` — empty string is a valid retrieved body. `wants_retrieval: bool` records user intent to fetch the body on the next sync.
+
+The TUI calls `self._store` directly for lightweight operations that don't need connectivity (e.g. `mark_message_read`, `mark_bulletin_wants_retrieval`). Only operations that require a BBS connection go through the engine command queue.
+
 ### TUI (`ui/tui/`)
 
 - `app.py` (`OpenPacketApp`) — top-level Textual `App`; owns the engine, store, and active operator; handles all cross-widget coordination
