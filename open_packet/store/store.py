@@ -211,7 +211,7 @@ class Store:
             id=row["id"], operator_id=row["operator_id"], node_id=row["node_id"],
             bbs_id=row["bbs_id"], category=row["category"], from_call=row["from_call"],
             subject=row["subject"],
-            body=row["body"] if row["body"] else None,   # "" sentinel → None
+            body=row["body"] if row["body"] != "" else None,   # "" sentinel → None
             timestamp=datetime.fromisoformat(row["timestamp"]),
             read=bool(row["read"]),
             queued=bool(row["queued"]),
