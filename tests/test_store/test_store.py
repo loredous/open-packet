@@ -772,6 +772,40 @@ def test_db_migration_adds_wants_retrieval_column(db):
     assert row["wants_retrieval"] == 1
 
 
+def test_save_bulletin_header_only(store):
+    """A bulletin with body=None is saved and read back with body=None."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H002",
+        category="WX", from_call="W0WX",
+        subject="Header only",
+        timestamp=datetime.now(timezone.utc),
+        # body omitted — defaults to None
+    )
+    saved = s.save_bulletin(bul)
+    assert saved.id is not None
+    assert saved.body is None
+    assert saved.wants_retrieval is False
+
+
+def test_save_bulletin_header_does_not_duplicate(store):
+    """Re-saving the same header by bbs_id+node_id returns the existing row."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H003",
+        category="WX", from_call="W0WX",
+        subject="Dedup check",
+        timestamp=datetime.now(timezone.utc),
+    )
+    first = s.save_bulletin(bul)
+    second = s.save_bulletin(bul)
+    assert first.id == second.id
+    bulletins = s.list_bulletins(operator_id=op.id)
+    assert sum(1 for b in bulletins if b.bbs_id == "H003") == 1
+
+
 def test_row_to_message_populates_synced_at(tmp_path):
     """Messages retrieved from DB carry synced_at, matching bulletin behaviour."""
     from open_packet.store.database import Database

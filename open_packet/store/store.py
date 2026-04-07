@@ -162,13 +162,15 @@ class Store:
         cur = self._conn.execute(
             """INSERT INTO bulletins
                (operator_id, node_id, bbs_id, category, from_call, subject, body,
-                timestamp, read, queued, sent, synced_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                timestamp, read, queued, sent, wants_retrieval, synced_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 bul.operator_id, bul.node_id, bul.bbs_id, bul.category,
-                bul.from_call, bul.subject, bul.body,
+                bul.from_call, bul.subject,
+                bul.body if bul.body is not None else "",   # "" = header-only sentinel
                 bul.timestamp.isoformat(), int(bul.read),
                 int(bul.queued), int(bul.sent),
+                int(bul.wants_retrieval),
                 None if bul.queued else datetime.now(timezone.utc).isoformat(),
             ),
         )
@@ -208,11 +210,13 @@ class Store:
         return Bulletin(
             id=row["id"], operator_id=row["operator_id"], node_id=row["node_id"],
             bbs_id=row["bbs_id"], category=row["category"], from_call=row["from_call"],
-            subject=row["subject"], body=row["body"],
+            subject=row["subject"],
+            body=row["body"] if row["body"] else None,   # "" sentinel → None
             timestamp=datetime.fromisoformat(row["timestamp"]),
             read=bool(row["read"]),
             queued=bool(row["queued"]),
             sent=bool(row["sent"]),
+            wants_retrieval=bool(row["wants_retrieval"]),
             synced_at=datetime.fromisoformat(row["synced_at"]) if row["synced_at"] else None,
         )
 
