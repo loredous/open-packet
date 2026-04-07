@@ -15,8 +15,6 @@ from open_packet.store.models import Operator, Node
 from open_packet.node.bpq import BPQNode
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import MessageHeader, Message as NodeMessage
-from open_packet.config.config import AppConfig, NodesConfig
-
 
 class ReplayConnection(ConnectionBase):
     """Replays a sequence of raw payload bytes as if received from a BBS."""
@@ -61,8 +59,8 @@ def test_full_check_mail_cycle():
         responses = [
             "BPQ> ",                                              # initial greeting consumed by wait_for_prompt
             "BPQ> ",                                              # initial prompt for connect_node
-            "Msg  To        From      Date   Subject\n"           # list response
-            "1    KD9ABC    W0TEST    03/22  Hello World\n"
+            "Msg  Date   Type  Size  To        From      Subject\n"  # list response
+            "1    03/22  PM    123   KD9ABC    W0TEST    Hello World\n"
             "BPQ> ",
             "From: W0TEST\nTo: KD9ABC\nSubject: Hello World\n\n"  # read response
             "This is the message body.\n"
@@ -85,7 +83,7 @@ def test_full_check_mail_cycle():
             command_queue=cmd_queue, event_queue=evt_queue,
             store=store, operator=op, node_record=node_record,
             connection=connection, node=node,
-            config=AppConfig(nodes=NodesConfig(auto_discover=False)),
+            auto_discover=False,
         )
         engine.start()
         cmd_queue.put(CheckMailCommand())

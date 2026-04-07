@@ -404,8 +404,6 @@ def test_neighbors_discovered_event_in_union():
 
 # --- Discovery phase tests ---
 
-from open_packet.config.config import AppConfig, NodesConfig
-
 
 class MockConnection:
     def connect(self, *a, **kw): pass
@@ -444,13 +442,12 @@ def _make_engine(neighbors, auto_discover):
                                     node_type="bpq", is_default=True))
     store = Store(db)
     mock_node = MockNodeWithNeighbors(neighbors)
-    cfg = AppConfig(nodes=NodesConfig(auto_discover=auto_discover))
     cmd_q, evt_q = queue.Queue(), queue.Queue()
     engine = Engine(
         command_queue=cmd_q, event_queue=evt_q, store=store,
         operator=op, node_record=node_rec,
         connection=MockConnection(), node=mock_node,
-        config=cfg,
+        auto_discover=auto_discover,
     )
     engine.start()
     return engine, store, mock_node, db, f.name  # return db and path for cleanup
@@ -591,12 +588,11 @@ def test_auto_forward_syncs_via_neighbors(tmp_path):
         def receive_frame(self, timeout=5.0): return None
 
     mock_node = MockNodeWithNeighbors([])
-    cfg = AppConfig(nodes=NodesConfig(auto_discover=False))
     cmd_q, evt_q = queue.Queue(), queue.Queue()
     engine = Engine(
         command_queue=cmd_q, event_queue=evt_q, store=store,
         operator=op, node_record=node_rec,
-        connection=TrackingConnection(), node=mock_node, config=cfg,
+        connection=TrackingConnection(), node=mock_node, auto_discover=False,
     )
     engine.start()
     cmd_q.put(CheckMailCommand())

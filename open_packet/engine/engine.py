@@ -34,7 +34,7 @@ class Engine:
         connection: ConnectionBase,
         node: NodeBase,
         export_path: Optional[str] = None,
-        config=None,
+        auto_discover: bool = True,
     ):
         self._cmd_queue = command_queue
         self._evt_queue = event_queue
@@ -44,8 +44,7 @@ class Engine:
         self._connection = connection
         self._node = node
         self._export_path = export_path
-        from open_packet.config.config import AppConfig
-        self._config = config or AppConfig()
+        self._auto_discover = auto_discover
 
         # In-memory state
         self._status = ConnectionStatus.DISCONNECTED
@@ -306,7 +305,7 @@ class Engine:
                         self._node_record.ssid,
                     )
             self._node.wait_for_prompt()
-            if self._config.nodes.auto_discover:
+            if self._auto_discover:
                 new_neighbors, shorter_path_candidates = self._discover_neighbors()
             self._node.connect_node()
             self._emit(ConsoleEvent("<", f"Connected to {node_addr}"))
