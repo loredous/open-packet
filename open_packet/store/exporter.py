@@ -27,6 +27,8 @@ def export_messages(messages: list[Message], base_path: str) -> None:
 
 def export_bulletins(bulletins: list[Bulletin], base_path: str) -> None:
     for bul in bulletins:
+        if bul.body is None:
+            continue  # header-only; body not yet retrieved
         folder = os.path.join(base_path, "bulletins", bul.category.upper())
         os.makedirs(folder, exist_ok=True)
         date_str = bul.timestamp.strftime("%Y-%m-%d") if bul.timestamp else "0000-00-00"

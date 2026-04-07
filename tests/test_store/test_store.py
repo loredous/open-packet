@@ -882,3 +882,23 @@ def test_row_to_message_populates_synced_at(tmp_path):
         timestamp=datetime.now(timezone.utc),
     ))
     assert msg.synced_at is not None, "synced_at must be set on retrieval"
+
+
+def test_export_bulletins_skips_header_only(store, tmp_path):
+    """export_bulletins must not write a file for a bulletin with body=None."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    from open_packet.store.exporter import export_bulletins
+
+    # header-only (body=None)
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H020",
+        category="WX", from_call="W0WX", subject="Header skip",
+        timestamp=datetime(2026, 4, 6, 12, 0, 0, tzinfo=timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+
+    export_bulletins([saved], base_path=str(tmp_path))
+
+    wx_dir = tmp_path / "bulletins" / "WX"
+    assert not wx_dir.exists() or len(list(wx_dir.iterdir())) == 0
