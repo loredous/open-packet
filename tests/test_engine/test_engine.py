@@ -264,16 +264,12 @@ def test_engine_do_post_bulletin_saves_to_outbox(db_and_store):
 
 
 def test_engine_check_mail_retrieves_bulletins(db_and_store):
-    """_do_check_mail() phase 4 saves retrieved bulletins and reports count."""
+    """_do_check_mail() phase 4 saves bulletin headers only (body=None, count=0)."""
     db, store, op, node_record = db_and_store
     mock_node = make_mock_node(
         bulletins=[
             MessageHeader(bbs_id="BUL-1", to_call="WX", from_call="W0WX", subject="WX Alert"),
         ]
-    )
-    mock_node.read_bulletin.return_value = NodeMessage(
-        header=mock_node.list_bulletins.return_value[0],
-        body="Tornado watch.",
     )
     mock_connection = MagicMock()
 
@@ -298,11 +294,106 @@ def test_engine_check_mail_retrieves_bulletins(db_and_store):
 
     sync_events = [e for e in events if isinstance(e, SyncCompleteEvent)]
     assert sync_events
-    assert sync_events[0].bulletins_retrieved == 1
+    # Phase 4 saves headers only — no bodies retrieved, so count is 0
+    assert sync_events[0].bulletins_retrieved == 0
     bulletins = store.list_bulletins(op.id)
     assert len(bulletins) == 1
     assert bulletins[0].bbs_id == "BUL-1"
     assert bulletins[0].category == "WX"
+    assert bulletins[0].body is None
+    # read_bulletin must NOT have been called
+    mock_node.read_bulletin.assert_not_called()
+
+
+def test_check_mail_saves_bulletin_headers_only(db_and_store):
+    """Phase 4 saves header-only bulletin rows; read_bulletin is NOT called."""
+    db, store, op, node_record = db_and_store
+    mock_node = make_mock_node(
+        bulletins=[
+            MessageHeader(bbs_id="B1", to_call="WX", from_call="W0WX",
+                          subject="Storm warning", date_str="04/06"),
+        ]
+    )
+    mock_connection = MagicMock()
+    cmd_queue = queue.Queue()
+    evt_queue = queue.Queue()
+
+    engine = Engine(
+        command_queue=cmd_queue, event_queue=evt_queue,
+        store=store, operator=op, node_record=node_record,
+        connection=mock_connection, node=mock_node,
+    )
+    engine.start()
+    cmd_queue.put(CheckMailCommand())
+
+    events = []
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        try:
+            events.append(evt_queue.get(timeout=0.5))
+        except queue.Empty:
+            break
+    engine.stop()
+
+    # read_bulletin must NOT be called — we only listed headers
+    mock_node.read_bulletin.assert_not_called()
+
+    # Header must be stored with body=None
+    bulletins = store.list_bulletins(operator_id=op.id)
+    assert len(bulletins) == 1
+    assert bulletins[0].bbs_id == "B1"
+    assert bulletins[0].body is None
+    assert bulletins[0].wants_retrieval is False
+
+
+def test_check_mail_retrieves_body_for_queued_bulletins(db_and_store):
+    """Phase 5 calls read_bulletin for bulletins where wants_retrieval=True."""
+    db, store, op, node_record = db_and_store
+
+    # Pre-populate a header-only bulletin marked for retrieval
+    from datetime import datetime, timezone
+    from open_packet.store.models import Bulletin as BulletinModel
+    pre = store.save_bulletin(BulletinModel(
+        operator_id=op.id, node_id=node_record.id, bbs_id="B2",
+        category="WX", from_call="W0WX", subject="Pre-existing header",
+        timestamp=datetime.now(timezone.utc),
+    ))
+    store.mark_bulletin_wants_retrieval(pre.id)
+
+    mock_node = make_mock_node(bulletins=[])  # listing returns nothing new
+    mock_node.read_bulletin.return_value = NodeMessage(
+        header=MagicMock(bbs_id="B2"), body="Full storm bulletin body."
+    )
+    mock_connection = MagicMock()
+    cmd_queue = queue.Queue()
+    evt_queue = queue.Queue()
+
+    engine = Engine(
+        command_queue=cmd_queue, event_queue=evt_queue,
+        store=store, operator=op, node_record=node_record,
+        connection=mock_connection, node=mock_node,
+    )
+    engine.start()
+    cmd_queue.put(CheckMailCommand())
+
+    events = []
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        try:
+            events.append(evt_queue.get(timeout=0.5))
+        except queue.Empty:
+            break
+    engine.stop()
+
+    mock_node.read_bulletin.assert_called_once_with("B2")
+
+    updated = store._get_bulletin(pre.id)
+    assert updated.body == "Full storm bulletin body."
+    assert updated.synced_at is not None
+
+    sync_events = [e for e in events if isinstance(e, SyncCompleteEvent)]
+    assert len(sync_events) == 1
+    assert sync_events[0].bulletins_retrieved == 1
 
 
 def test_neighbors_discovered_event_in_union():
