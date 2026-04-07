@@ -551,7 +551,11 @@ class OpenPacketApp(App):
     def on_message_list_message_selected(self, event) -> None:
         self._selected_message = event.message
         try:
-            self.query_one("MessageBody").show_message(event.message)
+            node_label = ""
+            if isinstance(event.message, Bulletin) and event.message.body is None and self._store:
+                nodes = {n.id: n.label for n in self._store.list_nodes()}
+                node_label = nodes.get(event.message.node_id, f"node #{event.message.node_id}")
+            self.query_one("MessageBody").show_message(event.message, node_label=node_label)
         except Exception:
             pass
         if self._store and event.message.id is not None and not event.message.read:
