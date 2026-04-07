@@ -1,5 +1,5 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Button
+from textual.widgets import Label
 from open_packet.ui.tui.widgets.status_bar import StatusBar
 from open_packet.engine.events import ConnectionStatus
 from tests.test_ui.conftest import _label_text
@@ -57,7 +57,7 @@ async def test_identity_shows_operator_button():
         sb.operator = "W1AW"
         await pilot.pause()
         assert app.query_one("#identity_container").display
-        assert str(app.query_one("#identity_operator", Button).label) == "W1AW"
+        assert _label_text(app.query_one("#identity_operator", Label)) == "W1AW"
 
 
 async def test_identity_hides_node_sep_when_node_empty():
@@ -69,7 +69,7 @@ async def test_identity_hides_node_sep_when_node_empty():
         assert not app.query_one("#identity_sep_node").display
 
 
-async def test_identity_shows_all_three_buttons():
+async def test_identity_shows_all_three_labels():
     app = StatusBarApp()
     async with app.run_test() as pilot:
         sb = app.query_one(StatusBar)

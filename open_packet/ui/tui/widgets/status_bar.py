@@ -2,9 +2,10 @@
 from __future__ import annotations
 from textual.app import ComposeResult
 from textual.css.query import NoMatches
+from textual.events import Click
 from textual.message import Message
 from textual.widget import Widget
-from textual.widgets import Button, Label
+from textual.widgets import Label
 from textual.containers import Horizontal
 from textual.reactive import reactive
 from open_packet.engine.events import ConnectionStatus
@@ -37,15 +38,14 @@ class StatusBar(Widget):
         width: auto;
         content-align: left middle;
     }
-    .identity-btn {
+    .identity-lbl {
+        width: auto;
+        height: 1;
+        content-align: left middle;
         background: $primary;
         color: $text;
-        border: none;
-        height: 1;
-        min-width: 1;
-        padding: 0;
     }
-    .identity-btn:hover {
+    .identity-lbl:hover {
         background: $primary-lighten-1;
     }
     .identity-mid-sep {
@@ -65,11 +65,11 @@ class StatusBar(Widget):
         yield Label("", id="status_left")
         with Horizontal(id="identity_container"):
             yield Label("│  ", id="identity_sep")
-            yield Button("", id="identity_operator", classes="identity-btn")
+            yield Label("", id="identity_operator", classes="identity-lbl")
             yield Label("  :  ", classes="identity-mid-sep", id="identity_sep_node")
-            yield Button("", id="identity_node", classes="identity-btn")
+            yield Label("", id="identity_node", classes="identity-lbl")
             yield Label("  :  ", classes="identity-mid-sep", id="identity_sep_iface")
-            yield Button("", id="identity_interface", classes="identity-btn")
+            yield Label("", id="identity_interface", classes="identity-lbl")
 
     def on_mount(self) -> None:
         self._render_left()
@@ -114,24 +114,25 @@ class StatusBar(Widget):
         try:
             any_set = bool(self.operator or self.node or self.interface_label)
             self.query_one("#identity_container").display = any_set
-            self.query_one("#identity_operator", Button).label = self.operator
+            self.query_one("#identity_operator", Label).update(self.operator)
             self.query_one("#identity_operator").display = bool(self.operator)
             self.query_one("#identity_sep_node").display = bool(self.operator and self.node)
-            self.query_one("#identity_node", Button).label = self.node
+            self.query_one("#identity_node", Label).update(self.node)
             self.query_one("#identity_node").display = bool(self.node)
             self.query_one("#identity_sep_iface").display = bool(self.node and self.interface_label)
-            self.query_one("#identity_interface", Button).label = self.interface_label
+            self.query_one("#identity_interface", Label).update(self.interface_label)
             self.query_one("#identity_interface").display = bool(self.interface_label)
         except NoMatches:
             return
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_click(self, event: Click) -> None:
         kind_map = {
             "identity_operator": "operator",
             "identity_node": "node",
             "identity_interface": "interface",
         }
-        kind = kind_map.get(event.button.id or "")
+        widget_id = getattr(event.widget, "id", "") or ""
+        kind = kind_map.get(widget_id)
         if kind:
             event.stop()
             self.post_message(self.IdentityClicked(kind))

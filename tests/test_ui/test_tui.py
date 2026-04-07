@@ -204,10 +204,10 @@ async def test_status_bar_shows_operator_node_interface(app_db_path, tmp_path):
     app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
-        from textual.widgets import Button
-        assert "W1AW" in str(app.query_one("#identity_operator", Button).label)
-        assert "Home BBS" in str(app.query_one("#identity_node", Button).label)
-        assert "Home TNC" in str(app.query_one("#identity_interface", Button).label)
+        from textual.widgets import Label as TLabel
+        assert "W1AW" in _label_text(app.query_one("#identity_operator", TLabel))
+        assert "Home BBS" in _label_text(app.query_one("#identity_node", TLabel))
+        assert "Home TNC" in _label_text(app.query_one("#identity_interface", TLabel))
 
 
 async def test_status_bar_shows_ssid_when_nonzero(app_db_path, tmp_path):
@@ -228,8 +228,8 @@ async def test_status_bar_shows_ssid_when_nonzero(app_db_path, tmp_path):
     app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
-        from textual.widgets import Button
-        assert "W1AW-3" in str(app.query_one("#identity_operator", Button).label)
+        from textual.widgets import Label as TLabel
+        assert "W1AW-3" in _label_text(app.query_one("#identity_operator", TLabel))
 
 
 async def test_status_bar_right_empty_when_no_operator(app_db_path, tmp_path):
