@@ -189,31 +189,36 @@ class Engine:
             node.post_bulletin(bul.category, bul.subject, bul.body)
             self._store.mark_bulletin_sent(bul.id)
 
-        # Phase 4: Retrieve bulletins
+        # Phase 4: Save bulletin headers (body not retrieved yet)
+        self._set_status(ConnectionStatus.SYNCING, "Listing bulletins…")
         bulletin_headers = node.list_bulletins()
-        bulletins_retrieved = 0
+        self._emit(ConsoleEvent(">", f"Listing bulletins ({len(bulletin_headers)} available)"))
         for header in bulletin_headers:
-            if self._store.bulletin_exists(header.bbs_id, self._node_record.id):
-                continue
-            try:
-                raw = node.read_bulletin(header.bbs_id)
-            except Exception:
-                logger.exception("Failed to read bulletin %s", header.bbs_id)
-                self._emit(ConsoleEvent("!", f"Failed to read bulletin {header.bbs_id}"))
-                continue
-            bulletin = Bulletin(
+            self._store.save_bulletin(Bulletin(
                 operator_id=self._operator.id,
                 node_id=self._node_record.id,
                 bbs_id=header.bbs_id,
                 category=header.to_call,
                 from_call=header.from_call,
                 subject=header.subject,
-                body=raw.body,
                 timestamp=datetime.now(timezone.utc),
-            )
-            self._store.save_bulletin(bulletin)
+            ))
+
+        # Phase 5: Retrieve bodies for bulletins queued by the user
+        pending = self._store.list_bulletins_pending_retrieval(self._node_record.id)
+        bulletins_retrieved = 0
+        total_pending = len(pending)
+        for i, bul in enumerate(pending, 1):
+            self._set_status(ConnectionStatus.SYNCING, f"Retrieving bulletin {i} of {total_pending}")
+            try:
+                raw = node.read_bulletin(bul.bbs_id)
+            except Exception:
+                logger.exception("Failed to retrieve bulletin %s", bul.bbs_id)
+                self._emit(ConsoleEvent("!", f"Failed to retrieve bulletin {bul.bbs_id}"))
+                continue
+            self._store.update_bulletin_body(bul.id, raw.body)
             bulletins_retrieved += 1
-            self._emit(ConsoleEvent("<", f"[{header.bbs_id}] {header.subject} from {header.from_call}"))
+            self._emit(ConsoleEvent("<", f"[{bul.bbs_id}] {bul.subject} from {bul.from_call}"))
 
         return retrieved, sent, bulletins_retrieved
 

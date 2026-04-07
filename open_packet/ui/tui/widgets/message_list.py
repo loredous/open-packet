@@ -1,5 +1,6 @@
 # open_packet/ui/tui/widgets/message_list.py
 from __future__ import annotations
+from rich.text import Text
 from textual.coordinate import Coordinate
 from textual.widgets import DataTable
 from textual.message import Message as TMessage
@@ -32,7 +33,17 @@ class MessageList(DataTable):
             read_marker = " " if msg.read else "●"
             sent_str = msg.timestamp.strftime("%m/%d %H:%M") if msg.timestamp else "—"
             retrieved_str = msg.synced_at.strftime("%m/%d %H:%M") if msg.synced_at else "—"
-            self.add_row(read_marker, msg.subject[:40], msg.from_call, sent_str, retrieved_str)
+            is_pending = isinstance(msg, Bulletin) and msg.body is None
+            if is_pending:
+                self.add_row(
+                    read_marker,
+                    Text(msg.subject[:40], style="dim"),
+                    Text(msg.from_call, style="dim"),
+                    sent_str,
+                    retrieved_str,
+                )
+            else:
+                self.add_row(read_marker, msg.subject[:40], msg.from_call, sent_str, retrieved_str)
         self.call_after_refresh(self._finish_loading)
 
     def _finish_loading(self) -> None:

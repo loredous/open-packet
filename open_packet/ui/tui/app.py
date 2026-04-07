@@ -464,6 +464,14 @@ class OpenPacketApp(App):
                     bbs_id=msg.bbs_id,
                 ))
 
+    def queue_bulletin_retrieval(self) -> None:
+        msg = self._selected_message
+        if not isinstance(msg, Bulletin) or msg.id is None or msg.body is not None or not self._store:
+            return
+        self._store.mark_bulletin_wants_retrieval(msg.id)
+        self._refresh_message_list()
+        self._refresh_folder_counts()
+
     def open_compose(self, to_call: str = "", subject: str = "") -> None:
         self.push_screen(ComposeScreen(to_call=to_call, subject=subject), callback=self._on_compose_result)
 
@@ -544,7 +552,11 @@ class OpenPacketApp(App):
     def on_message_list_message_selected(self, event) -> None:
         self._selected_message = event.message
         try:
-            self.query_one("MessageBody").show_message(event.message)
+            node_label = ""
+            if isinstance(event.message, Bulletin) and event.message.body is None and self._store:
+                nodes = {n.id: n.label for n in self._store.list_nodes()}
+                node_label = nodes.get(event.message.node_id, f"node #{event.message.node_id}")
+            self.query_one("MessageBody").show_message(event.message, node_label=node_label)
         except Exception:
             pass
         if self._store and event.message.id is not None and not event.message.read:

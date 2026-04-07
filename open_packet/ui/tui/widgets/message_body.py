@@ -13,11 +13,17 @@ class MessageBody(RichLog):
     }
     """
 
-    def show_message(self, message: Message | Bulletin) -> None:
+    def show_message(self, message: Message | Bulletin, node_label: str = "") -> None:
         self.clear()
         self.write(f"From:    {message.from_call}")
         if isinstance(message, Bulletin):
             self.write(f"Category: {message.category}")
+            if message.body is None:
+                self.write("─" * 40)
+                source = node_label or f"node #{message.node_id}"
+                self.write(f"[dim]Not retrieved — source: {source}[/dim]")
+                self.write("[dim]Press r to queue for next sync.[/dim]")
+                return
         else:
             self.write(f"To:      {message.to_call}")
         self.write(f"Subject: {message.subject}")

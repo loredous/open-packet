@@ -687,6 +687,61 @@ def test_node_hop_path_roundtrip(db):
     assert fetched.auto_forward is True
 
 
+def test_mark_bulletin_wants_retrieval(store):
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H010",
+        category="WX", from_call="W0WX", subject="Queue me",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+    assert saved.wants_retrieval is False
+
+    s.mark_bulletin_wants_retrieval(saved.id)
+
+    pending = s.list_bulletins_pending_retrieval(node_id=node.id)
+    assert len(pending) == 1
+    assert pending[0].id == saved.id
+    assert pending[0].body is None
+
+
+def test_list_bulletins_pending_retrieval_excludes_retrieved(store):
+    """A bulletin with a body is not returned as pending, even if wants_retrieval=1."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H011",
+        category="WX", from_call="W0WX", subject="Already got it",
+        body="Full body here",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+    s.mark_bulletin_wants_retrieval(saved.id)  # shouldn't matter — body is present
+
+    pending = s.list_bulletins_pending_retrieval(node_id=node.id)
+    assert all(b.id != saved.id for b in pending)
+
+
+def test_update_bulletin_body(store):
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H012",
+        category="WX", from_call="W0WX", subject="Fetch me",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+    assert saved.body is None
+    assert saved.synced_at is None
+
+    s.update_bulletin_body(saved.id, "This is the full bulletin body.")
+
+    updated = s._get_bulletin(saved.id)
+    assert updated.body == "This is the full bulletin body."
+    assert updated.synced_at is not None
+
+
 def test_node_hop_path_defaults_on_existing_rows(db):
     # Simulate a node inserted without the new columns (migration scenario)
     db._conn.execute(
@@ -741,6 +796,71 @@ def test_get_node_neighbors_returns_nodehop(store):
     assert neighbors[0].port is None
 
 
+def test_bulletin_body_defaults_to_none():
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=1, node_id=1, bbs_id="H001",
+        category="WX", from_call="W0WX",
+        subject="Header only",
+        timestamp=datetime.now(timezone.utc),
+    )
+    assert bul.body is None
+    assert bul.wants_retrieval is False
+
+
+def test_db_migration_adds_wants_retrieval_column(db):
+    # Column must exist and accept 0/1
+    db._conn.execute("UPDATE bulletins SET wants_retrieval=0 WHERE 1=0")  # no-op but validates column
+    # Insert a row and verify the column round-trips
+    op = db.insert_operator(Operator(callsign="K0TEST", ssid=0, label="t", is_default=False))
+    node = db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq"))
+    db._conn.execute(
+        """INSERT INTO bulletins
+           (operator_id, node_id, bbs_id, category, from_call, subject, body,
+            timestamp, read, queued, sent, wants_retrieval)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 1)""",
+        (op.id, node.id, "H001", "WX", "W0WX", "Hdr", "",
+         "2026-01-01T00:00:00+00:00"),
+    )
+    db._conn.commit()
+    row = db._conn.execute("SELECT wants_retrieval FROM bulletins WHERE bbs_id='H001'").fetchone()
+    assert row["wants_retrieval"] == 1
+
+
+def test_save_bulletin_header_only(store):
+    """A bulletin with body=None is saved and read back with body=None."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H002",
+        category="WX", from_call="W0WX",
+        subject="Header only",
+        timestamp=datetime.now(timezone.utc),
+        # body omitted — defaults to None
+    )
+    saved = s.save_bulletin(bul)
+    assert saved.id is not None
+    assert saved.body is None
+    assert saved.wants_retrieval is False
+
+
+def test_save_bulletin_header_does_not_duplicate(store):
+    """Re-saving the same header by bbs_id+node_id returns the existing row."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H003",
+        category="WX", from_call="W0WX",
+        subject="Dedup check",
+        timestamp=datetime.now(timezone.utc),
+    )
+    first = s.save_bulletin(bul)
+    second = s.save_bulletin(bul)
+    assert first.id == second.id
+    bulletins = s.list_bulletins(operator_id=op.id)
+    assert sum(1 for b in bulletins if b.bbs_id == "H003") == 1
+
+
 def test_row_to_message_populates_synced_at(tmp_path):
     """Messages retrieved from DB carry synced_at, matching bulletin behaviour."""
     from open_packet.store.database import Database
@@ -762,3 +882,42 @@ def test_row_to_message_populates_synced_at(tmp_path):
         timestamp=datetime.now(timezone.utc),
     ))
     assert msg.synced_at is not None, "synced_at must be set on retrieval"
+
+
+def test_export_bulletins_skips_header_only(store, tmp_path):
+    """export_bulletins must not write a file for a bulletin with body=None."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    from open_packet.store.exporter import export_bulletins
+
+    # header-only (body=None)
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H020",
+        category="WX", from_call="W0WX", subject="Header skip",
+        timestamp=datetime(2026, 4, 6, 12, 0, 0, tzinfo=timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+
+    export_bulletins([saved], base_path=str(tmp_path))
+
+    wx_dir = tmp_path / "bulletins" / "WX"
+    assert not wx_dir.exists() or len(list(wx_dir.iterdir())) == 0
+
+
+def test_save_bulletin_with_empty_string_body_preserves_body(store):
+    """A bulletin retrieved from a BBS with an empty body is stored correctly and does NOT
+    appear as header-only (body=None) after a round-trip."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="EMPTY01",
+        category="WX", from_call="W0WX", subject="Empty body bulletin",
+        body="",   # legitimate empty body from BBS
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+    # Must come back as "" not None — it was a real (if empty) body, not a header
+    assert saved.body == ""
+    # Must NOT appear in pending retrieval list
+    pending = s.list_bulletins_pending_retrieval(node_id=node.id)
+    assert all(b.id != saved.id for b in pending)
