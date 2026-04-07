@@ -1,5 +1,5 @@
-# tests/test_ui/test_status_bar.py
 from textual.app import App, ComposeResult
+from textual.widgets import Button
 from open_packet.ui.tui.widgets.status_bar import StatusBar
 from open_packet.engine.events import ConnectionStatus
 from tests.test_ui.conftest import _label_text
@@ -21,7 +21,7 @@ async def test_left_label_shows_disconnected_icon_by_default():
     app = StatusBarApp()
     async with app.run_test() as pilot:
         left = app.query_one("#status_left")
-        assert "○" in _label_text(left)  # DISCONNECTED icon
+        assert "○" in _label_text(left)
 
 
 async def test_left_label_updates_on_status_change():
@@ -30,8 +30,7 @@ async def test_left_label_updates_on_status_change():
         sb = app.query_one(StatusBar)
         sb.status = ConnectionStatus.CONNECTED
         await pilot.pause()
-        left = app.query_one("#status_left")
-        text = _label_text(left)
+        text = _label_text(app.query_one("#status_left"))
         assert "●" in text
         assert "Connected" in text
 
@@ -42,29 +41,35 @@ async def test_left_label_updates_on_last_sync_change():
         sb = app.query_one(StatusBar)
         sb.last_sync = "13:45"
         await pilot.pause()
-        left = app.query_one("#status_left")
-        assert "13:45" in _label_text(left)
+        assert "13:45" in _label_text(app.query_one("#status_left"))
 
 
-async def test_right_label_empty_by_default():
+async def test_identity_hidden_when_all_fields_empty():
     app = StatusBarApp()
     async with app.run_test() as pilot:
-        right = app.query_one("#status_right")
-        assert _label_text(right) == ""
+        assert not app.query_one("#identity_container").display
 
 
-async def test_right_label_shows_operator_with_separator():
+async def test_identity_shows_operator_button():
     app = StatusBarApp()
     async with app.run_test() as pilot:
         sb = app.query_one(StatusBar)
         sb.operator = "W1AW"
         await pilot.pause()
-        text = _label_text(app.query_one("#status_right"))
-        assert "W1AW" in text
-        assert "│" in text
+        assert app.query_one("#identity_container").display
+        assert str(app.query_one("#identity_operator", Button).label) == "W1AW"
 
 
-async def test_right_label_shows_all_three_fields():
+async def test_identity_hides_node_sep_when_node_empty():
+    app = StatusBarApp()
+    async with app.run_test() as pilot:
+        sb = app.query_one(StatusBar)
+        sb.operator = "W1AW"
+        await pilot.pause()
+        assert not app.query_one("#identity_sep_node").display
+
+
+async def test_identity_shows_all_three_buttons():
     app = StatusBarApp()
     async with app.run_test() as pilot:
         sb = app.query_one(StatusBar)
@@ -72,15 +77,12 @@ async def test_right_label_shows_all_three_fields():
         sb.node = "Home BBS"
         sb.interface_label = "Home TNC"
         await pilot.pause()
-        text = _label_text(app.query_one("#status_right"))
-        assert "W1AW" in text
-        assert "Home BBS" in text
-        assert "Home TNC" in text
-        assert "│" in text
-        assert ":" in text
+        assert app.query_one("#identity_container").display
+        assert app.query_one("#identity_sep_node").display
+        assert app.query_one("#identity_sep_iface").display
 
 
-async def test_right_label_clears_when_all_fields_empty():
+async def test_identity_cleared_when_all_empty():
     app = StatusBarApp()
     async with app.run_test() as pilot:
         sb = app.query_one(StatusBar)
@@ -88,11 +90,30 @@ async def test_right_label_clears_when_all_fields_empty():
         await pilot.pause()
         sb.operator = ""
         await pilot.pause()
-        assert _label_text(app.query_one("#status_right")) == ""
+        assert not app.query_one("#identity_container").display
+
+
+async def test_identity_clicked_message_posted_on_operator_click():
+    messages = []
+
+    class _App(App):
+        def compose(self) -> ComposeResult:
+            yield StatusBar()
+
+        def on_status_bar_identity_clicked(self, event: StatusBar.IdentityClicked) -> None:
+            messages.append(event.kind)
+
+    app = _App()
+    async with app.run_test() as pilot:
+        sb = app.query_one(StatusBar)
+        sb.operator = "W1AW"
+        await pilot.pause()
+        await pilot.click("#identity_operator")
+        await pilot.pause()
+    assert messages == ["operator"]
 
 
 async def test_left_label_does_not_contain_triple_dash():
-    """The old callsign placeholder '---' must not appear in the new implementation."""
     app = StatusBarApp()
     async with app.run_test() as pilot:
         left = app.query_one("#status_left")

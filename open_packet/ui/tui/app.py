@@ -549,6 +549,23 @@ class OpenPacketApp(App):
         except Exception:
             pass
 
+    def on_status_bar_identity_clicked(self, event) -> None:
+        if self._db is None:
+            return
+        if event.kind == "operator":
+            from open_packet.ui.tui.screens.operator_picker import OperatorPickerScreen
+            self.push_screen(OperatorPickerScreen(self._db), callback=self._on_manage_result)
+        elif event.kind == "node":
+            from open_packet.ui.tui.screens.node_picker import NodePickerScreen
+            self.push_screen(NodePickerScreen(self._db), callback=self._on_manage_result)
+        elif event.kind == "interface":
+            if self._active_node:
+                from open_packet.ui.tui.screens.interface_picker import InterfacePickerScreen
+                self.push_screen(
+                    InterfacePickerScreen(self._db, self._active_node),
+                    callback=self._on_manage_result,
+                )
+
     def open_settings(self) -> None:
         self.push_screen(SettingsScreen(), callback=self._on_settings_result)
 
