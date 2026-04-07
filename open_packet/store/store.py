@@ -159,6 +159,12 @@ class Store:
             if existing:
                 return self._get_bulletin(existing["id"])  # type: ignore
 
+        body_val = bul.body if bul.body is not None else ""   # "" = header-only sentinel
+        # synced_at = when we retrieved the full body (not when we listed the header)
+        # For queued (outgoing) bulletins, synced_at stays None.
+        # For received bulletins, synced_at is None if header-only; set by update_bulletin_body().
+        synced_at = None
+
         cur = self._conn.execute(
             """INSERT INTO bulletins
                (operator_id, node_id, bbs_id, category, from_call, subject, body,
@@ -166,12 +172,11 @@ class Store:
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 bul.operator_id, bul.node_id, bul.bbs_id, bul.category,
-                bul.from_call, bul.subject,
-                bul.body if bul.body is not None else "",   # "" = header-only sentinel
+                bul.from_call, bul.subject, body_val,
                 bul.timestamp.isoformat(), int(bul.read),
                 int(bul.queued), int(bul.sent),
                 int(bul.wants_retrieval),
-                None if bul.queued else datetime.now(timezone.utc).isoformat(),
+                synced_at,
             ),
         )
         self._conn.commit()
@@ -233,6 +238,28 @@ class Store:
     def mark_bulletin_sent(self, id: int) -> None:
         assert self._conn
         self._conn.execute("UPDATE bulletins SET sent=1 WHERE id=?", (id,))
+        self._conn.commit()
+
+    def mark_bulletin_wants_retrieval(self, id: int) -> None:
+        assert self._conn
+        self._conn.execute("UPDATE bulletins SET wants_retrieval=1 WHERE id=?", (id,))
+        self._conn.commit()
+
+    def list_bulletins_pending_retrieval(self, node_id: int) -> list[Bulletin]:
+        """Bulletins marked for retrieval whose body has not yet been fetched."""
+        assert self._conn
+        rows = self._conn.execute(
+            "SELECT * FROM bulletins WHERE node_id=? AND wants_retrieval=1 AND body=''",
+            (node_id,),
+        ).fetchall()
+        return [self._row_to_bulletin(r) for r in rows]
+
+    def update_bulletin_body(self, id: int, body: str) -> None:
+        assert self._conn
+        self._conn.execute(
+            "UPDATE bulletins SET body=?, synced_at=? WHERE id=?",
+            (body, datetime.now(timezone.utc).isoformat(), id),
+        )
         self._conn.commit()
 
     def bulletin_exists(self, bbs_id: str, node_id: int) -> bool:

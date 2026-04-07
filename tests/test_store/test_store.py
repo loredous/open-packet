@@ -687,6 +687,61 @@ def test_node_hop_path_roundtrip(db):
     assert fetched.auto_forward is True
 
 
+def test_mark_bulletin_wants_retrieval(store):
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H010",
+        category="WX", from_call="W0WX", subject="Queue me",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+    assert saved.wants_retrieval is False
+
+    s.mark_bulletin_wants_retrieval(saved.id)
+
+    pending = s.list_bulletins_pending_retrieval(node_id=node.id)
+    assert len(pending) == 1
+    assert pending[0].id == saved.id
+    assert pending[0].body is None
+
+
+def test_list_bulletins_pending_retrieval_excludes_retrieved(store):
+    """A bulletin with a body is not returned as pending, even if wants_retrieval=1."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H011",
+        category="WX", from_call="W0WX", subject="Already got it",
+        body="Full body here",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+    s.mark_bulletin_wants_retrieval(saved.id)  # shouldn't matter — body is present
+
+    pending = s.list_bulletins_pending_retrieval(node_id=node.id)
+    assert all(b.id != saved.id for b in pending)
+
+
+def test_update_bulletin_body(store):
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="H012",
+        category="WX", from_call="W0WX", subject="Fetch me",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+    assert saved.body is None
+    assert saved.synced_at is None
+
+    s.update_bulletin_body(saved.id, "This is the full bulletin body.")
+
+    updated = s._get_bulletin(saved.id)
+    assert updated.body == "This is the full bulletin body."
+    assert updated.synced_at is not None
+
+
 def test_node_hop_path_defaults_on_existing_rows(db):
     # Simulate a node inserted without the new columns (migration scenario)
     db._conn.execute(
