@@ -7,6 +7,14 @@ from typing import Optional
 from open_packet.store.models import Operator, Node, Message, Bulletin, Interface
 
 
+_KNOWN_SETTING_KEYS = frozenset({
+    "export_path",
+    "console_visible",
+    "console_buffer",
+    "auto_discover",
+})
+
+
 def _hops_to_json(hops) -> str:
     return _json.dumps([{"callsign": h.callsign, "port": h.port} for h in hops])
 
@@ -102,6 +110,8 @@ class Database:
 
     def set_setting(self, key: str, value: str) -> None:
         assert self._conn
+        if key not in _KNOWN_SETTING_KEYS:
+            raise KeyError(f"Unknown setting: {key!r}")
         self._conn.execute(
             "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
             (key, value),

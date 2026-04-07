@@ -48,3 +48,8 @@ def test_settings_persisted_across_instances(db):
     s1.export_path = "/tmp/persistent"
     s2 = Settings(db)
     assert s2.export_path == "/tmp/persistent"
+
+
+def test_set_unknown_setting_raises(db):
+    with pytest.raises(KeyError, match="Unknown setting"):
+        db.set_setting("nonexistent_key", "value")
