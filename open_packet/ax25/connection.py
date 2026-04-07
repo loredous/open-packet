@@ -128,7 +128,7 @@ class AX25Connection(ConnectionBase):
             raise ConnectionError("Send window full — cannot send I-frame")
         self._send_i_frame(data)
 
-    def receive_frame(self, timeout: float = 5.0) -> bytes:
+    def receive_frame(self, timeout: float = 5.0) -> bytes | None:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             remaining = deadline - time.monotonic()
@@ -136,9 +136,10 @@ class AX25Connection(ConnectionBase):
             if raw:
                 result = self._process_frame(raw)
                 if result is not None:
-                    return result
+                    return result   # I-frame payload addressed to us
+                return b""          # frame received but no payload (supervisory/filtered)
             self._check_timers()
-        return b""
+        return None  # true timeout — no frame received at all
 
     # ------------------------------------------------------------------ #
     # Internal: connection setup                                           #

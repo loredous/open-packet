@@ -24,13 +24,18 @@ class ComposeScreen(ModalScreen):
     }
     """
 
+    def __init__(self, to_call: str = "", subject: str = "", **kwargs):
+        super().__init__(**kwargs)
+        self._to_call = to_call
+        self._subject = subject
+
     def compose(self) -> ComposeResult:
         with Vertical():
             yield Label("New Message", id="compose_title")
             yield Label("To:")
-            yield Input(placeholder="Callsign", id="to_field")
+            yield Input(value=self._to_call, placeholder="Callsign", id="to_field")
             yield Label("Subject:")
-            yield Input(placeholder="Subject", id="subject_field")
+            yield Input(value=self._subject, placeholder="Subject", id="subject_field")
             yield Label("Body:")
             yield TextArea(id="body_field")
             with Horizontal():

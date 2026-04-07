@@ -1,5 +1,6 @@
 # open_packet/ui/tui/widgets/message_body.py
 from __future__ import annotations
+from textual.binding import Binding
 from textual.widgets import RichLog
 from open_packet.store.models import Message, Bulletin
 
@@ -12,6 +13,14 @@ class MessageBody(RichLog):
         padding: 0 1;
     }
     """
+
+    BINDINGS = [Binding("w", "toggle_wrap", "Word wrap")]
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(wrap=True, **kwargs)
+
+    def action_toggle_wrap(self) -> None:
+        self.wrap = not self.wrap
 
     def show_message(self, message: Message | Bulletin, node_label: str = "") -> None:
         self.clear()

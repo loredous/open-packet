@@ -14,7 +14,7 @@ Three changes are made to the left section as part of this work: the unused `cal
 The status bar is a single-line widget at the top of the screen. It is split into two sections:
 
 ```
-📻 open-packet  ●  Connected  | Last sync: 12:34        │  W1AW  ·  Home BBS  ·  Home TNC
+📻 open-packet  ●  Connected  | Last sync: 12:34        │  W1AW  :  Home BBS  :  Home TNC
 ```
 
 - **Left section** (`#status_left`): `📻 open-packet` (emoji new), connection status icon, status text, `| Last sync: {last_sync}`. Takes all remaining horizontal space (`width: 1fr`).
@@ -27,7 +27,7 @@ When no operator/node/interface is configured, the right section is empty and it
 - **Operator:** `{callsign}-{ssid}` if `ssid != 0`, else `{callsign}` (e.g. `W1AW` or `W1AW-1`)
 - **Node:** label string as stored in DB
 - **Interface:** label string as stored in DB
-- Fields separated by `  ·  `
+- Fields separated by `  :  `
 
 ## Widget Architecture
 
@@ -76,7 +76,7 @@ def _render_left(self) -> None:
 ```python
 def _render_right(self) -> None:
     fields = [f for f in [self.operator, self.node, self.interface_label] if f]
-    right = ("│  " + "  ·  ".join(fields)) if fields else ""
+    right = ("│  " + "  :  ".join(fields)) if fields else ""
     self.query_one("#status_right", Label).update(right)
 ```
 

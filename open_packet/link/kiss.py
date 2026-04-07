@@ -65,19 +65,21 @@ class KISSLink(ConnectionBase):
         except TransportError as e:
             raise ConnectionError(f"Send failed: {e}") from e
 
-    def receive_frame(self, timeout: float = 5.0) -> bytes:
+    def receive_frame(self, timeout: float = 5.0) -> bytes | None:
         try:
             chunk = self._transport.receive_bytes(timeout=timeout)
         except TransportError as e:
             raise ConnectionError(f"Receive failed: {e}") from e
 
+        if not chunk:
+            return None  # transport timed out — no bytes at all
         self._buffer += chunk
         start = self._buffer.find(bytes([FEND]))
         if start == -1:
-            return b""
+            return b""  # bytes received but no complete frame yet
         end = self._buffer.find(bytes([FEND]), start + 1)
         if end == -1:
-            return b""
+            return b""  # frame not yet complete
         frame = self._buffer[start:end + 1]
         self._buffer = self._buffer[end + 1:]
         return kiss_decode(frame)

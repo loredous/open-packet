@@ -26,10 +26,10 @@ class MockKISS:
     def send_frame(self, data: bytes):
         self.sent.append(data)
 
-    def receive_frame(self, timeout=5.0) -> bytes:
+    def receive_frame(self, timeout=5.0) -> bytes | None:
         if self._rx:
             return self._rx.pop(0)
-        return b""
+        return None
 
     def inject(self, raw_ax25: bytes):
         self._rx.append(raw_ax25)

@@ -33,10 +33,10 @@ class ReplayConnection(ConnectionBase):
     def send_frame(self, data: bytes) -> None:
         self.sent_text.append(data.decode(errors="replace").strip())
 
-    def receive_frame(self, timeout: float = 5.0) -> bytes:
+    def receive_frame(self, timeout: float = 5.0) -> bytes | None:
         if self._responses:
             return self._responses.pop(0).encode()
-        return b""
+        return None
 
 
 def test_full_check_mail_cycle():
@@ -59,6 +59,7 @@ def test_full_check_mail_cycle():
 
         # BPQ session transcript
         responses = [
+            "BPQ> ",                                              # initial greeting consumed by wait_for_prompt
             "BPQ> ",                                              # initial prompt for connect_node
             "Msg  To        From      Date   Subject\n"           # list response
             "1    KD9ABC    W0TEST    03/22  Hello World\n"

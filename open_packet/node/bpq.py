@@ -6,55 +6,83 @@ from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase, NodeError, MessageHeader, Message
 
 TIMEOUT = 30.0        # max wait for the first data after a command (RF links can be slow)
-IDLE_TIMEOUT = 5.0    # max silence after last data before considering response complete
+IDLE_TIMEOUT = 30.0   # max silence between ANY remote frames (RR counts); slow RF can gap 15-20s
+
+# Matches a BPQ32 prompt: CALLSIGN> at the start of a line (bare CR or LF counts as
+# a line start).  Node prompts look like "W0IA> BBS CHAT NODES..." and BBS prompts
+# look like "de k0ark>" (BPQ32 uses the ham "de" prefix), so > is NOT the last
+# character — endswith(">") does not work for either.
+_PROMPT_RE = re.compile(r'(?:^|\r|\n)(?:de\s+)?[A-Za-z0-9- ]+>')
+
+
+def _has_prompt(text: str) -> bool:
+    return bool(_PROMPT_RE.search(text))
 
 
 def parse_message_list(text: str) -> list[MessageHeader]:
     headers = []
     for line in text.splitlines():
+        # BPQ32 format: ID  DATE  TYPE  SIZE  TO  FROM  SUBJECT
         m = re.match(
-            r'^\s*(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)$', line
+            r'^\s*(\d+)\s+(\S+)\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(.+)$', line
         )
         if m:
             headers.append(MessageHeader(
                 bbs_id=m.group(1),
-                to_call=m.group(2).strip(),
-                from_call=m.group(3).strip(),
-                date_str=m.group(4).strip(),
+                date_str=m.group(2).strip(),
+                to_call=m.group(3).strip(),
+                from_call=m.group(4).strip(),
                 subject=m.group(5).strip(),
             ))
     return headers
 
 
+def _base_call(callsign: str) -> str:
+    """Return the base callsign with any SSID suffix stripped, uppercased."""
+    return callsign.split("-")[0].upper()
+
+
 def parse_nodes_list(text: str) -> list:
     from open_packet.store.models import NodeHop
     hops = []
+    seen_bases: set[str] = set()
     for line in text.splitlines():
-        if line.rstrip().endswith(">"):
+        if _has_prompt(line):
             break
         parts = line.split()
-        if len(parts) < 2:
-            continue
-        callsign = parts[0]
-        # Real callsigns always contain at least one digit — filters out header
-        # lines like "Callsign", "Nodes", "Hops".
-        if not re.search(r'\d', callsign):
-            continue
-        try:
-            port = int(parts[1])
-        except (ValueError, IndexError):
-            port = None
-        hops.append(NodeHop(callsign=callsign, port=port))
+        i = 0
+        while i < len(parts):
+            token = parts[i]
+            # Strip alias prefix (e.g. "BCARES:W0IA-1" -> "W0IA-1")
+            if ":" in token:
+                token = token.split(":")[-1]
+            # Valid callsign: only letters, digits, dash; must contain a digit;
+            # must not be a pure number (port/quality/hops column).
+            if (not re.match(r'^[A-Za-z0-9-]+$', token)
+                    or not re.search(r'\d', token)
+                    or token.isdigit()):
+                i += 1
+                continue
+            base = _base_call(token)
+            if base not in seen_bases:
+                seen_bases.add(base)
+                # Port is the next raw token if it's a pure integer
+                port = None
+                if i + 1 < len(parts) and parts[i + 1].isdigit():
+                    port = int(parts[i + 1])
+                hops.append(NodeHop(callsign=token, port=port))
+            i += 1
     return hops
 
 
 def parse_message_header(line: str) -> MessageHeader | None:
-    m = re.match(r'^\s*(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)$', line)
+    # BPQ32 format: ID  DATE  TYPE  SIZE  TO  FROM  SUBJECT
+    m = re.match(r'^\s*(\d+)\s+(\S+)\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(.+)$', line)
     if not m:
         return None
     return MessageHeader(
-        bbs_id=m.group(1), to_call=m.group(2).strip(),
-        from_call=m.group(3).strip(), date_str=m.group(4).strip(),
+        bbs_id=m.group(1), date_str=m.group(2).strip(),
+        to_call=m.group(3).strip(), from_call=m.group(4).strip(),
         subject=m.group(5).strip(),
     )
 
@@ -74,23 +102,35 @@ class BPQNode(NodeBase):
     def _send_text(self, text: str) -> None:
         self._conn.send_frame((text + "\r").encode())
 
-    def _recv_until_prompt(self, timeout: float = TIMEOUT) -> str:
+    # After a CR-terminated chunk, wait this long for another frame before
+    # concluding the response is complete (used by end_on_cr callers).
+    _CR_WAIT = 2.0
+
+    def _recv_until_prompt(self, timeout: float = TIMEOUT, end_on_cr: bool = False) -> str:
         buffer = ""
         first_data_deadline = time.monotonic() + timeout
         idle_deadline: float | None = None
+        cr_deadline: float | None = None
         while True:
             now = time.monotonic()
+            if cr_deadline is not None and now >= cr_deadline:
+                break
             if idle_deadline is not None:
                 if now >= idle_deadline:
                     break
             elif now >= first_data_deadline:
                 break
             data = self._conn.receive_frame(timeout=1.0)
-            if data:
-                buffer += data.decode(errors="replace")
+            if data is not None:                          # any frame (RR, I-frame, …)
                 idle_deadline = time.monotonic() + IDLE_TIMEOUT
-                if buffer.rstrip().endswith(">"):
+                cr_deadline = None                        # new activity resets CR wait
+            if data:                                      # I-frame payload only
+                chunk = data.decode(errors="replace")
+                buffer += chunk
+                if _has_prompt(buffer):
                     break
+                if end_on_cr and chunk.endswith("\r"):
+                    cr_deadline = time.monotonic() + self._CR_WAIT
         return buffer
 
     def connect_node(self) -> None:
@@ -103,14 +143,18 @@ class BPQNode(NodeBase):
                 else:
                     self._send_text(f"C {hop.callsign}")
                 response = self._recv_until_prompt()
-                if not response.rstrip().endswith(">"):
+                # Relay nodes send "Connected to X" before the remote node's
+                # greeting arrives.  Wait for the remote greeting if needed.
+                if not _has_prompt(response) and "Connected to" in response:
+                    response += self._recv_until_prompt()
+                if not _has_prompt(response):
                     raise NodeError(f"No prompt after C command to {hop.callsign}. Got: {response!r}")
         # Navigate from node to BBS, then trigger the prompt.
         self._send_text("BBS")
         response = self._recv_until_prompt()
-        if "Connected to BBS" not in response and not response.rstrip().endswith(">"):
+        if "Connected to BBS" not in response and not _has_prompt(response):
             raise NodeError(f"Failed to connect to BBS. Got: {response!r}")
-        if not response.rstrip().endswith(">"):
+        if not _has_prompt(response):
             # Trigger the BBS prompt with a bare CR
             self._send_text("")
             response = self._recv_until_prompt()
@@ -118,12 +162,16 @@ class BPQNode(NodeBase):
         if "name" in response.lower():
             self._send_text(self._my_callsign)
             response = self._recv_until_prompt()
-        if not response.rstrip().endswith(">"):
+        if not _has_prompt(response):
             raise NodeError(f"No BBS prompt received. Got: {response!r}")
+
+    def wait_for_prompt(self) -> None:
+        """Consume the node's initial greeting after AX.25 connect."""
+        self._recv_until_prompt()
 
     def list_linked_nodes(self) -> list:
         self._send_text("NODES")
-        response = self._recv_until_prompt()
+        response = self._recv_until_prompt(end_on_cr=True)
         return parse_nodes_list(response)
 
     def list_messages(self) -> list[MessageHeader]:
@@ -142,7 +190,7 @@ class BPQNode(NodeBase):
             if not in_body and line.strip() == "":
                 in_body = True
                 continue
-            if in_body and not line.rstrip().endswith(">"):
+            if in_body and not _has_prompt(line):
                 body_lines.append(line)
         return Message(header=header, body="\n".join(body_lines).strip())
 

@@ -8,10 +8,12 @@ dependencies = [
     "textual>=0.60.0",
     "pyserial>=3.5",
     "pyyaml>=6.0",
+    "textual-serve>=1.1.3",
 ]
 
 [project.scripts]
 open-packet = "open_packet.ui.tui.app:main"
+op-web = "open_packet.ui.tui.app:serve"
 
 [build-system]
 requires = ["hatchling"]

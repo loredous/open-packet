@@ -104,27 +104,35 @@ class Engine:
         elif isinstance(cmd, DisconnectCommand):
             self._do_disconnect()
 
+    @staticmethod
+    def _base_call(callsign: str) -> str:
+        return callsign.split("-")[0].upper()
+
     def _discover_neighbors(self) -> tuple[list, list]:
         """Returns (new_neighbors, shorter_path_candidates).
         Calls node.list_linked_nodes(), upserts all, classifies results.
-        Must be called while at the node prompt (before BBS)."""
+        Must be called while at the node prompt (before BBS).
+        Comparisons use base callsign (no SSID) so W0IA-1, W0IA-7, W0IA-10
+        are all treated as the same physical station."""
         hops = self._node.list_linked_nodes()
         new_neighbors = []
         shorter_path_candidates = []
         existing_in_db = {
-            n.callsign: n
+            self._base_call(n.callsign): n
             for n in self._store.list_nodes()
             if n.interface_id == self._node_record.interface_id and n.id != self._node_record.id
         }
-        known_callsigns = {
-            h.callsign for h in self._store.get_node_neighbors(self._node_record.id)
+        known_bases = {
+            self._base_call(h.callsign)
+            for h in self._store.get_node_neighbors(self._node_record.id)
         }
         for hop in hops:
             self._store.upsert_node_neighbor(self._node_record.id, hop.callsign, hop.port)
-            if hop.callsign not in known_callsigns:
+            base = self._base_call(hop.callsign)
+            if base not in known_bases:
                 new_neighbors.append(hop)
-            if hop.callsign in existing_in_db:
-                existing = existing_in_db[hop.callsign]
+            if base in existing_in_db:
+                existing = existing_in_db[base]
                 derived_len = len(self._node_record.hop_path) + 1
                 if derived_len < len(existing.hop_path):
                     derived_path = self._node_record.hop_path + [hop]
@@ -149,9 +157,12 @@ class Engine:
         Does NOT emit SyncCompleteEvent — caller is responsible for that."""
         # Phase 1: Retrieve new messages
         retrieved = 0
+        self._set_status(ConnectionStatus.SYNCING, "Listing messages…")
         headers = node.list_messages()
         self._emit(ConsoleEvent(">", f"Listing messages ({len(headers)} found)"))
-        for header in headers:
+        total_msgs = len(headers)
+        for i, header in enumerate(headers, 1):
+            self._set_status(ConnectionStatus.SYNCING, f"Reading message {i} of {total_msgs}")
             msg = node.read_message(header.bbs_id)
             now = datetime.now(timezone.utc)
             saved = self._store.save_message(Message(
@@ -176,7 +187,8 @@ class Engine:
         # Phase 2: Send queued outbound messages
         sent = 0
         outbound = self._store.list_outbox_messages(self._operator.id)
-        for m in outbound:
+        for i, m in enumerate(outbound, 1):
+            self._set_status(ConnectionStatus.SYNCING, f"Sending message {i} of {len(outbound)}")
             self._emit(ConsoleEvent(">", f"Sending to {m.to_call}: {m.subject}"))
             node.send_message(m.to_call, m.subject, m.body)
             self._store.mark_message_sent(m.id)
@@ -184,7 +196,8 @@ class Engine:
 
         # Phase 3: Send queued bulletins
         pending_bulletins = self._store.list_outbox_bulletins(self._operator.id)
-        for bul in pending_bulletins:
+        for i, bul in enumerate(pending_bulletins, 1):
+            self._set_status(ConnectionStatus.SYNCING, f"Posting bulletin {i} of {len(pending_bulletins)}")
             self._emit(ConsoleEvent(">", f"Posting bulletin to {bul.category}: {bul.subject}"))
             node.post_bulletin(bul.category, bul.subject, bul.body)
             self._store.mark_bulletin_sent(bul.id)
@@ -292,6 +305,7 @@ class Engine:
                         self._node_record.callsign,
                         self._node_record.ssid,
                     )
+            self._node.wait_for_prompt()
             if self._config.nodes.auto_discover:
                 new_neighbors, shorter_path_candidates = self._discover_neighbors()
             self._node.connect_node()

@@ -99,12 +99,12 @@ class TelnetLink(ConnectionBase):
             raise ConnectionError('Not connected')
         self._sock.sendall(data)
 
-    def receive_frame(self, timeout: float = 5.0) -> bytes:
+    def receive_frame(self, timeout: float = 5.0) -> bytes | None:
         if self._sock is None:
-            return b''
+            return None
         self._sock.settimeout(timeout)
         try:
             data = self._sock.recv(4096)
-            return _strip_iac(data) if data else b''
+            return _strip_iac(data) if data else None
         except socket.timeout:
-            return b''
+            return None

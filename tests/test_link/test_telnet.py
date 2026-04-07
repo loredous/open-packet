@@ -88,7 +88,7 @@ def test_connect_raises_on_timeout(MockSocket, mock_time):
 
 
 @patch('open_packet.link.telnet.socket.socket')
-def test_receive_frame_returns_empty_on_timeout(MockSocket):
+def test_receive_frame_returns_none_on_timeout(MockSocket):
     mock_sock = MagicMock()
     mock_sock.recv.side_effect = socket.timeout
     MockSocket.return_value = mock_sock
@@ -96,7 +96,7 @@ def test_receive_frame_returns_empty_on_timeout(MockSocket):
     link = TelnetLink('localhost', 8023, 'K0JLB', 'pw')
     link._sock = mock_sock
     result = link.receive_frame(timeout=0.1)
-    assert result == b''
+    assert result is None
 
 
 @patch('open_packet.link.telnet.socket.socket')

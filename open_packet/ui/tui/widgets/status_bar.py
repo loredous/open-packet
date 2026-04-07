@@ -26,6 +26,7 @@ class StatusBar(Widget):
     """
 
     status: reactive[ConnectionStatus] = reactive(ConnectionStatus.DISCONNECTED)
+    sync_detail: reactive[str] = reactive("")
     last_sync: reactive[str] = reactive("Never")
     operator: reactive[str] = reactive("")
     node: reactive[str] = reactive("")
@@ -42,6 +43,9 @@ class StatusBar(Widget):
     # --- Watchers ---
 
     def watch_status(self, _) -> None:
+        self._render_left()
+
+    def watch_sync_detail(self, _) -> None:
         self._render_left()
 
     def watch_last_sync(self, _) -> None:
@@ -66,7 +70,10 @@ class StatusBar(Widget):
             ConnectionStatus.SYNCING: "⟳",
             ConnectionStatus.ERROR: "✗",
         }.get(self.status, "?")
-        text = f"📻 open-packet  {icon}  {self.status.value.title()}  | Last sync: {self.last_sync}"
+        status_text = self.status.value.title()
+        if self.status == ConnectionStatus.SYNCING and self.sync_detail:
+            status_text = f"Syncing: {self.sync_detail}"
+        text = f"📻 open-packet  {icon}  {status_text}  | Last sync: {self.last_sync}"
         try:
             self.query_one("#status_left", Label).update(text)
         except NoMatches:

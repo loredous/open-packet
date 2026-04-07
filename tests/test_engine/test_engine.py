@@ -411,7 +411,7 @@ class MockConnection:
     def connect(self, *a, **kw): pass
     def disconnect(self): pass
     def send_frame(self, d): pass
-    def receive_frame(self, timeout=5.0): return b""
+    def receive_frame(self, timeout=5.0): return None
 
 
 class MockNodeWithNeighbors:
@@ -422,6 +422,7 @@ class MockNodeWithNeighbors:
         self.messages = []
         self.bulletins = []
 
+    def wait_for_prompt(self): pass
     def connect_node(self): self.connected = True
     def list_messages(self): return []
     def read_message(self, bbs_id): return None
@@ -587,7 +588,7 @@ def test_auto_forward_syncs_via_neighbors(tmp_path):
         def connect(self, *a, **kw): connect_calls.append((a, kw))
         def disconnect(self): pass
         def send_frame(self, d): pass
-        def receive_frame(self, timeout=5.0): return b""
+        def receive_frame(self, timeout=5.0): return None
 
     mock_node = MockNodeWithNeighbors([])
     cfg = AppConfig(nodes=NodesConfig(auto_discover=False))
