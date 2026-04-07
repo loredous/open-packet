@@ -26,13 +26,16 @@ class SettingsScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         with Vertical():
             yield Label("Settings")
+            yield Button("General", id="general_btn")
             yield Button("Operator", id="operator_btn")
             yield Button("Node", id="node_btn")
             yield Button("Interfaces", id="interfaces_btn")
             yield Button("Close", id="close_btn")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "operator_btn":
+        if event.button.id == "general_btn":
+            self.dismiss("general")
+        elif event.button.id == "operator_btn":
             self.dismiss("operator")
         elif event.button.id == "node_btn":
             self.dismiss("node")

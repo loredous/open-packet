@@ -256,7 +256,15 @@ class OpenPacketApp(App):
         self._restart_engine()
 
     def _on_settings_result(self, result) -> None:
-        if result == "operator":
+        if result == "general":
+            if self._settings:
+                from open_packet.ui.tui.screens.general_settings import GeneralSettingsScreen
+                self.push_screen(
+                    GeneralSettingsScreen(self._settings),
+                    callback=self._on_manage_result,
+                )
+            return
+        elif result == "operator":
             if self._db:
                 from open_packet.ui.tui.screens.manage_operators import OperatorManageScreen
                 self.push_screen(OperatorManageScreen(self._db),
