@@ -741,6 +741,37 @@ def test_get_node_neighbors_returns_nodehop(store):
     assert neighbors[0].port is None
 
 
+def test_bulletin_body_defaults_to_none():
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=1, node_id=1, bbs_id="H001",
+        category="WX", from_call="W0WX",
+        subject="Header only",
+        timestamp=datetime.now(timezone.utc),
+    )
+    assert bul.body is None
+    assert bul.wants_retrieval is False
+
+
+def test_db_migration_adds_wants_retrieval_column(db):
+    # Column must exist and accept 0/1
+    db._conn.execute("UPDATE bulletins SET wants_retrieval=0 WHERE 1=0")  # no-op but validates column
+    # Insert a row and verify the column round-trips
+    op = db.insert_operator(Operator(callsign="K0TEST", ssid=0, label="t", is_default=False))
+    node = db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq"))
+    db._conn.execute(
+        """INSERT INTO bulletins
+           (operator_id, node_id, bbs_id, category, from_call, subject, body,
+            timestamp, read, queued, sent, wants_retrieval)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 1)""",
+        (op.id, node.id, "H001", "WX", "W0WX", "Hdr", "",
+         "2026-01-01T00:00:00+00:00"),
+    )
+    db._conn.commit()
+    row = db._conn.execute("SELECT wants_retrieval FROM bulletins WHERE bbs_id='H001'").fetchone()
+    assert row["wants_retrieval"] == 1
+
+
 def test_row_to_message_populates_synced_at(tmp_path):
     """Messages retrieved from DB carry synced_at, matching bulletin behaviour."""
     from open_packet.store.database import Database

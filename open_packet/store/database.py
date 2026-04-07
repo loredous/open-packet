@@ -55,6 +55,14 @@ class Database:
             except sqlite3.OperationalError:
                 pass  # column already exists
 
+        try:
+            self._conn.execute(
+                "ALTER TABLE bulletins ADD COLUMN wants_retrieval INTEGER NOT NULL DEFAULT 0"
+            )
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
         for sql in [
             "ALTER TABLE nodes ADD COLUMN hop_path TEXT NOT NULL DEFAULT '[]'",
             "ALTER TABLE nodes ADD COLUMN path_strategy TEXT NOT NULL DEFAULT 'path_route'",

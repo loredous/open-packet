@@ -74,10 +74,11 @@ class Bulletin:
     category: str
     from_call: str
     subject: str
-    body: str
-    timestamp: datetime
+    timestamp: datetime                   # moved before body so Optional body can have a default
+    body: Optional[str] = None            # None = header only, not yet retrieved
     read: bool = False
     queued: bool = False
     sent: bool = False
+    wants_retrieval: bool = False
     id: Optional[int] = None
     synced_at: Optional[datetime] = None
