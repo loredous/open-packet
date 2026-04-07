@@ -90,13 +90,34 @@ class InterfaceManageScreen(ModalScreen):
             self._edit(iface_id)
         elif btn_id.startswith("delete_"):
             iface_id = int(btn_id.split("_")[-1])
-            try:
-                self._db.delete_interface(iface_id)
-            except ValueError as e:
-                self.app.notify(str(e), severity="error")
-                return
-            self._needs_restart = True
-            self.call_later(self.recompose)
+            self._confirm_delete(iface_id)
+
+    def _confirm_delete(self, iface_id: int) -> None:
+        iface = self._db.get_interface(iface_id)
+        if iface is None:
+            return
+        node_count = self._db._conn.execute(
+            "SELECT COUNT(*) FROM nodes WHERE interface_id=? AND deleted=0", (iface_id,)
+        ).fetchone()[0]
+        if node_count > 0:
+            self.app.notify(
+                f"Cannot delete: {node_count} node(s) still use this interface.",
+                severity="error",
+            )
+            return
+        body = f"Delete interface \"{iface.label}\"? This cannot be undone."
+        from open_packet.ui.tui.screens.delete_confirm import DeleteConfirmScreen
+        self.app.push_screen(
+            DeleteConfirmScreen(f"Delete {iface.label}?", body),
+            callback=lambda confirmed, iid=iface_id: self._on_delete_confirmed(confirmed, iid),
+        )
+
+    def _on_delete_confirmed(self, confirmed: bool, iface_id: int) -> None:
+        if not confirmed:
+            return
+        self._db.soft_delete_interface(iface_id)
+        self._needs_restart = True
+        self.call_later(self.recompose)
 
     def _edit(self, iface_id: int) -> None:
         iface = self._db.get_interface(iface_id)

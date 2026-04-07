@@ -75,6 +75,8 @@ class NodeManageScreen(ModalScreen):
                             else:
                                 yield Button("Set Active", id=f"set_active_{node.id}")
                             yield Button("Edit", id=f"edit_{node.id}")
+                            if not node.is_default:
+                                yield Button("Delete", id=f"delete_{node.id}", variant="error")
                 else:
                     yield Label("No nodes configured.")
             with Horizontal(classes="footer-row"):
@@ -97,6 +99,9 @@ class NodeManageScreen(ModalScreen):
         elif btn_id.startswith("edit_"):
             node_id = int(btn_id.split("_")[-1])
             self._edit(node_id)
+        elif btn_id.startswith("delete_"):
+            node_id = int(btn_id.split("_")[-1])
+            self._confirm_delete(node_id)
 
     def _set_active(self, node_id: int) -> None:
         self._db.clear_default_node()
@@ -115,6 +120,29 @@ class NodeManageScreen(ModalScreen):
                 NodeSetupScreen(node, interfaces=self._db.list_interfaces(), db=self._db),
                 callback=lambda result: self._on_edit(result),
             )
+
+    def _confirm_delete(self, node_id: int) -> None:
+        node = self._db.get_node(node_id)
+        if node is None:
+            return
+        messages, bulletins = self._db.count_node_dependents(node_id)
+        label = node.label
+        body = (
+            f"Deleting {label} will hide {messages} message(s) and "
+            f"{bulletins} bulletin(s). This cannot be undone."
+        )
+        from open_packet.ui.tui.screens.delete_confirm import DeleteConfirmScreen
+        self.app.push_screen(
+            DeleteConfirmScreen(f"Delete {label}?", body),
+            callback=lambda confirmed, nid=node_id: self._on_delete_confirmed(confirmed, nid),
+        )
+
+    def _on_delete_confirmed(self, confirmed: bool, node_id: int) -> None:
+        if not confirmed:
+            return
+        self._db.soft_delete_node(node_id)
+        self._needs_restart = True
+        self.call_later(self.recompose)
 
     def _on_add(self, result: Optional[Node]) -> None:
         if result is None:

@@ -75,6 +75,8 @@ class OperatorManageScreen(ModalScreen):
                             else:
                                 yield Button("Set Active", id=f"set_active_{op.id}")
                             yield Button("Edit", id=f"edit_{op.id}")
+                            if not op.is_default:
+                                yield Button("Delete", id=f"delete_{op.id}", variant="error")
                 else:
                     yield Label("No operators configured.")
             with Horizontal(classes="footer-row"):
@@ -94,6 +96,9 @@ class OperatorManageScreen(ModalScreen):
         elif btn_id.startswith("edit_"):
             op_id = int(btn_id.split("_")[-1])
             self._edit(op_id)
+        elif btn_id.startswith("delete_"):
+            op_id = int(btn_id.split("_")[-1])
+            self._confirm_delete(op_id)
 
     def _set_active(self, op_id: int) -> None:
         self._db.clear_default_operator()
@@ -110,6 +115,29 @@ class OperatorManageScreen(ModalScreen):
             from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
             self.app.push_screen(OperatorSetupScreen(op),
                                  callback=lambda result: self._on_edit(result))
+
+    def _confirm_delete(self, op_id: int) -> None:
+        op = self._db.get_operator(op_id)
+        if op is None:
+            return
+        messages, bulletins = self._db.count_operator_dependents(op_id)
+        label = f"{op.callsign}-{op.ssid}" if op.ssid != 0 else op.callsign
+        body = (
+            f"Deleting {label} will hide {messages} message(s) and "
+            f"{bulletins} bulletin(s). This cannot be undone."
+        )
+        from open_packet.ui.tui.screens.delete_confirm import DeleteConfirmScreen
+        self.app.push_screen(
+            DeleteConfirmScreen(f"Delete {label}?", body),
+            callback=lambda confirmed, oid=op_id: self._on_delete_confirmed(confirmed, oid),
+        )
+
+    def _on_delete_confirmed(self, confirmed: bool, op_id: int) -> None:
+        if not confirmed:
+            return
+        self._db.soft_delete_operator(op_id)
+        self._needs_restart = True
+        self.call_later(self.recompose)
 
     def _on_add(self, result: Optional[Operator]) -> None:
         if result is None:
