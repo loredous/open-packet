@@ -194,16 +194,15 @@ class Engine:
         bulletin_headers = node.list_bulletins()
         self._emit(ConsoleEvent(">", f"Listing bulletins ({len(bulletin_headers)} available)"))
         for header in bulletin_headers:
-            if not self._store.bulletin_exists(header.bbs_id, self._node_record.id):
-                self._store.save_bulletin(Bulletin(
-                    operator_id=self._operator.id,
-                    node_id=self._node_record.id,
-                    bbs_id=header.bbs_id,
-                    category=header.to_call,
-                    from_call=header.from_call,
-                    subject=header.subject,
-                    timestamp=datetime.now(timezone.utc),
-                ))
+            self._store.save_bulletin(Bulletin(
+                operator_id=self._operator.id,
+                node_id=self._node_record.id,
+                bbs_id=header.bbs_id,
+                category=header.to_call,
+                from_call=header.from_call,
+                subject=header.subject,
+                timestamp=datetime.now(timezone.utc),
+            ))
 
         # Phase 5: Retrieve bodies for bulletins queued by the user
         pending = self._store.list_bulletins_pending_retrieval(self._node_record.id)
