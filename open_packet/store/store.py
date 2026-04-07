@@ -159,7 +159,7 @@ class Store:
             if existing:
                 return self._get_bulletin(existing["id"])  # type: ignore
 
-        body_val = bul.body if bul.body is not None else ""   # "" = header-only sentinel
+        body_val = bul.body if bul.body is not None else "\x00"   # NUL byte = header-only sentinel
         # synced_at = when we retrieved the full body (not when we listed the header)
         # For queued (outgoing) bulletins, synced_at stays None.
         # For received bulletins, synced_at is None if header-only; set by update_bulletin_body().
@@ -216,7 +216,7 @@ class Store:
             id=row["id"], operator_id=row["operator_id"], node_id=row["node_id"],
             bbs_id=row["bbs_id"], category=row["category"], from_call=row["from_call"],
             subject=row["subject"],
-            body=row["body"] if row["body"] != "" else None,   # "" sentinel → None
+            body=row["body"] if row["body"] != "\x00" else None,   # NUL sentinel → None
             timestamp=datetime.fromisoformat(row["timestamp"]),
             read=bool(row["read"]),
             queued=bool(row["queued"]),
@@ -249,8 +249,8 @@ class Store:
         """Bulletins marked for retrieval whose body has not yet been fetched."""
         assert self._conn
         rows = self._conn.execute(
-            "SELECT * FROM bulletins WHERE node_id=? AND wants_retrieval=1 AND body=''",
-            (node_id,),
+            "SELECT * FROM bulletins WHERE node_id=? AND wants_retrieval=1 AND body=?",
+            (node_id, "\x00"),
         ).fetchall()
         return [self._row_to_bulletin(r) for r in rows]
 

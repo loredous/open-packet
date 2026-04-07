@@ -902,3 +902,22 @@ def test_export_bulletins_skips_header_only(store, tmp_path):
 
     wx_dir = tmp_path / "bulletins" / "WX"
     assert not wx_dir.exists() or len(list(wx_dir.iterdir())) == 0
+
+
+def test_save_bulletin_with_empty_string_body_preserves_body(store):
+    """A bulletin retrieved from a BBS with an empty body is stored correctly and does NOT
+    appear as header-only (body=None) after a round-trip."""
+    s, op, node = store
+    from datetime import datetime, timezone
+    bul = Bulletin(
+        operator_id=op.id, node_id=node.id, bbs_id="EMPTY01",
+        category="WX", from_call="W0WX", subject="Empty body bulletin",
+        body="",   # legitimate empty body from BBS
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_bulletin(bul)
+    # Must come back as "" not None — it was a real (if empty) body, not a header
+    assert saved.body == ""
+    # Must NOT appear in pending retrieval list
+    pending = s.list_bulletins_pending_retrieval(node_id=node.id)
+    assert all(b.id != saved.id for b in pending)

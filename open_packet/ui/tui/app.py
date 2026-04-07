@@ -470,6 +470,7 @@ class OpenPacketApp(App):
             return
         self._store.mark_bulletin_wants_retrieval(msg.id)
         self._refresh_message_list()
+        self._refresh_folder_counts()
 
     def open_compose(self, to_call: str = "", subject: str = "") -> None:
         self.push_screen(ComposeScreen(to_call=to_call, subject=subject), callback=self._on_compose_result)
