@@ -204,11 +204,10 @@ async def test_status_bar_shows_operator_node_interface(app_db_path, tmp_path):
     app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
-        right = app.query_one("#status_right")
-        text = _label_text(right)
-        assert "W1AW" in text       # ssid=0, no suffix
-        assert "Home BBS" in text
-        assert "Home TNC" in text
+        from textual.widgets import Button
+        assert "W1AW" in str(app.query_one("#identity_operator", Button).label)
+        assert "Home BBS" in str(app.query_one("#identity_node", Button).label)
+        assert "Home TNC" in str(app.query_one("#identity_interface", Button).label)
 
 
 async def test_status_bar_shows_ssid_when_nonzero(app_db_path, tmp_path):
@@ -229,8 +228,8 @@ async def test_status_bar_shows_ssid_when_nonzero(app_db_path, tmp_path):
     app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
         await pilot.pause()
-        right = app.query_one("#status_right")
-        assert "W1AW-3" in _label_text(right)
+        from textual.widgets import Button
+        assert "W1AW-3" in str(app.query_one("#identity_operator", Button).label)
 
 
 async def test_status_bar_right_empty_when_no_operator(app_db_path, tmp_path):
@@ -240,8 +239,7 @@ async def test_status_bar_right_empty_when_no_operator(app_db_path, tmp_path):
     async with app.run_test() as pilot:
         await pilot.pause()
         # The OperatorSetupScreen will be pushed, but we can still check the bar
-        right = app.query_one("#status_right")
-        assert _label_text(right) == ""
+        assert not app.query_one("#identity_container").display
 
 
 def test_compose_bulletin_command_exists():
