@@ -5,7 +5,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, TextArea
 from textual.containers import Horizontal, Vertical
 
-from open_packet.forms.loader import FormDefinition, FormField
+from open_packet.forms.loader import FormDefinition
 from open_packet.forms.renderer import FormRenderError, render
 from open_packet.forms.validator import validate_form
 
