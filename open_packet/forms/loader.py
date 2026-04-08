@@ -76,6 +76,9 @@ def load_form(path: Path) -> FormDefinition:
     if not isinstance(data["fields"], list):
         raise FormLoadError(f"{path}: 'fields' must be a list")
 
+    if not data["fields"]:
+        raise FormLoadError(f"{path}: 'fields' must contain at least one field")
+
     fields = [_parse_field(f) for f in data["fields"]]
 
     return FormDefinition(

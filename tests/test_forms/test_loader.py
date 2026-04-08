@@ -138,3 +138,28 @@ def test_discover_forms_ignores_non_yaml(tmp_path):
     (tmp_path / "form.yaml").write_text(VALID_YAML)
     forms = discover_forms(tmp_path)
     assert len(forms) == 1
+
+
+def test_load_form_empty_fields_raises(tmp_path):
+    f = tmp_path / "bad.yaml"
+    f.write_text("name: X\ncategory: Y\nfields: []\nsubject_template: s\nbody_template: b\n")
+    with pytest.raises(FormLoadError, match="fields"):
+        load_form(f)
+
+
+def test_load_form_fields_not_a_list(tmp_path):
+    f = tmp_path / "bad.yaml"
+    f.write_text("name: X\ncategory: Y\nfields: oops\nsubject_template: s\nbody_template: b\n")
+    with pytest.raises(FormLoadError, match="fields"):
+        load_form(f)
+
+
+def test_load_form_field_type_preserved(tmp_path):
+    f = tmp_path / "form.yaml"
+    f.write_text(
+        "name: X\ncategory: Y\n"
+        "fields:\n  - name: msg\n    label: Message\n    type: textarea\n"
+        "subject_template: s\nbody_template: b\n"
+    )
+    form = load_form(f)
+    assert form.fields[0].type == "textarea"
