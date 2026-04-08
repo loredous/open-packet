@@ -1,5 +1,5 @@
-# open_packet/ui/tui/screens/compose.py
 from __future__ import annotations
+from pathlib import Path
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, TextArea
@@ -24,10 +24,11 @@ class ComposeScreen(ModalScreen):
     }
     """
 
-    def __init__(self, to_call: str = "", subject: str = "", **kwargs):
+    def __init__(self, to_call: str = "", subject: str = "", body: str = "", **kwargs):
         super().__init__(**kwargs)
         self._to_call = to_call
         self._subject = subject
+        self._body = body
 
     def compose(self) -> ComposeResult:
         with Vertical():
@@ -37,9 +38,10 @@ class ComposeScreen(ModalScreen):
             yield Label("Subject:")
             yield Input(value=self._subject, placeholder="Subject", id="subject_field")
             yield Label("Body:")
-            yield TextArea(id="body_field")
+            yield TextArea(self._body, id="body_field")
             with Horizontal():
                 yield Button("Send", variant="primary", id="send_btn")
+                yield Button("Use Form", id="use_form_btn")
                 yield Button("Cancel", id="cancel_btn")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -53,3 +55,22 @@ class ComposeScreen(ModalScreen):
                 self.dismiss(SendMessageCommand(
                     to_call=to_call, subject=subject, body=body
                 ))
+        elif event.button.id == "use_form_btn":
+            from open_packet.forms.loader import discover_forms
+            from open_packet.ui.tui.screens.form_picker import FormPickerScreen
+            forms_dir = getattr(self.app, "forms_dir", Path.home() / ".config/open-packet/forms")
+            forms = discover_forms(forms_dir)
+            self.app.push_screen(FormPickerScreen(forms), callback=self._on_form_picked)
+
+    def _on_form_picked(self, form_def) -> None:
+        if form_def is None:
+            return
+        from open_packet.ui.tui.screens.form_fill import FormFillScreen
+        self.app.push_screen(FormFillScreen(form_def), callback=self._on_form_filled)
+
+    def _on_form_filled(self, result) -> None:
+        if result is None:
+            return
+        subject, body = result
+        self.query_one("#subject_field", Input).value = subject
+        self.query_one("#body_field", TextArea).load_text(body)

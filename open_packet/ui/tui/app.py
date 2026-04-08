@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import queue
+from pathlib import Path
 from typing import Optional
 
 from textual.app import App
@@ -57,10 +58,12 @@ class OpenPacketApp(App):
     SCREENS = {"compose": ComposeScreen}
     TITLE = "open-packet"
 
-    def __init__(self, db_path: str, console_log: Optional[str] = None, **kwargs):
+    def __init__(self, db_path: str, console_log: Optional[str] = None,
+                 forms_dir: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
         self._db_path = db_path
         self._console_log = console_log
+        self._forms_dir: Optional[str] = forms_dir
         self._cmd_queue: queue.Queue = queue.Queue()
         self._evt_queue: queue.Queue = queue.Queue()
         self._engine: Optional[Engine] = None
@@ -76,6 +79,15 @@ class OpenPacketApp(App):
         self._pending_neighbor_prompts: list = []
         self._terminal_sessions: list[TerminalSession] = []
         self._active_session_idx: Optional[int] = None
+
+    @property
+    def forms_dir(self) -> Path:
+        if self._forms_dir:
+            return Path(self._forms_dir)
+        env = os.environ.get("OPEN_PACKET_FORMS_DIR")
+        if env:
+            return Path(env)
+        return Path.home() / ".config/open-packet/forms"
 
     def get_default_screen(self) -> MainScreen:
         return MainScreen()
@@ -486,8 +498,29 @@ class OpenPacketApp(App):
         self._refresh_message_list()
         self._refresh_folder_counts()
 
-    def open_compose(self, to_call: str = "", subject: str = "") -> None:
-        self.push_screen(ComposeScreen(to_call=to_call, subject=subject), callback=self._on_compose_result)
+    def open_compose(self, to_call: str = "", subject: str = "", body: str = "") -> None:
+        self.push_screen(
+            ComposeScreen(to_call=to_call, subject=subject, body=body),
+            callback=self._on_compose_result,
+        )
+
+    def open_form_compose(self) -> None:
+        from open_packet.forms.loader import discover_forms
+        from open_packet.ui.tui.screens.form_picker import FormPickerScreen
+        forms = discover_forms(self.forms_dir)
+        self.push_screen(FormPickerScreen(forms), callback=self._on_form_picker_result)
+
+    def _on_form_picker_result(self, form_def) -> None:
+        if form_def is None:
+            return
+        from open_packet.ui.tui.screens.form_fill import FormFillScreen
+        self.push_screen(FormFillScreen(form_def), callback=self._on_form_fill_result)
+
+    def _on_form_fill_result(self, result) -> None:
+        if result is None:
+            return
+        subject, body = result
+        self.open_compose(subject=subject, body=body)
 
     def open_compose_bulletin(self) -> None:
         self.push_screen(ComposeBulletinScreen(), callback=self._on_compose_bulletin_result)
@@ -643,6 +676,7 @@ def main() -> None:
     parser.add_argument("--db-path", default=None, help="Path to SQLite database")
     parser.add_argument("--log-path", default=None, help="Path to log file")
     parser.add_argument("--console-log", default=None, help="Path to console frame log")
+    parser.add_argument("--forms-dir", default=None, help="Path to forms directory")
     args = parser.parse_args()
 
     db_path = (
@@ -656,7 +690,8 @@ def main() -> None:
         or "~/.local/share/open-packet/open-packet.log"
     )
     console_log = args.console_log or os.environ.get("OPEN_PACKET_CONSOLE_LOG")
+    forms_dir = args.forms_dir or os.environ.get("OPEN_PACKET_FORMS_DIR")
 
     _setup_logging(log_path)
-    app = OpenPacketApp(db_path=db_path, console_log=console_log)
+    app = OpenPacketApp(db_path=db_path, console_log=console_log, forms_dir=forms_dir)
     app.run()

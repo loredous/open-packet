@@ -31,6 +31,7 @@ class MainScreen(Screen):
         Binding("ctrl+c", "check_mail", "Send/Receive", priority=True),
         Binding("ctrl+n", "new_message", "New", priority=True),
         Binding("ctrl+b", "new_bulletin", "Bulletin", priority=True),
+        Binding("f", "form_message", "Form Msg", priority=True),
         Binding("ctrl+t", "terminal_connect", "Terminal", priority=True),
         Binding("ctrl+x", "delete_message", "Delete", priority=True),
         Binding("ctrl+r", "reply_message", "Reply", priority=True),
@@ -100,3 +101,6 @@ class MainScreen(Screen):
 
     def action_quit(self) -> None:
         self.app.exit()
+
+    def action_form_message(self) -> None:
+        self.app.open_form_compose()
