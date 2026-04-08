@@ -14,16 +14,16 @@ class NodeManageScreen(ModalScreen):
         align: center middle;
     }
     NodeManageScreen > Vertical {
-        width: 60;
+        width: 90%;
         height: auto;
-        max-height: 80%;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;
     }
     NodeManageScreen VerticalScroll {
         height: auto;
-        max-height: 20;
     }
     NodeManageScreen .row {
         height: 3;

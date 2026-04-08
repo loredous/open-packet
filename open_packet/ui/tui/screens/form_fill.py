@@ -14,8 +14,13 @@ class _BypassConfirmScreen(ModalScreen):
     DEFAULT_CSS = """
     _BypassConfirmScreen { align: center middle; }
     _BypassConfirmScreen Vertical {
-        width: 50; height: auto; border: solid $warning;
-        background: $surface; padding: 1 2;
+        width: 90%;
+        height: auto;
+        max-height: 90%;
+        overflow-y: auto;
+        border: solid $warning;
+        background: $surface;
+        padding: 1 2;
     }
     """
 
@@ -41,9 +46,10 @@ class FormFillScreen(ModalScreen):
         align: center middle;
     }
     FormFillScreen Vertical {
-        width: 70;
+        width: 90%;
         height: auto;
-        max-height: 40;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;

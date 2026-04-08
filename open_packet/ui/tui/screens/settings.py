@@ -11,8 +11,10 @@ class SettingsScreen(ModalScreen):
         align: center middle;
     }
     SettingsScreen Vertical {
-        width: 40;
+        width: 90%;
         height: auto;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;

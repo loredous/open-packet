@@ -14,16 +14,16 @@ class NodePickerScreen(ModalScreen):
         align: center middle;
     }
     NodePickerScreen > Vertical {
-        width: 60;
+        width: 90%;
         height: auto;
-        max-height: 80%;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;
     }
     NodePickerScreen VerticalScroll {
         height: auto;
-        max-height: 20;
     }
     NodePickerScreen .row {
         height: 3;

@@ -13,8 +13,10 @@ class ComposeScreen(ModalScreen):
         align: center middle;
     }
     ComposeScreen Vertical {
-        width: 70;
+        width: 90%;
         height: auto;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;

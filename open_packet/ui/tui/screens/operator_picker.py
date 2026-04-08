@@ -14,16 +14,16 @@ class OperatorPickerScreen(ModalScreen):
         align: center middle;
     }
     OperatorPickerScreen > Vertical {
-        width: 60;
+        width: 90%;
         height: auto;
-        max-height: 80%;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;
     }
     OperatorPickerScreen VerticalScroll {
         height: auto;
-        max-height: 20;
     }
     OperatorPickerScreen .row {
         height: 3;

@@ -15,16 +15,16 @@ class InterfaceManageScreen(ModalScreen):
         align: center middle;
     }
     InterfaceManageScreen > Vertical {
-        width: 70;
+        width: 90%;
         height: auto;
-        max-height: 80%;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;
     }
     InterfaceManageScreen VerticalScroll {
         height: auto;
-        max-height: 20;
     }
     InterfaceManageScreen .row {
         height: 3;

@@ -14,16 +14,16 @@ class InterfacePickerScreen(ModalScreen):
         align: center middle;
     }
     InterfacePickerScreen > Vertical {
-        width: 70;
+        width: 90%;
         height: auto;
-        max-height: 80%;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;
     }
     InterfacePickerScreen VerticalScroll {
         height: auto;
-        max-height: 20;
     }
     InterfacePickerScreen .row {
         height: 3;

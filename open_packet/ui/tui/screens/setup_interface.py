@@ -16,8 +16,10 @@ class InterfaceSetupScreen(ModalScreen):
         align: center middle;
     }
     InterfaceSetupScreen > Vertical {
-        width: 55;
+        width: 90%;
         height: auto;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;

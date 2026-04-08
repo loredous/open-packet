@@ -44,9 +44,10 @@ class NodeSetupScreen(ModalScreen):
         align: center middle;
     }
     NodeSetupScreen > Vertical {
-        width: 60;
+        width: 90%;
         height: auto;
         max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;

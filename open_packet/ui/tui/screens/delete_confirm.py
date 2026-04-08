@@ -11,8 +11,10 @@ class DeleteConfirmScreen(ModalScreen[bool]):
         align: center middle;
     }
     DeleteConfirmScreen > Vertical {
-        width: 60;
+        width: 90%;
         height: auto;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $error;
         background: $surface;
         padding: 1 2;

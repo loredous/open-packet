@@ -14,16 +14,16 @@ class OperatorManageScreen(ModalScreen):
         align: center middle;
     }
     OperatorManageScreen > Vertical {
-        width: 60;
+        width: 90%;
         height: auto;
-        max-height: 80%;
+        max-height: 90%;
+        overflow-y: auto;
         border: solid $primary;
         background: $surface;
         padding: 1 2;
     }
     OperatorManageScreen VerticalScroll {
         height: auto;
-        max-height: 20;
     }
     OperatorManageScreen .row {
         height: 3;
