@@ -49,6 +49,12 @@ def test_min_length_passes_longer():
     assert validate_field(_field(min_length=3), "abcdef") == []
 
 
+def test_min_length_counts_raw_value_including_whitespace():
+    # Values feed into templates verbatim, so raw length is checked (not stripped)
+    errors = validate_field(_field(min_length=4), "  a")  # 3 chars raw, fails
+    assert len(errors) == 1
+
+
 # --- max_length ---
 
 def test_max_length_fails():

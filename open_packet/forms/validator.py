@@ -16,9 +16,11 @@ def validate_field(field: FormField, value: str) -> list[str]:
     if not stripped:
         return []
 
+    # Length checks use raw value (not stripped) — values feed directly into templates
     if field.min_length is not None and len(value) < field.min_length:
         errors.append(f"Must be at least {field.min_length} characters.")
 
+    # Length checks use raw value (not stripped) — values feed directly into templates
     if field.max_length is not None and len(value) > field.max_length:
         errors.append(f"Must be no more than {field.max_length} characters.")
 
