@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from open_packet.store.models import Operator, Node, Message, Bulletin, Interface
+from open_packet.store.models import Operator, Node, Message, Bulletin, Interface, BBSFile
 
 
 _KNOWN_SETTING_KEYS = frozenset({
@@ -215,6 +215,21 @@ class Database:
             CREATE TABLE IF NOT EXISTS settings (
                 key   TEXT PRIMARY KEY,
                 value TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS bbs_files (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                node_id INTEGER NOT NULL REFERENCES nodes(id),
+                directory TEXT NOT NULL DEFAULT '',
+                filename TEXT NOT NULL,
+                size INTEGER,
+                date_str TEXT NOT NULL DEFAULT '',
+                description TEXT NOT NULL DEFAULT '',
+                content TEXT NOT NULL DEFAULT x'00',
+                wants_retrieval INTEGER NOT NULL DEFAULT 0,
+                synced_at TEXT,
+                deleted INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(node_id, filename)
             );
         """)
         self._conn.commit()

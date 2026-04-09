@@ -20,6 +20,15 @@ class MessageHeader:
 
 
 @dataclass
+class FileHeader:
+    filename: str
+    directory: str
+    size: Optional[int]
+    date_str: str
+    description: str
+
+
+@dataclass
 class Message:
     header: MessageHeader
     body: str
@@ -56,3 +65,9 @@ class NodeBase(ABC):
 
     @abstractmethod
     def list_linked_nodes(self) -> list: ...
+
+    @abstractmethod
+    def list_files(self, directory: str = "") -> list[FileHeader]: ...
+
+    @abstractmethod
+    def read_file(self, filename: str) -> str: ...

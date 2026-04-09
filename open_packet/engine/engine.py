@@ -4,6 +4,7 @@ import logging
 import queue
 import threading
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 from open_packet.engine.commands import (
@@ -17,7 +18,7 @@ from open_packet.engine.events import (
 )
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase
-from open_packet.store.models import Operator, Node, Message, Bulletin
+from open_packet.store.models import Operator, Node, Message, Bulletin, BBSFile
 from open_packet.store.store import Store
 
 logger = logging.getLogger(__name__)
@@ -151,8 +152,8 @@ class Engine:
         self._connection.disconnect()
         self._set_status(ConnectionStatus.DISCONNECTED)
 
-    def _run_sync_phases(self, node) -> tuple[int, int, int]:
-        """Run the four mail sync phases. Returns (retrieved, sent, bulletins_retrieved).
+    def _run_sync_phases(self, node) -> tuple[int, int, int, int]:
+        """Run the sync phases. Returns (retrieved, sent, bulletins_retrieved, files_retrieved).
         Does NOT emit SyncCompleteEvent — caller is responsible for that."""
         # Phase 1: Retrieve new messages
         retrieved = 0
@@ -232,7 +233,46 @@ class Engine:
             bulletins_retrieved += 1
             self._emit(ConsoleEvent("<", f"[{bul.bbs_id}] {bul.subject} from {bul.from_call}"))
 
-        return retrieved, sent, bulletins_retrieved
+        # Phase 6: Save file headers (content not retrieved yet)
+        self._set_status(ConnectionStatus.SYNCING, "Listing files…")
+        try:
+            file_headers = node.list_files()
+            self._emit(ConsoleEvent(">", f"Listing files ({len(file_headers)} available)"))
+            for header in file_headers:
+                self._store.save_file_header(BBSFile(
+                    id=None,
+                    node_id=self._node_record.id,
+                    directory=header.directory,
+                    filename=header.filename,
+                    size=header.size,
+                    date_str=header.date_str,
+                    description=header.description,
+                    content=None,
+                ))
+        except Exception:
+            logger.exception("Failed to list files")
+            self._emit(ConsoleEvent("!", "Failed to list files"))
+
+        # Phase 7: Retrieve files queued by the user
+        pending_files = self._store.list_files_pending_retrieval(self._node_record.id)
+        files_retrieved = 0
+        total_files = len(pending_files)
+        for i, f in enumerate(pending_files, 1):
+            self._set_status(ConnectionStatus.SYNCING, f"Retrieving file {i} of {total_files}")
+            try:
+                raw = node.read_file(f.filename)
+            except Exception:
+                logger.exception("Failed to retrieve file %s", f.filename)
+                self._emit(ConsoleEvent("!", f"Failed to retrieve file {f.filename}"))
+                continue
+            export_dir = Path(self._export_path or ".")
+            path = export_dir / "files" / f.directory / f.filename
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(raw)
+            self._store.update_file_content(f.id)
+            files_retrieved += 1
+
+        return retrieved, sent, bulletins_retrieved, files_retrieved
 
     def _do_auto_forward(self) -> None:
         neighbors = self._store.get_node_neighbors(self._node_record.id)
@@ -311,7 +351,7 @@ class Engine:
             self._emit(ConsoleEvent("<", f"Connected to {node_addr}"))
             self._set_status(ConnectionStatus.SYNCING)
 
-            retrieved, sent, bulletins_retrieved = self._run_sync_phases(self._node)
+            retrieved, sent, bulletins_retrieved, files_retrieved = self._run_sync_phases(self._node)
 
             self._last_sync = datetime.now(timezone.utc)
             self._messages_last_sync = retrieved
@@ -319,6 +359,7 @@ class Engine:
                 messages_retrieved=retrieved,
                 messages_sent=sent,
                 bulletins_retrieved=bulletins_retrieved,
+                files_retrieved=files_retrieved,
             ))
         finally:
             self._connection.disconnect()

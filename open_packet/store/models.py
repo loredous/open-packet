@@ -82,3 +82,17 @@ class Bulletin:
     wants_retrieval: bool = False
     id: Optional[int] = None
     synced_at: Optional[datetime] = None
+
+
+@dataclass
+class BBSFile:
+    id: Optional[int]
+    node_id: int
+    directory: str          # BBS directory name (e.g. "ARES", "WEATHER")
+    filename: str           # unique identifier within the BBS
+    size: Optional[int]     # bytes, from DIR listing
+    date_str: str           # raw date string from BBS
+    description: str        # one-line description from DIR listing
+    content: Optional[str] = None   # None = not yet retrieved; "\x00" = header-only sentinel in DB; "\x01" = retrieved (saved to disk)
+    wants_retrieval: bool = False
+    synced_at: Optional[datetime] = None

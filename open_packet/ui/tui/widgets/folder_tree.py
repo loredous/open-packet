@@ -47,6 +47,8 @@ class FolderTree(Tree):
         self._sent_node      = self.root.add_leaf("Sent",   data="Sent")
         self._bulletins_node = self.root.add("Bulletins", data="Bulletins")
         self._bulletin_nodes: dict[str, TreeNode] = {}
+        self._files_node = self.root.add("Files", data="Files")
+        self._file_dir_nodes: dict[str, TreeNode] = {}
         self._sessions_node  = self.root.add("Sessions", data="__sessions__")
         self._session_nodes: list[TreeNode] = []
 
@@ -59,6 +61,8 @@ class FolderTree(Tree):
         parent = event.node.parent
         if parent and parent.data == "Bulletins":
             self.post_message(self.FolderSelected("Bulletins", category=data))
+        elif parent and parent.data == "Files":
+            self.post_message(self.FolderSelected("Files", category=data))
         else:
             self.post_message(self.FolderSelected(data))
 
@@ -105,6 +109,19 @@ class FolderTree(Tree):
                 self._bulletin_nodes[category].remove()
                 del self._bulletin_nodes[category]
 
+        file_stats: dict[str, int] = stats.get("Files", {})
+        for directory, count in sorted(file_stats.items()):
+            if directory not in self._file_dir_nodes:
+                node = self._files_node.add_leaf(directory, data=directory)
+                self._file_dir_nodes[directory] = node
+            node = self._file_dir_nodes[directory]
+            node.set_label(f"{directory} ({count})" if count > 0 else directory)
+
+        for directory in list(self._file_dir_nodes):
+            if directory not in file_stats:
+                self._file_dir_nodes[directory].remove()
+                del self._file_dir_nodes[directory]
+
         self._recompute_width()
 
     def update_sessions(self, sessions: list) -> None:
@@ -141,6 +158,8 @@ class FolderTree(Tree):
             depth1.append(_plain(self._outbox_node.label))
             depth1.append(_plain(self._sent_node.label))
             for node in self._bulletin_nodes.values():
+                depth2.append(_plain(node.label))
+            for node in self._file_dir_nodes.values():
                 depth2.append(_plain(node.label))
 
         if hasattr(self, "_session_nodes"):

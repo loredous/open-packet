@@ -24,7 +24,7 @@ from open_packet.link.kiss import KISSLink
 from open_packet.link.telnet import TelnetLink
 from open_packet.node.bpq import BPQNode
 from open_packet.store.database import Database
-from open_packet.store.models import Operator, Node, Interface, Message, Bulletin
+from open_packet.store.models import Operator, Node, Interface, Message, Bulletin, BBSFile
 from open_packet.store.settings import Settings
 from open_packet.store.store import Store
 from open_packet.transport.tcp import TCPTransport
@@ -354,9 +354,15 @@ class OpenPacketApp(App):
         elif isinstance(event, SyncCompleteEvent):
             from datetime import datetime
             status_bar.last_sync = datetime.now().strftime("%H:%M")
-            self.notify(
-                f"Sync complete: {event.messages_retrieved} new, {event.bulletins_retrieved} bulletins, {event.messages_sent} sent"
-            )
+            parts = [
+                f"{event.messages_retrieved} new",
+                f"{event.bulletins_retrieved} bulletins",
+                f"{event.messages_sent} sent",
+            ]
+            if getattr(event, "files_retrieved", 0) > 0:
+                export_path = self._settings.export_path if self._settings else "~/.local/share/open-packet/export"
+                parts.append(f"{event.files_retrieved} file(s) saved to {export_path}/files/")
+            self.notify(f"Sync complete: {', '.join(parts)}")
             self._refresh_message_list()
         elif isinstance(event, ErrorEvent):
             self.notify(f"Error: {event.message}", severity="error")
@@ -430,10 +436,22 @@ class OpenPacketApp(App):
         if not self._store or not self._active_operator:
             return
         try:
-            msg_list = self.query_one("MessageList")
             folder = self._active_folder
             category = self._active_category
             operator_id = self._active_operator.id
+
+            if folder == "Files":
+                if self._active_node:
+                    files = self._store.list_files(self._active_node.id, category or "")
+                    try:
+                        self.query_one("FileList").load_files(files)
+                    except Exception:
+                        pass
+                stats = self._store.count_folder_stats(operator_id)
+                self.query_one("FolderTree").update_counts(stats)
+                return
+
+            msg_list = self.query_one("MessageList")
 
             if folder == "Inbox":
                 messages = [
@@ -638,7 +656,18 @@ class OpenPacketApp(App):
     def on_folder_tree_folder_selected(self, event) -> None:
         self._active_folder = event.folder
         self._active_category = getattr(event, "category", "")
+        if event.folder == "Files":
+            if isinstance(self.screen, MainScreen):
+                self.screen.show_files()
+        else:
+            if isinstance(self.screen, MainScreen):
+                self.screen.show_messages()
         self._refresh_message_list()
+
+    def on_file_list_retrieval_toggled(self, event) -> None:
+        if self._store:
+            self._store.mark_file_wants_retrieval(event.file.id)
+            self._refresh_message_list()
 
     def on_folder_tree_session_selected(self, event) -> None:
         idx = event.session_idx

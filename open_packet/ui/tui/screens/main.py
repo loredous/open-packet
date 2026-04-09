@@ -11,6 +11,7 @@ from open_packet.ui.tui.widgets.message_list import MessageList
 from open_packet.ui.tui.widgets.message_body import MessageBody
 from open_packet.ui.tui.widgets.console_panel import ConsolePanel
 from open_packet.ui.tui.widgets.terminal_view import TerminalView
+from open_packet.ui.tui.widgets.file_list import FileList
 
 
 class MainScreen(Screen):
@@ -49,6 +50,7 @@ class MainScreen(Screen):
             with Vertical(id="right_pane"):
                 yield MessageList(id="message_list")
                 yield MessageBody(id="message_body")
+                yield FileList(id="file_list")
                 yield TerminalView(id="terminal_view")
         yield ConsolePanel(id="console_panel")
         yield Footer()
@@ -57,16 +59,25 @@ class MainScreen(Screen):
         settings = getattr(self.app, "_settings", None)
         self.query_one("ConsolePanel").display = settings.console_visible if settings else False
         self.query_one(TerminalView).display = False
+        self.query_one(FileList).display = False
 
     def show_terminal(self) -> None:
         self.query_one(TerminalView).display = True
         self.query_one(MessageList).display = False
         self.query_one(MessageBody).display = False
+        self.query_one(FileList).display = False
 
     def show_messages(self) -> None:
         self.query_one(TerminalView).display = False
         self.query_one(MessageList).display = True
         self.query_one(MessageBody).display = True
+        self.query_one(FileList).display = False
+
+    def show_files(self) -> None:
+        self.query_one(TerminalView).display = False
+        self.query_one(MessageList).display = False
+        self.query_one(MessageBody).display = False
+        self.query_one(FileList).display = True
 
     def action_toggle_console(self) -> None:
         panel = self.query_one("ConsolePanel")

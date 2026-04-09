@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import time
 from open_packet.link.base import ConnectionBase
-from open_packet.node.base import NodeBase, NodeError, MessageHeader, Message
+from open_packet.node.base import NodeBase, NodeError, MessageHeader, Message, FileHeader
 
 TIMEOUT = 30.0        # max wait for the first data after a command (RF links can be slow)
 IDLE_TIMEOUT = 30.0   # max silence between ANY remote frames (RR counts); slow RF can gap 15-20s
@@ -35,6 +35,26 @@ def parse_message_list(text: str) -> list[MessageHeader]:
                 subject=m.group(5).strip(),
             ))
     return headers
+
+
+def parse_file_list(text: str) -> list[FileHeader]:
+    files = []
+    current_dir = ""
+    for line in text.splitlines():
+        dir_match = re.match(r'^\s*Dir:\s*(\S+)', line, re.IGNORECASE)
+        if dir_match:
+            current_dir = dir_match.group(1)
+            continue
+        m = re.match(r'^\s*(\S+)\s+(\d+)\s+(\S+)\s+(.+)$', line)
+        if m:
+            files.append(FileHeader(
+                filename=m.group(1).strip(),
+                directory=current_dir,
+                size=int(m.group(2)),
+                date_str=m.group(3).strip(),
+                description=m.group(4).strip(),
+            ))
+    return files
 
 
 def _base_call(callsign: str) -> str:
@@ -173,6 +193,26 @@ class BPQNode(NodeBase):
         self._send_text("NODES")
         response = self._recv_until_prompt(end_on_cr=True)
         return parse_nodes_list(response)
+
+    def list_files(self, directory: str = "") -> list[FileHeader]:
+        cmd = f"DIR {directory}".strip()
+        self._send_text(cmd)
+        response = self._recv_until_prompt()
+        return parse_file_list(response)
+
+    def read_file(self, filename: str) -> str:
+        self._send_text(f"D {filename}")
+        response = self._recv_until_prompt()
+        lines = response.splitlines()
+        body_lines = []
+        in_body = False
+        for line in lines:
+            if not in_body and line.strip() == "":
+                in_body = True
+                continue
+            if in_body and not _has_prompt(line):
+                body_lines.append(line)
+        return "\n".join(body_lines).strip()
 
     def list_messages(self) -> list[MessageHeader]:
         self._send_text("L")

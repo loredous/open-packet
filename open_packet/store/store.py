@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from open_packet.store.database import Database
-from open_packet.store.models import Message, Bulletin
+from open_packet.store.models import Message, Bulletin, BBSFile
 
 
 class Store:
@@ -292,3 +292,71 @@ class Store:
             (node_id,),
         ).fetchall()
         return [NodeHop(callsign=r["callsign"], port=r["port"]) for r in rows]
+
+    def save_file_header(self, f: BBSFile) -> None:
+        self._db._conn.execute(
+            """INSERT OR IGNORE INTO bbs_files
+               (node_id, directory, filename, size, date_str, description, content, wants_retrieval)
+               VALUES (?, ?, ?, ?, ?, ?, x'00', 0)""",
+            (f.node_id, f.directory, f.filename, f.size, f.date_str, f.description),
+        )
+        self._db._conn.commit()
+
+    def mark_file_wants_retrieval(self, file_id: int) -> None:
+        self._db._conn.execute(
+            "UPDATE bbs_files SET wants_retrieval=1 WHERE id=?", (file_id,)
+        )
+        self._db._conn.commit()
+
+    def list_files_pending_retrieval(self, node_id: int) -> list:
+        rows = self._db._conn.execute(
+            "SELECT * FROM bbs_files WHERE node_id=? AND wants_retrieval=1 AND content=x'00' AND deleted=0",
+            (node_id,),
+        ).fetchall()
+        return [self._row_to_bbs_file(r) for r in rows]
+
+    def update_file_content(self, file_id: int) -> None:
+        self._db._conn.execute(
+            "UPDATE bbs_files SET content=x'01', wants_retrieval=0, synced_at=? WHERE id=?",
+            (datetime.now(timezone.utc).isoformat(), file_id),
+        )
+        self._db._conn.commit()
+
+    def list_files(self, node_id: int, directory: str = "") -> list:
+        if directory:
+            rows = self._db._conn.execute(
+                "SELECT * FROM bbs_files WHERE node_id=? AND directory=? AND deleted=0 ORDER BY filename",
+                (node_id, directory),
+            ).fetchall()
+        else:
+            rows = self._db._conn.execute(
+                "SELECT * FROM bbs_files WHERE node_id=? AND deleted=0 ORDER BY directory, filename",
+                (node_id,),
+            ).fetchall()
+        return [self._row_to_bbs_file(r) for r in rows]
+
+    def count_file_stats(self, node_id: int) -> dict:
+        rows = self._db._conn.execute(
+            "SELECT directory, COUNT(*) as cnt FROM bbs_files WHERE node_id=? AND deleted=0 GROUP BY directory",
+            (node_id,),
+        ).fetchall()
+        return {r["directory"]: r["cnt"] for r in rows}
+
+    def _row_to_bbs_file(self, row) -> BBSFile:
+        content_bytes = row["content"]
+        if isinstance(content_bytes, bytes):
+            content = content_bytes.decode("latin-1")
+        else:
+            content = content_bytes
+        return BBSFile(
+            id=row["id"],
+            node_id=row["node_id"],
+            directory=row["directory"],
+            filename=row["filename"],
+            size=row["size"],
+            date_str=row["date_str"] or "",
+            description=row["description"] or "",
+            content=content,
+            wants_retrieval=bool(row["wants_retrieval"]),
+            synced_at=row["synced_at"],
+        )

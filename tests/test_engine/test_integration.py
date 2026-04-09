@@ -67,7 +67,8 @@ def test_full_check_mail_cycle():
             "BPQ> ",
             "Enter Subject: BPQ> ",                                # send_message prompt 1 with marker
             "Enter Message: BPQ> ",                                # send_message prompt 2 with marker
-            "Message Sent\nBPQ> ",                                  # send_message completion
+            "Message Sent\nBPQ> ",                                  # send_message completion (also list_bulletins response)
+            "BPQ> ",                                              # phase 6: list_files (DIR command)
         ]
 
         connection = ReplayConnection(responses=responses)
