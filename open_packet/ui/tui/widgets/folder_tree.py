@@ -42,9 +42,10 @@ class FolderTree(Tree):
 
     def on_mount(self) -> None:
         self.root.expand()
-        self._inbox_node     = self.root.add_leaf("Inbox",  data="Inbox")
-        self._outbox_node    = self.root.add_leaf("Outbox", data="Outbox")
-        self._sent_node      = self.root.add_leaf("Sent",   data="Sent")
+        self._inbox_node     = self.root.add_leaf("Inbox",   data="Inbox")
+        self._outbox_node    = self.root.add_leaf("Outbox",  data="Outbox")
+        self._sent_node      = self.root.add_leaf("Sent",    data="Sent")
+        self._archive_node   = self.root.add_leaf("Archive", data="Archive")
         self._bulletins_node = self.root.add("Bulletins", data="Bulletins")
         self._bulletin_nodes: dict[str, TreeNode] = {}
         self._files_node = self.root.add("Files", data="Files")
@@ -72,6 +73,7 @@ class FolderTree(Tree):
         inbox_total, inbox_unread = stats.get("Inbox", (0, 0))
         (sent_total,)  = stats.get("Sent",   (0,))
         (outbox_count,) = stats.get("Outbox", (0,))
+        archive_total, archive_unread = stats.get("Archive", (0, 0))
 
         if inbox_total == 0:
             self._inbox_node.set_label("Inbox")
@@ -90,6 +92,15 @@ class FolderTree(Tree):
             self._outbox_node.set_label(Text("Outbox", style=Style()))
 
         self._sent_node.set_label(f"Sent ({sent_total})" if sent_total > 0 else "Sent")
+
+        if archive_total == 0:
+            self._archive_node.set_label("Archive")
+        elif archive_unread == 0:
+            self._archive_node.set_label(f"Archive ({archive_total})")
+        else:
+            self._archive_node.set_label(
+                Text.assemble("Archive (", str(archive_total), "/", (str(archive_unread), "bold"), ")")
+            )
 
         bulletin_stats: dict[str, tuple[int, int]] = stats.get("Bulletins", {})
         for category, (total, unread) in bulletin_stats.items():
@@ -160,6 +171,7 @@ class FolderTree(Tree):
             depth1.append(_plain(self._inbox_node.label))
             depth1.append(_plain(self._outbox_node.label))
             depth1.append(_plain(self._sent_node.label))
+            depth1.append(_plain(self._archive_node.label))
             for node in self._bulletin_nodes.values():
                 depth2.append(_plain(node.label))
             for node in self._file_dir_nodes.values():

@@ -476,6 +476,8 @@ class OpenPacketApp(App):
                     m for m in self._store.list_messages(operator_id=operator_id)
                     if m.sent
                 ]
+            elif folder == "Archive":
+                messages = self._store.list_archived_messages(operator_id=operator_id)
             elif folder == "Bulletins":
                 messages = self._store.list_bulletins(
                     operator_id=operator_id,
@@ -520,6 +522,19 @@ class OpenPacketApp(App):
                     message_id=msg.id,
                     bbs_id=msg.bbs_id,
                 ))
+
+    def archive_selected_message(self) -> None:
+        msg = self._selected_message
+        if msg is None or msg.id is None or not isinstance(msg, Message):
+            return
+        if not self._store:
+            return
+        if msg.archived:
+            self._store.unarchive_message(msg.id)
+        else:
+            self._store.archive_message(msg.id)
+        self._selected_message = None
+        self._refresh_message_list()
 
     def queue_bulletin_retrieval(self) -> None:
         msg = self._selected_message

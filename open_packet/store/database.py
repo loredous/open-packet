@@ -48,6 +48,14 @@ class Database:
 
         try:
             self._conn.execute(
+                "ALTER TABLE messages ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"
+            )
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+        try:
+            self._conn.execute(
                 "ALTER TABLE nodes ADD COLUMN interface_id INTEGER REFERENCES interfaces(id)"
             )
             self._conn.commit()

@@ -921,3 +921,135 @@ def test_save_bulletin_with_empty_string_body_preserves_body(store):
     # Must NOT appear in pending retrieval list
     pending = s.list_bulletins_pending_retrieval(node_id=node.id)
     assert all(b.id != saved.id for b in pending)
+
+
+# --- Archive feature tests ---
+
+def test_message_model_archived_defaults_false():
+    from datetime import datetime, timezone
+    msg = Message(
+        operator_id=1, node_id=1, bbs_id="x",
+        from_call="W0A", to_call="W0B",
+        subject="s", body="b",
+        timestamp=datetime.now(timezone.utc),
+    )
+    assert msg.archived is False
+
+
+def test_database_schema_has_archived_column(db):
+    cols = [row[1] for row in db._conn.execute("PRAGMA table_info(messages)").fetchall()]
+    assert "archived" in cols
+
+
+def test_archive_message_removes_from_inbox(store):
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="A001",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Archive me", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_message(msg)
+    s.archive_message(saved.id)
+
+    inbox = s.list_messages(operator_id=op.id)
+    assert all(m.id != saved.id for m in inbox)
+
+
+def test_list_archived_messages_returns_archived(store):
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="A002",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Archived msg", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_message(msg)
+    s.archive_message(saved.id)
+
+    archived = s.list_archived_messages(operator_id=op.id)
+    assert len(archived) == 1
+    assert archived[0].id == saved.id
+    assert archived[0].archived is True
+
+
+def test_unarchive_message_returns_to_inbox(store):
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="A003",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Unarchive me", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_message(msg)
+    s.archive_message(saved.id)
+    s.unarchive_message(saved.id)
+
+    inbox = s.list_messages(operator_id=op.id)
+    assert any(m.id == saved.id for m in inbox)
+
+    archived = s.list_archived_messages(operator_id=op.id)
+    assert all(m.id != saved.id for m in archived)
+
+
+def test_count_folder_stats_includes_archive(store):
+    s, op, node = store
+    msg1 = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="A004",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Archive 1", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    )
+    msg2 = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="A005",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Archive 2", body="Body",
+        timestamp=datetime.now(timezone.utc),
+        read=True,
+    )
+    saved1 = s.save_message(msg1)
+    saved2 = s.save_message(msg2)
+    s.archive_message(saved1.id)
+    s.archive_message(saved2.id)
+
+    stats = s.count_folder_stats(op.id)
+    assert "Archive" in stats
+    archive_total, archive_unread = stats["Archive"]
+    assert archive_total == 2
+    assert archive_unread == 1  # msg1 is unread, msg2 is read
+
+
+def test_count_folder_stats_inbox_excludes_archived(store):
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="A006",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Archive me", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_message(msg)
+    # Before archive: inbox has 1 message
+    stats_before = s.count_folder_stats(op.id)
+    assert stats_before["Inbox"][0] == 1
+
+    s.archive_message(saved.id)
+    # After archive: inbox has 0 messages
+    stats_after = s.count_folder_stats(op.id)
+    assert stats_after["Inbox"][0] == 0
+    assert stats_after["Archive"][0] == 1
+
+
+def test_archived_messages_not_in_list_messages(store):
+    """list_messages() must exclude archived rows by default."""
+    s, op, node = store
+    msg = Message(
+        operator_id=op.id, node_id=node.id, bbs_id="A007",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Hidden", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    )
+    saved = s.save_message(msg)
+    s.archive_message(saved.id)
+
+    all_visible = s.list_messages(operator_id=op.id)
+    assert all(m.id != saved.id for m in all_visible)
