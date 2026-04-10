@@ -19,25 +19,6 @@ Install open-packet with `uv`:
 uv tool install git+https://github.com/loredous/open-packet
 ```
 
-## Configuration
-
-Create the configuration directory and file:
-
-```bash
-mkdir -p ~/.config/open-packet
-```
-
-Create `~/.config/open-packet/config.yaml`:
-
-```yaml
-connection:
-  type: kiss_tcp          # kiss_tcp | kiss_serial
-  host: localhost         # TCP only
-  port: 8001              # TCP only
-```
-
-See the [Configuration Reference]({{< relref "/reference/configuration" >}}) for all available options.
-
 ## First Launch
 
 Run open-packet:
@@ -56,7 +37,7 @@ These can be changed later in the [Settings]({{< relref "settings" >}}) screen.
 
 ## Interface Overview
 
-![open-packet main interface](../images/screenshot-main.png)
+![open-packet main interface](/images/screenshot-main.png)
 
 The main interface consists of:
 

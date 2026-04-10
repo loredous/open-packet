@@ -2,6 +2,7 @@ baseURL = "https://loredous.github.io/open-packet/"
 languageCode = "en-us"
 title = "open-packet Documentation"
 theme = "book"
+enableGitInfo = true
 
 [params]
   # Show table of contents globally

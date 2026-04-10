@@ -11,7 +11,7 @@ Operator identity, BBS node configuration, and interface settings are stored in 
 
 Press **Ctrl+S** to open the Settings screen.
 
-![Settings screen screenshot](../images/screenshot-settings.png)
+![Settings screen screenshot](/images/screenshot-settings.png)
 
 ## Operators
 
@@ -79,4 +79,4 @@ General settings include:
 - **Console visibility** — show the AX.25 frame console on startup
 - **Console buffer** — number of lines to retain in the console
 
-These can also be set in the [config file]({{< relref "/reference/configuration" >}}).
+These can also be set via CLI flags or environment variables — see the [Configuration Reference]({{< relref "/reference/configuration" >}}).

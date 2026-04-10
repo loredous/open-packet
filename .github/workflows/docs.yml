@@ -5,14 +5,11 @@ on:
     types: [published]
   workflow_dispatch:  # Allow manual trigger for testing
 
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
 jobs:
   build-docs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,7 +20,7 @@ jobs:
       - name: Set up Hugo
         uses: peaceiris/actions-hugo@v3
         with:
-          hugo-version: "latest"
+          hugo-version: "0.128.2"
           extended: true
 
       - name: Build Hugo site
@@ -39,6 +36,9 @@ jobs:
   deploy-pages:
     needs: build-docs
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -46,44 +46,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-  export-pdf:
-    needs: build-docs
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Install pandoc and LaTeX for PDF export
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y pandoc texlive-xetex texlive-fonts-recommended texlive-plain-generic
-
-      - name: Combine markdown files into PDF
-        run: |
-          # Collect all content markdown files in order
-          find docs/hugo/content -name "*.md" \
-            | grep -v "_index.md" \
-            | sort \
-            | xargs pandoc \
-              --from=markdown+yaml_metadata_block \
-              --to=pdf \
-              --pdf-engine=xelatex \
-              --toc \
-              --toc-depth=2 \
-              -V title="open-packet Documentation" \
-              -V author="open-packet contributors" \
-              -V date="$(date '+%Y-%m-%d')" \
-              -V geometry:margin=1in \
-              -V fontsize=11pt \
-              -o open-packet-docs.pdf
-
-      - name: Upload PDF to release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: open-packet-docs.pdf
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -13,7 +13,7 @@ Press **Ctrl+T** to open the node picker. Select the node you want to connect to
 
 If you want to connect to a node that is not pre-configured, you can also type a callsign directly.
 
-![Terminal node picker screenshot](../images/screenshot-terminal-picker.png)
+![Terminal node picker screenshot](/images/screenshot-terminal-picker.png)
 
 ## Using the Terminal
 
@@ -21,7 +21,7 @@ Once connected, the terminal view opens and shows the raw session output. Type c
 
 The terminal passes all input and output through without interpretation — you are interacting directly with the remote node.
 
-![Terminal session screenshot](../images/screenshot-terminal.png)
+![Terminal session screenshot](/images/screenshot-terminal.png)
 
 ## Disconnecting
 

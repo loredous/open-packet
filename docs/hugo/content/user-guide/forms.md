@@ -17,7 +17,7 @@ Press **F** to open the form picker. You'll see a list of available form categor
 
 Navigate the form categories and select a form to fill out.
 
-![Form picker screenshot](../images/screenshot-form-picker.png)
+![Form picker screenshot](/images/screenshot-form-picker.png)
 
 ## Filling Out a Form
 
@@ -31,15 +31,7 @@ Press **Ctrl+S** when the form is complete to compose the message using the form
 
 The composed message will be addressed and queued for sending on the next sync (**Ctrl+C**).
 
-![Form fill screenshot](../images/screenshot-form-fill.png)
-
-## Updating Default Forms
-
-The default form library is maintained in the open-packet repository. To check for updated form definitions:
-
-{{< hint info >}}
-The "Update Default Forms" command in the command palette checks the `main` branch of the repository for new or updated form definitions and downloads them to your local installation.
-{{< /hint >}}
+![Form fill screenshot](/images/screenshot-form-fill.png)
 
 ## Form Library Location
 
