@@ -61,9 +61,8 @@ To move a message back to the inbox, navigate to **Archive**, select the message
 
 Select a message and press **Ctrl+X**. A confirmation dialog will appear. Confirm to delete the message.
 
-{{< hint warning >}}
-Deleting a message removes it from both the local database and the BBS (via a kill command sent on the next sync). This action cannot be undone.
-{{< /hint >}}
+> [!WARNING]
+> Deleting a message removes it from both the local database and the BBS (via a kill command sent on the next sync). This action cannot be undone.
 
 ## Folder Statistics
 

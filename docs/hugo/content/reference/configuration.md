@@ -42,6 +42,5 @@ open-packet --console-log ~/ham/frames.log
 OPEN_PACKET_DB_PATH=~/ham/messages.db open-packet
 ```
 
-{{< hint info >}}
-Operator identity (callsign, SSID), BBS node configuration, and interface settings are **not** configured here. They are managed through the Settings screen (**Ctrl+S**) and stored in the SQLite database.
-{{< /hint >}}
+> [!NOTE]
+> Operator identity (callsign, SSID), BBS node configuration, and interface settings are **not** configured here. They are managed through the Settings screen (**Ctrl+S**) and stored in the SQLite database.

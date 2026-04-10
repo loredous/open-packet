@@ -7,9 +7,8 @@ type: docs
 
 **open-packet** is an open-source amateur radio packet messaging client for Linux. It connects to a BBS node over AX.25 packet radio via a KISS TNC, syncing your personal messages and bulletins to a local SQLite database and presenting them through a terminal user interface (TUI).
 
-{{< hint info >}}
-**Early development:** v0.1 — expect breaking changes between releases.
-{{< /hint >}}
+> [!NOTE]
+> **Early development:** v0.1 — expect breaking changes between releases.
 
 ## Features
 
@@ -23,26 +22,22 @@ type: docs
 
 ## Quick Navigation
 
-{{< columns >}}
-### Getting Started
-New to open-packet? Start here.
+{{% columns %}}
+- ### Getting Started
+  New to open-packet? Start here.
 
-[Installation & Setup →]({{< relref "/user-guide/getting-started" >}})
+  [Installation & Setup →]({{< relref "/user-guide/getting-started" >}})
 
-<--->
+- ### User Guide
+  Learn how to use each feature.
 
-### User Guide
-Learn how to use each feature.
+  [User Guide →]({{< relref "/user-guide" >}})
 
-[User Guide →]({{< relref "/user-guide" >}})
+- ### Reference
+  Configuration and keyboard shortcuts.
 
-<--->
-
-### Reference
-Configuration and keyboard shortcuts.
-
-[Reference →]({{< relref "/reference" >}})
-{{< /columns >}}
+  [Reference →]({{< relref "/reference" >}})
+{{% /columns %}}
 
 ---
 

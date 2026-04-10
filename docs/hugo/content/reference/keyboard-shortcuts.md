@@ -49,6 +49,5 @@ All keyboard shortcuts available in the main open-packet TUI are listed below.
 |----------|--------|
 | **Escape** | Close settings |
 
-{{< hint info >}}
-All shortcuts use the form **Ctrl+&lt;key&gt;** except the console toggle (`` ` ``), archive (**A**), retrieval queue (**R**), and form message (**F**).
-{{< /hint >}}
+> [!NOTE]
+> All shortcuts use the form **Ctrl+\<key\>** except the console toggle (`` ` ``), archive (**A**), retrieval queue (**R**), and form message (**F**).

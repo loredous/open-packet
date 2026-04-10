@@ -27,6 +27,5 @@ The terminal passes all input and output through without interpretation — you 
 
 Press **Ctrl+D** to disconnect the current terminal session and return to the message view.
 
-{{< hint warning >}}
-Closing open-packet while a terminal session is active will disconnect the session. Ensure you have sent a proper disconnect command (`BYE`, `D`, etc.) before exiting.
-{{< /hint >}}
+> [!WARNING]
+> Closing open-packet while a terminal session is active will disconnect the session. Ensure you have sent a proper disconnect command (`BYE`, `D`, etc.) before exiting.

@@ -28,8 +28,7 @@ To download a file:
 
 On the next send/receive (**Ctrl+C**), open-packet will fetch the file content and save it to the configured export directory (see [Configuration Reference]({{< relref "/reference/configuration" >}})).
 
-{{< hint info >}}
-The export directory defaults to `~/.local/share/open-packet/export`. Files are saved using their original BBS filename.
-{{< /hint >}}
+> [!NOTE]
+> The export directory defaults to `~/.local/share/open-packet/export`. Files are saved using their original BBS filename.
 
 ![BBS files screenshot](../images/screenshot-files.png)

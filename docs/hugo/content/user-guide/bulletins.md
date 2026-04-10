@@ -27,9 +27,8 @@ To queue a bulletin for body retrieval:
 
 On the next send/receive (**Ctrl+C**), open-packet will fetch the full body.
 
-{{< hint info >}}
-Bulletins marked for retrieval are shown with a different indicator in the list. The body appears in the message body panel once retrieved.
-{{< /hint >}}
+> [!NOTE]
+> Bulletins marked for retrieval are shown with a different indicator in the list. The body appears in the message body panel once retrieved.
 
 ![Bulletin list screenshot](../images/screenshot-bulletins.png)
 
@@ -44,6 +43,5 @@ Fill in:
 
 Press **Ctrl+S** to queue the bulletin for posting on the next sync.
 
-{{< hint warning >}}
-Bulletins are broadcast to all stations on the BBS. Ensure your category and content are appropriate for the intended audience.
-{{< /hint >}}
+> [!WARNING]
+> Bulletins are broadcast to all stations on the BBS. Ensure your category and content are appropriate for the intended audience.
