@@ -1,0 +1,275 @@
+name: ICS 213RR Resource Request
+category: ICS USA Forms
+subject_template: "ICS 213RR - {{ IncName }} - Request #: {{ ReqNum }}"
+body_template: |
+  ICS 213RR
+
+  PRIORITY: [{{ Priority }}]
+
+  1. Incident or Event Name: {{ IncName }}
+  2. Date/Time: {{ ActivityDateTime1 }}
+  3. Resource Request #: {{ ReqNum }}
+
+  REQUESTOR
+
+  4. ORDER:
+
+  -----------------------------------------------
+  QTY: {{ Qty1 }} Kind: {{ Kind1 }} Type: {{ Type1 }}
+  Item Description: {{ Item1 }}
+  Cost: {{ Cost1 }}
+  Needed by Date/Time:
+  Requested: {{ ReqDateTime1 }}
+  Estimated: {{ EstDateTime1 }}
+  -----------------------------------------------
+  QTY: {{ Qty2 }} Kind: {{ Kind2 }} Type: {{ Type2 }}
+  Item Description: {{ Item2 }}
+  Cost: {{ Cost2 }}
+  Needed by Date/Time:
+  Requested: {{ ReqDateTime2 }}
+  Estimated: {{ EstDateTime2 }}
+  -----------------------------------------------
+  QTY: {{ Qty3 }} Kind: {{ Kind3 }} Type: {{ Type3 }}
+  Item Description: {{ Item3 }}
+  Cost: {{ Cost3 }}
+  Needed by Date/Time:
+  Requested: {{ ReqDateTime3 }}
+  Estimated: {{ EstDateTime3 }}
+  -------------------------------------------------
+
+  5. Delivery/Reporting Location:
+  {{ Delivery }}
+
+  6. Substitutes and/or Suggested Sources:
+  {{ Subs1 }}
+
+  7. Requested by Name/Position: {{ ReqName }}
+  8. PRIORITY: [{{ Priority }}]
+  9. Section Chief Name: {{ SecApp }}
+  ------------------------------------------------
+
+  LOGISTICS
+
+  10. Logistics Order #: {{ LogNum }}
+  11. Supplier Phone/Fax/Email: {{ SupInfo }}
+  12. Supplier Name: {{ SupName }}
+  12A. Point of Contact: {{ POC }}
+  13. Notes: {{ Notes }}
+  14. Auth Logistics Rep Name: {{ AuthSig }}
+  15. Date/Time: {{ ActivityDateTime2 }}
+  16. Order placed by Unit/Section: {{ OrderBy }}
+  ------------------------------------------------
+
+  FINANCE
+
+  17. Reply/Comments from Finance:
+  {{ FinComm }}
+
+  18. Finance Section Name: {{ FinRepName }}
+  19. Date/Time: {{ ActivityDateTime3 }}
+
+fields:
+  - name: IncName
+    label: "1. Incident or Event Name"
+    type: text
+    required: true
+    max_length: 50
+
+  - name: ActivityDateTime1
+    label: "2. Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+
+  - name: ReqNum
+    label: "3. Resource Request #"
+    type: text
+    required: true
+    max_length: 10
+
+  - name: Priority
+    label: "8. Priority"
+    type: text
+    choices:
+      - Routine
+      - Priority
+      - Immediate
+      - Critical
+    required: true
+
+  - name: Qty1
+    label: "Item 1 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: Kind1
+    label: "Item 1 - Kind"
+    type: text
+    max_length: 30
+
+  - name: Type1
+    label: "Item 1 - Type"
+    type: text
+    max_length: 30
+
+  - name: Item1
+    label: "Item 1 - Description"
+    type: text
+    max_length: 80
+
+  - name: Cost1
+    label: "Item 1 - Cost"
+    type: text
+    max_length: 20
+
+  - name: ReqDateTime1
+    label: "Item 1 - Requested Date/Time"
+    type: text
+    max_length: 20
+
+  - name: EstDateTime1
+    label: "Item 1 - Estimated Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Qty2
+    label: "Item 2 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: Kind2
+    label: "Item 2 - Kind"
+    type: text
+    max_length: 30
+
+  - name: Type2
+    label: "Item 2 - Type"
+    type: text
+    max_length: 30
+
+  - name: Item2
+    label: "Item 2 - Description"
+    type: text
+    max_length: 80
+
+  - name: Cost2
+    label: "Item 2 - Cost"
+    type: text
+    max_length: 20
+
+  - name: ReqDateTime2
+    label: "Item 2 - Requested Date/Time"
+    type: text
+    max_length: 20
+
+  - name: EstDateTime2
+    label: "Item 2 - Estimated Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Qty3
+    label: "Item 3 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: Kind3
+    label: "Item 3 - Kind"
+    type: text
+    max_length: 30
+
+  - name: Type3
+    label: "Item 3 - Type"
+    type: text
+    max_length: 30
+
+  - name: Item3
+    label: "Item 3 - Description"
+    type: text
+    max_length: 80
+
+  - name: Cost3
+    label: "Item 3 - Cost"
+    type: text
+    max_length: 20
+
+  - name: ReqDateTime3
+    label: "Item 3 - Requested Date/Time"
+    type: text
+    max_length: 20
+
+  - name: EstDateTime3
+    label: "Item 3 - Estimated Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Delivery
+    label: "5. Delivery/Reporting Location"
+    type: textarea
+
+  - name: Subs1
+    label: "6. Substitutes and/or Suggested Sources"
+    type: textarea
+
+  - name: ReqName
+    label: "7. Requested by Name/Position"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: SecApp
+    label: "9. Section Chief Name"
+    type: text
+    max_length: 40
+
+  - name: LogNum
+    label: "10. Logistics Order #"
+    type: text
+    max_length: 20
+
+  - name: SupInfo
+    label: "11. Supplier Phone/Fax/Email"
+    type: text
+    max_length: 60
+
+  - name: SupName
+    label: "12. Supplier Name"
+    type: text
+    max_length: 60
+
+  - name: POC
+    label: "12A. Point of Contact"
+    type: text
+    max_length: 60
+
+  - name: Notes
+    label: "13. Notes"
+    type: textarea
+
+  - name: AuthSig
+    label: "14. Auth Logistics Rep Name"
+    type: text
+    max_length: 40
+
+  - name: ActivityDateTime2
+    label: "15. Logistics Date/Time"
+    type: text
+    max_length: 20
+
+  - name: OrderBy
+    label: "16. Order placed by Unit/Section"
+    type: text
+    max_length: 60
+
+  - name: FinComm
+    label: "17. Reply/Comments from Finance"
+    type: textarea
+
+  - name: FinRepName
+    label: "18. Finance Section Name"
+    type: text
+    max_length: 40
+
+  - name: ActivityDateTime3
+    label: "19. Finance Date/Time"
+    type: text
+    max_length: 20

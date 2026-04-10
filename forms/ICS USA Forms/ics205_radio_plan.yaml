@@ -1,0 +1,331 @@
+name: ICS 205 Radio Plan
+category: ICS USA Forms
+subject_template: "ICS 205 - {{ Incident_Name }} - {{ ActivityDateTime2 }}"
+body_template: |
+  ICS 205 INCIDENT RADIO COMMUNICATIONS PLAN
+
+  1. Incident Name: {{ Incident_Name }}
+  2. Date & Time Prepared: {{ ActivityDateTime2 }}
+
+  3. Operational Period:
+  From: {{ DateFrom }} {{ TimeFrom }}
+  To:   {{ DateTo }} {{ TimeTo }}
+
+  4. BASIC RADIO CHANNEL USE:
+
+  ZONE GRP: {{ ZoneGrp1 }}  CH#: {{ Ch1 }}  FUNCTION: {{ Function1 }}
+  CH NAME: {{ ChannelName1 }}  ASSIGNMENT: {{ Assignment1 }}
+  RX FREQ: {{ RX1 }}  TX FREQ: {{ TX1 }}  MODE: {{ Mode1 }}
+  REMARKS: {{ Remarks1 }}
+
+  ZONE GRP: {{ ZoneGrp2 }}  CH#: {{ Ch2 }}  FUNCTION: {{ Function2 }}
+  CH NAME: {{ ChannelName2 }}  ASSIGNMENT: {{ Assignment2 }}
+  RX FREQ: {{ RX2 }}  TX FREQ: {{ TX2 }}  MODE: {{ Mode2 }}
+  REMARKS: {{ Remarks2 }}
+
+  ZONE GRP: {{ ZoneGrp3 }}  CH#: {{ Ch3 }}  FUNCTION: {{ Function3 }}
+  CH NAME: {{ ChannelName3 }}  ASSIGNMENT: {{ Assignment3 }}
+  RX FREQ: {{ RX3 }}  TX FREQ: {{ TX3 }}  MODE: {{ Mode3 }}
+  REMARKS: {{ Remarks3 }}
+
+  ZONE GRP: {{ ZoneGrp4 }}  CH#: {{ Ch4 }}  FUNCTION: {{ Function4 }}
+  CH NAME: {{ ChannelName4 }}  ASSIGNMENT: {{ Assignment4 }}
+  RX FREQ: {{ RX4 }}  TX FREQ: {{ TX4 }}  MODE: {{ Mode4 }}
+  REMARKS: {{ Remarks4 }}
+
+  ZONE GRP: {{ ZoneGrp5 }}  CH#: {{ Ch5 }}  FUNCTION: {{ Function5 }}
+  CH NAME: {{ ChannelName5 }}  ASSIGNMENT: {{ Assignment5 }}
+  RX FREQ: {{ RX5 }}  TX FREQ: {{ TX5 }}  MODE: {{ Mode5 }}
+  REMARKS: {{ Remarks5 }}
+
+  --------------------------------------
+  5. Special Instructions:
+  {{ SpecialInstructions }}
+
+  --------------------------------------
+  6. Approved by: {{ PreparedName }}  Date/Time: {{ ActivityDateTime1 }}
+  IAP Page: {{ IAP_Page }}
+
+fields:
+  - name: Incident_Name
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: ActivityDateTime2
+    label: "2. Date & Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateFrom
+    label: "3. Op Period - Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "3. Op Period - Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: DateTo
+    label: "3. Op Period - Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeTo
+    label: "3. Op Period - Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: ZoneGrp1
+    label: "Ch 1 - Zone/Group"
+    type: text
+    max_length: 10
+
+  - name: Ch1
+    label: "Ch 1 - Channel #"
+    type: text
+    max_length: 6
+
+  - name: Function1
+    label: "Ch 1 - Function"
+    type: text
+    max_length: 20
+
+  - name: ChannelName1
+    label: "Ch 1 - Channel Name"
+    type: text
+    max_length: 20
+
+  - name: Assignment1
+    label: "Ch 1 - Assignment"
+    type: text
+    max_length: 30
+
+  - name: RX1
+    label: "Ch 1 - RX Frequency"
+    type: text
+    max_length: 12
+
+  - name: TX1
+    label: "Ch 1 - TX Frequency"
+    type: text
+    max_length: 12
+
+  - name: Mode1
+    label: "Ch 1 - Mode"
+    type: text
+    max_length: 10
+
+  - name: Remarks1
+    label: "Ch 1 - Remarks"
+    type: text
+    max_length: 40
+
+  - name: ZoneGrp2
+    label: "Ch 2 - Zone/Group"
+    type: text
+    max_length: 10
+
+  - name: Ch2
+    label: "Ch 2 - Channel #"
+    type: text
+    max_length: 6
+
+  - name: Function2
+    label: "Ch 2 - Function"
+    type: text
+    max_length: 20
+
+  - name: ChannelName2
+    label: "Ch 2 - Channel Name"
+    type: text
+    max_length: 20
+
+  - name: Assignment2
+    label: "Ch 2 - Assignment"
+    type: text
+    max_length: 30
+
+  - name: RX2
+    label: "Ch 2 - RX Frequency"
+    type: text
+    max_length: 12
+
+  - name: TX2
+    label: "Ch 2 - TX Frequency"
+    type: text
+    max_length: 12
+
+  - name: Mode2
+    label: "Ch 2 - Mode"
+    type: text
+    max_length: 10
+
+  - name: Remarks2
+    label: "Ch 2 - Remarks"
+    type: text
+    max_length: 40
+
+  - name: ZoneGrp3
+    label: "Ch 3 - Zone/Group"
+    type: text
+    max_length: 10
+
+  - name: Ch3
+    label: "Ch 3 - Channel #"
+    type: text
+    max_length: 6
+
+  - name: Function3
+    label: "Ch 3 - Function"
+    type: text
+    max_length: 20
+
+  - name: ChannelName3
+    label: "Ch 3 - Channel Name"
+    type: text
+    max_length: 20
+
+  - name: Assignment3
+    label: "Ch 3 - Assignment"
+    type: text
+    max_length: 30
+
+  - name: RX3
+    label: "Ch 3 - RX Frequency"
+    type: text
+    max_length: 12
+
+  - name: TX3
+    label: "Ch 3 - TX Frequency"
+    type: text
+    max_length: 12
+
+  - name: Mode3
+    label: "Ch 3 - Mode"
+    type: text
+    max_length: 10
+
+  - name: Remarks3
+    label: "Ch 3 - Remarks"
+    type: text
+    max_length: 40
+
+  - name: ZoneGrp4
+    label: "Ch 4 - Zone/Group"
+    type: text
+    max_length: 10
+
+  - name: Ch4
+    label: "Ch 4 - Channel #"
+    type: text
+    max_length: 6
+
+  - name: Function4
+    label: "Ch 4 - Function"
+    type: text
+    max_length: 20
+
+  - name: ChannelName4
+    label: "Ch 4 - Channel Name"
+    type: text
+    max_length: 20
+
+  - name: Assignment4
+    label: "Ch 4 - Assignment"
+    type: text
+    max_length: 30
+
+  - name: RX4
+    label: "Ch 4 - RX Frequency"
+    type: text
+    max_length: 12
+
+  - name: TX4
+    label: "Ch 4 - TX Frequency"
+    type: text
+    max_length: 12
+
+  - name: Mode4
+    label: "Ch 4 - Mode"
+    type: text
+    max_length: 10
+
+  - name: Remarks4
+    label: "Ch 4 - Remarks"
+    type: text
+    max_length: 40
+
+  - name: ZoneGrp5
+    label: "Ch 5 - Zone/Group"
+    type: text
+    max_length: 10
+
+  - name: Ch5
+    label: "Ch 5 - Channel #"
+    type: text
+    max_length: 6
+
+  - name: Function5
+    label: "Ch 5 - Function"
+    type: text
+    max_length: 20
+
+  - name: ChannelName5
+    label: "Ch 5 - Channel Name"
+    type: text
+    max_length: 20
+
+  - name: Assignment5
+    label: "Ch 5 - Assignment"
+    type: text
+    max_length: 30
+
+  - name: RX5
+    label: "Ch 5 - RX Frequency"
+    type: text
+    max_length: 12
+
+  - name: TX5
+    label: "Ch 5 - TX Frequency"
+    type: text
+    max_length: 12
+
+  - name: Mode5
+    label: "Ch 5 - Mode"
+    type: text
+    max_length: 10
+
+  - name: Remarks5
+    label: "Ch 5 - Remarks"
+    type: text
+    max_length: 40
+
+  - name: SpecialInstructions
+    label: "5. Special Instructions"
+    type: textarea
+
+  - name: PreparedName
+    label: "6. Approved by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: ActivityDateTime1
+    label: "6. Date/Time Approved"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: IAP_Page
+    label: "6. IAP Page #"
+    type: text
+    max_length: 5

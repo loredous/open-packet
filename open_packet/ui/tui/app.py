@@ -66,6 +66,7 @@ class OpenPacketCommands(Provider):
             ("New Message", "Compose a new message", app.open_compose),
             ("New Bulletin", "Post a new bulletin", app.open_compose_bulletin),
             ("New Form Message", "Compose a form-based message", app.open_form_compose),
+            ("Update Default Forms", "Download latest form definitions from the repository", app.update_default_forms),
             ("Send/Receive", "Check mail and sync with BBS", app.check_mail),
             ("Toggle Console", "Show or hide the console panel", app._toggle_console_from_palette),
             ("Settings", "Open application settings", app.open_settings),
@@ -634,6 +635,34 @@ class OpenPacketApp(App):
             return
         subject, body = result
         self.open_compose(subject=subject, body=body)
+
+    def update_default_forms(self) -> None:
+        """Download new/updated form definitions from the repository."""
+        import threading
+        from open_packet.forms.updater import update_forms
+
+        self.notify("Checking for form updates…")
+        forms_dir = self.forms_dir
+
+        def _run() -> None:
+            result = update_forms(
+                forms_dir=forms_dir,
+                on_progress=None,
+            )
+            if result.errors:
+                msg = f"Forms update finished with errors: {', '.join(result.errors[:3])}"
+                self.call_from_thread(self.notify, msg, severity="error")
+            elif result.total_new_or_updated == 0:
+                self.call_from_thread(self.notify, "Forms are already up to date.")
+            else:
+                msg = (
+                    f"Forms updated: {result.total_new_or_updated} new/updated "
+                    f"({len(result.skipped)} unchanged)."
+                )
+                self.call_from_thread(self.notify, msg)
+
+        thread = threading.Thread(target=_run, daemon=True)
+        thread.start()
 
     def open_compose_bulletin(self) -> None:
         self.push_screen(ComposeBulletinScreen(), callback=self._on_compose_bulletin_result)

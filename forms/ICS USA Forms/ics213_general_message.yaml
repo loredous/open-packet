@@ -1,0 +1,75 @@
+name: ICS 213 General Message
+category: ICS USA Forms
+subject_template: "ICS-213: {{ Subjectline }} - {{ Mdate }} {{ Mtime }}"
+body_template: |
+  GENERAL MESSAGE (ICS 213)
+
+  1. Incident Name: {{ inc_name }}
+  2. To (Name and Position): {{ to_name }}
+  3. From (Name and Position): {{ fm_name }}
+  4. Subject: {{ Subjectline }}
+  5. Date: {{ Mdate }}
+  6. Time: {{ Mtime }}
+  7. Message:
+
+  {{ Message }}
+
+  8. Approved by: {{ Approved_Name }}
+  8a. Position/Title: {{ Approved_PosTitle }}
+
+fields:
+  - name: inc_name
+    label: "1. Incident Name"
+    description: "Name of the incident (optional)"
+    type: text
+    required: false
+    max_length: 30
+
+  - name: to_name
+    label: "2. To (Name and Position)"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: fm_name
+    label: "3. From (Name and Position)"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: Subjectline
+    label: "4. Subject"
+    type: text
+    required: true
+    max_length: 50
+
+  - name: Mdate
+    label: "5. Date"
+    description: "e.g. 2025-01-15"
+    type: text
+    required: true
+    max_length: 10
+
+  - name: Mtime
+    label: "6. Time"
+    description: "e.g. 1430"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: Message
+    label: "7. Message"
+    type: textarea
+    required: true
+
+  - name: Approved_Name
+    label: "8. Approved by (Name)"
+    type: text
+    required: true
+    max_length: 30
+
+  - name: Approved_PosTitle
+    label: "8a. Position/Title"
+    type: text
+    required: true
+    max_length: 30

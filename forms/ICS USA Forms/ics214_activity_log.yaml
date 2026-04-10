@@ -1,0 +1,261 @@
+name: ICS 214 Activity Log
+category: ICS USA Forms
+subject_template: "ICS 214 - {{ Incident_Name }} - {{ Name }} - {{ DateTimeFrom }} to {{ DateTimeTo }}"
+body_template: |
+  ICS 214 ACTIVITY LOG
+
+  1. Incident or Event Name: {{ Incident_Name }}
+  2. Operational Period:
+     From: {{ DateTimeFrom }}
+     To:   {{ DateTimeTo }}
+
+  3. Name: {{ Name }}
+  4. ICS Position: {{ ICS_Position }}
+  5. Home Agency & Unit: {{ Home_Agency }}
+
+  ----------------------------------------------
+  6. RESOURCES ASSIGNED:
+
+  NAME                 ICS POSITION         HOME AGENCY
+  {{ Name1 }}          {{ ICS_Position1 }}  {{ Home_Agency1 }}
+  {{ Name2 }}          {{ ICS_Position2 }}  {{ Home_Agency2 }}
+  {{ Name3 }}          {{ ICS_Position3 }}  {{ Home_Agency3 }}
+  {{ Name4 }}          {{ ICS_Position4 }}  {{ Home_Agency4 }}
+  {{ Name5 }}          {{ ICS_Position5 }}  {{ Home_Agency5 }}
+
+  ----------------------------------------------
+  7. ACTIVITY LOG OF NOTABLE EVENTS:
+
+  DATE & TIME              ACTIVITY
+  {{ ActivityDateTime1 }}  {{ Activities1 }}
+  {{ ActivityDateTime2 }}  {{ Activities2 }}
+  {{ ActivityDateTime3 }}  {{ Activities3 }}
+  {{ ActivityDateTime4 }}  {{ Activities4 }}
+  {{ ActivityDateTime5 }}  {{ Activities5 }}
+  {{ ActivityDateTime6 }}  {{ Activities6 }}
+  {{ ActivityDateTime7 }}  {{ Activities7 }}
+  {{ ActivityDateTime8 }}  {{ Activities8 }}
+  {{ ActivityDateTime9 }}  {{ Activities9 }}
+  {{ ActivityDateTime10 }} {{ Activities10 }}
+
+  ---------------------------------------------
+  Prepared by: {{ PreparedName }}
+
+fields:
+  - name: Incident_Name
+    label: "1. Incident or Event Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTimeFrom
+    label: "2. Operational Period - From"
+    description: "e.g. 2025-01-15 0800"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateTimeTo
+    label: "2. Operational Period - To"
+    description: "e.g. 2025-01-15 2000"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: Name
+    label: "3. Name"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: ICS_Position
+    label: "4. ICS Position"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: Home_Agency
+    label: "5. Home Agency & Unit"
+    type: text
+    max_length: 60
+
+  - name: Name1
+    label: "Resource 1 - Name"
+    type: text
+    max_length: 40
+
+  - name: ICS_Position1
+    label: "Resource 1 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: Home_Agency1
+    label: "Resource 1 - Home Agency"
+    type: text
+    max_length: 40
+
+  - name: Name2
+    label: "Resource 2 - Name"
+    type: text
+    max_length: 40
+
+  - name: ICS_Position2
+    label: "Resource 2 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: Home_Agency2
+    label: "Resource 2 - Home Agency"
+    type: text
+    max_length: 40
+
+  - name: Name3
+    label: "Resource 3 - Name"
+    type: text
+    max_length: 40
+
+  - name: ICS_Position3
+    label: "Resource 3 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: Home_Agency3
+    label: "Resource 3 - Home Agency"
+    type: text
+    max_length: 40
+
+  - name: Name4
+    label: "Resource 4 - Name"
+    type: text
+    max_length: 40
+
+  - name: ICS_Position4
+    label: "Resource 4 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: Home_Agency4
+    label: "Resource 4 - Home Agency"
+    type: text
+    max_length: 40
+
+  - name: Name5
+    label: "Resource 5 - Name"
+    type: text
+    max_length: 40
+
+  - name: ICS_Position5
+    label: "Resource 5 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: Home_Agency5
+    label: "Resource 5 - Home Agency"
+    type: text
+    max_length: 40
+
+  - name: ActivityDateTime1
+    label: "Activity 1 - Date & Time"
+    type: text
+    max_length: 20
+
+  - name: Activities1
+    label: "Activity 1 - Activity"
+    type: text
+    max_length: 80
+
+  - name: ActivityDateTime2
+    label: "Activity 2 - Date & Time"
+    type: text
+    max_length: 20
+
+  - name: Activities2
+    label: "Activity 2 - Activity"
+    type: text
+    max_length: 80
+
+  - name: ActivityDateTime3
+    label: "Activity 3 - Date & Time"
+    type: text
+    max_length: 20
+
+  - name: Activities3
+    label: "Activity 3 - Activity"
+    type: text
+    max_length: 80
+
+  - name: ActivityDateTime4
+    label: "Activity 4 - Date & Time"
+    type: text
+    max_length: 20
+
+  - name: Activities4
+    label: "Activity 4 - Activity"
+    type: text
+    max_length: 80
+
+  - name: ActivityDateTime5
+    label: "Activity 5 - Date & Time"
+    type: text
+    max_length: 20
+
+  - name: Activities5
+    label: "Activity 5 - Activity"
+    type: text
+    max_length: 80
+
+  - name: ActivityDateTime6
+    label: "Activity 6 - Date & Time"
+    type: text
+    max_length: 20
+
+  - name: Activities6
+    label: "Activity 6 - Activity"
+    type: text
+    max_length: 80
+
+  - name: ActivityDateTime7
+    label: "Activity 7 - Date & Time"
+    type: text
+    max_length: 20
+
+  - name: Activities7
+    label: "Activity 7 - Activity"
+    type: text
+    max_length: 80
+
+  - name: ActivityDateTime8
+    label: "Activity 8 - Date & Time"
+    type: text
+    max_length: 20
+
+  - name: Activities8
+    label: "Activity 8 - Activity"
+    type: text
+    max_length: 80
+
+  - name: ActivityDateTime9
+    label: "Activity 9 - Date & Time"
+    type: text
+    max_length: 20
+
+  - name: Activities9
+    label: "Activity 9 - Activity"
+    type: text
+    max_length: 80
+
+  - name: ActivityDateTime10
+    label: "Activity 10 - Date & Time"
+    type: text
+    max_length: 20
+
+  - name: Activities10
+    label: "Activity 10 - Activity"
+    type: text
+    max_length: 80
+
+  - name: PreparedName
+    label: "Prepared by"
+    type: text
+    required: true
+    max_length: 40
