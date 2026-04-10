@@ -26,10 +26,11 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Install uv
+        run: pip install uv
+
       - name: Build release distributions
-        run: |
-          uv version ${GITHUB_REF}
-          uv build
+        run: uv build
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
