@@ -65,3 +65,22 @@ Operator identity and node configuration are stored in SQLite and managed via TU
 ### AX.25 / Node (`ax25/`, `node/`)
 
 `AX25Connection` implements the AX.25 v2.2 data-link state machine (SABM/UA/DISC/I-frames, T1/T3 timers, Go-Back-N windowing). `BPQNode` sits on top and speaks the BPQ32 BBS text protocol. `connect_node()` sends `BBS\r`, waits for a prompt ending in `>`, and handles name prompts by replying with the operator callsign.
+
+## Documentation
+
+The user-facing documentation lives in `docs/hugo/` as a [Hugo](https://gohugo.io/) static site using the `hugo-book` theme (included as a Git submodule at `docs/hugo/themes/book`).
+
+**When to update docs:** Update the relevant page in `docs/hugo/content/` whenever you:
+- Add or change a user-visible feature → update `user-guide/`
+- Add, remove, or change a keyboard shortcut → update `reference/keyboard-shortcuts.md`
+- Change the config file format → update `reference/configuration.md`
+- Change the architecture (new commands, events, layers) → update `development/architecture.md`
+
+**To preview docs locally:**
+```bash
+cd docs/hugo
+git submodule update --init --recursive
+hugo server        # then open http://localhost:1313
+```
+
+The documentation is built and published to GitHub Pages automatically when a release is published. A combined PDF is also generated and attached to the release. See `.github/workflows/docs.yml`.

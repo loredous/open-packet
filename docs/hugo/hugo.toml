@@ -1,0 +1,30 @@
+baseURL = "https://loredous.github.io/open-packet/"
+languageCode = "en-us"
+title = "open-packet Documentation"
+theme = "book"
+enableGitInfo = true
+
+[params]
+  # Show table of contents globally
+  BookToC = true
+  # Show search bar
+  BookSearch = true
+  # Show git info
+  BookGitInfo = true
+  # Repo for edit links
+  BookRepo = "https://github.com/loredous/open-packet"
+  BookEditPath = "edit/main/docs/hugo/content"
+  # Date format
+  BookDateFormat = "2006-01-02"
+  # Show comments
+  BookComments = false
+  # Show breadcrumbs
+  BookBreadcrumbs = true
+
+[menu]
+  [[menu.before]]
+    name = "GitHub"
+    url = "https://github.com/loredous/open-packet"
+    weight = 10
+    [menu.before.params]
+      icon = "github"
