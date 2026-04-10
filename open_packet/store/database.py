@@ -105,6 +105,14 @@ class Database:
             except sqlite3.OperationalError:
                 pass  # column already exists
 
+        try:
+            self._conn.execute(
+                "ALTER TABLE messages ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"
+            )
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
     def close(self) -> None:
         if self._conn:
             self._conn.close()
