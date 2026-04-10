@@ -921,3 +921,164 @@ def test_save_bulletin_with_empty_string_body_preserves_body(store):
     # Must NOT appear in pending retrieval list
     pending = s.list_bulletins_pending_retrieval(node_id=node.id)
     assert all(b.id != saved.id for b in pending)
+
+
+# --- Archive feature tests ---
+
+def test_message_model_archived_defaults_false():
+    msg = Message(
+        operator_id=1, node_id=1, bbs_id="x",
+        from_call="W0A", to_call="W0B",
+        subject="s", body="b",
+        timestamp=datetime.now(timezone.utc),
+    )
+    assert msg.archived is False
+
+
+def test_database_schema_has_archived_column(db):
+    cols = [row[1] for row in db._conn.execute("PRAGMA table_info(messages)").fetchall()]
+    assert "archived" in cols
+
+
+def test_archive_message_hides_from_inbox(store):
+    s, op, node = store
+    msg = s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="ARC01",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Archive me", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    ))
+    s.archive_message(msg.id)
+    # Should not appear in normal list (archived=0 filter)
+    messages = s.list_messages(operator_id=op.id)
+    assert all(m.id != msg.id for m in messages)
+
+
+def test_list_archived_messages_shows_archived(store):
+    s, op, node = store
+    msg = s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="ARC02",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Archived", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    ))
+    s.archive_message(msg.id)
+    archived = s.list_archived_messages(operator_id=op.id)
+    assert any(m.id == msg.id for m in archived)
+    assert archived[0].archived is True
+
+
+def test_unarchive_message_returns_to_inbox(store):
+    s, op, node = store
+    msg = s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="ARC03",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Un-archive me", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    ))
+    s.archive_message(msg.id)
+    s.unarchive_message(msg.id)
+    # Should reappear in normal listing
+    messages = s.list_messages(operator_id=op.id)
+    assert any(m.id == msg.id for m in messages)
+    # Should not appear in archived listing
+    archived = s.list_archived_messages(operator_id=op.id)
+    assert all(m.id != msg.id for m in archived)
+
+
+def test_archived_message_excluded_from_list_messages_by_default(store):
+    s, op, node = store
+    msg = s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="ARC04",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Archived msg", body="Body",
+        timestamp=datetime.now(timezone.utc),
+    ))
+    s.archive_message(msg.id)
+    # Default list excludes archived
+    assert all(m.id != msg.id for m in s.list_messages(op.id))
+    # Explicit include_archived=True shows it
+    assert any(m.id == msg.id for m in s.list_messages(op.id, include_archived=True))
+
+
+def test_count_folder_stats_archive_count(store):
+    s, op, node = store
+    # Add one normal and one archived message
+    normal = s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="ARC05",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Normal", body="b", timestamp=datetime.now(timezone.utc),
+    ))
+    archived_msg = s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="ARC06",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Archived", body="b", timestamp=datetime.now(timezone.utc),
+    ))
+    s.archive_message(archived_msg.id)
+
+    stats = s.count_folder_stats(op.id)
+    assert stats["Archive"] == (1,)
+    # Inbox should only count non-archived messages
+    assert stats["Inbox"] == (1, 1)
+
+
+def test_count_folder_stats_archive_key_present_when_empty(store):
+    s, op, node = store
+    stats = s.count_folder_stats(op.id)
+    assert "Archive" in stats
+    assert stats["Archive"] == (0,)
+
+
+def test_archived_message_not_in_inbox_count(store):
+    s, op, node = store
+    msg = s.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="ARC07",
+        from_call="W0TEST", to_call="KD9ABC",
+        subject="Will be archived", body="b", timestamp=datetime.now(timezone.utc),
+    ))
+    stats_before = s.count_folder_stats(op.id)
+    assert stats_before["Inbox"] == (1, 1)
+
+    s.archive_message(msg.id)
+    stats_after = s.count_folder_stats(op.id)
+    assert stats_after["Inbox"] == (0, 0)
+    assert stats_after["Archive"] == (1,)
+
+
+def test_migration_adds_archived_column_to_existing_db():
+    """DB.initialize() on an existing messages table adds the archived column."""
+    import tempfile, os, sqlite3 as _sqlite3
+    f = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    f.close()
+    # Create old-style schema without archived column
+    conn = _sqlite3.connect(f.name)
+    conn.executescript("""
+        CREATE TABLE messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            operator_id INTEGER NOT NULL,
+            node_id INTEGER NOT NULL,
+            bbs_id TEXT NOT NULL,
+            from_call TEXT NOT NULL,
+            to_call TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            body TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            read INTEGER NOT NULL DEFAULT 0,
+            sent INTEGER NOT NULL DEFAULT 0,
+            deleted INTEGER NOT NULL DEFAULT 0,
+            queued INTEGER NOT NULL DEFAULT 0,
+            synced_at TEXT
+        );
+        CREATE TABLE operators (id INTEGER PRIMARY KEY, callsign TEXT, ssid INTEGER, label TEXT, is_default INTEGER, created_at TEXT);
+        CREATE TABLE nodes (id INTEGER PRIMARY KEY, label TEXT, callsign TEXT, ssid INTEGER, node_type TEXT, is_default INTEGER, created_at TEXT);
+        CREATE TABLE bulletins (id INTEGER PRIMARY KEY, operator_id INTEGER, node_id INTEGER, bbs_id TEXT, category TEXT, from_call TEXT, subject TEXT, body TEXT, timestamp TEXT, read INTEGER, synced_at TEXT);
+    """)
+    conn.close()
+
+    from open_packet.store.database import Database
+    db2 = Database(f.name)
+    db2.initialize()
+    cols = [row[1] for row in db2._conn.execute("PRAGMA table_info(messages)").fetchall()]
+    db2.close()
+    os.unlink(f.name)
+    assert "archived" in cols

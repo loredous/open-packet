@@ -36,6 +36,7 @@ class MainScreen(Screen):
         Binding("ctrl+t", "terminal_connect", "Terminal", priority=True),
         Binding("ctrl+x", "delete_message", "Delete", priority=True),
         Binding("ctrl+r", "reply_message", "Reply", priority=True),
+        Binding("a", "archive_message", "Archive", priority=True),
         Binding("r", "queue_bulletin_retrieval", "Queue Retrieval", priority=True),
         Binding("ctrl+s", "settings", "Settings", priority=True),
         Binding("`", "toggle_console", "Console", priority=True),
@@ -97,6 +98,9 @@ class MainScreen(Screen):
 
     def action_delete_message(self) -> None:
         self.app.delete_selected_message()
+
+    def action_archive_message(self) -> None:
+        self.app.archive_selected_message()
 
     def action_reply_message(self) -> None:
         self.app.reply_to_selected()
