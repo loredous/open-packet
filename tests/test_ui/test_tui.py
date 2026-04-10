@@ -673,7 +673,7 @@ async def test_poll_events_sets_has_unread_for_inactive_session(app_db_path, tmp
 
 @pytest.mark.asyncio
 async def test_folder_tree_width_minimum_when_no_content(app_db_path, tmp_path):
-    """Width stays at 18 (minimum) when all labels are short."""
+    """Width stays at 25 (minimum matching DEFAULT_CSS) when all labels are short."""
     from open_packet.store.database import Database
     from open_packet.store.models import Operator, Node, Interface
 
@@ -689,7 +689,7 @@ async def test_folder_tree_width_minimum_when_no_content(app_db_path, tmp_path):
     async with app.run_test() as pilot:
         tree = app.query_one("FolderTree")
         tree.update_counts({"Inbox": (0, 0), "Sent": (0,), "Outbox": (0,)})
-        assert tree.styles.width.value == 18
+        assert tree.styles.width.value == 25
 
 
 @pytest.mark.asyncio
@@ -708,8 +708,9 @@ async def test_folder_tree_width_expands_for_long_bulletin_category(app_db_path,
 
     app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
+        await pilot.pause()
         tree = app.query_one("FolderTree")
-        # "LONGNEWSCAT (5/2 new)" = 21 chars; depth-2 needs 21 + 8 = 29
+        # "LONGNEWSCAT (5/2 new)" = 21 chars; depth-2 needs 21 + 8 = 29; max(25, min(32, 29)) = 29
         tree.update_counts({
             "Inbox": (0, 0), "Sent": (0,), "Outbox": (0,),
             "Bulletins": {"LONGNEWSCAT": (5, 2)},
@@ -733,6 +734,7 @@ async def test_folder_tree_width_capped_at_32(app_db_path, tmp_path):
 
     app = OpenPacketApp(db_path=app_db_path)
     async with app.run_test() as pilot:
+        await pilot.pause()
         tree = app.query_one("FolderTree")
         # "AVERYLONGCATEGORYNAME (100/50 new)" = 34 chars; 34 + 8 = 42 → capped at 32
         tree.update_counts({

@@ -133,8 +133,8 @@ def test_node_base_has_post_bulletin():
 def test_post_bulletin_sends_correct_frames():
     """post_bulletin sends SB {category}, subject, body lines, then /EX."""
     conn = MockConn(responses=[
-        b"Subject: BPQ>",
-        b"Body: BPQ>",
+        b"Subject:\r\nBPQ>",
+        b"Body:\r\nBPQ>",
         b"BPQ>",
     ])
     node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
@@ -294,6 +294,20 @@ def test_connect_node_relay_connected_to_and_greeting_in_one_frame():
     node.connect_node()  # must not raise
     assert conn.sent[0] == b"C 1 W0HOP2\r"
     assert conn.sent[1] == b"BBS\r"
+
+
+def test_connect_node_relay_failure_raises_node_error():
+    """Relay reports 'Failure with X' — NodeError raised without waiting for timeout."""
+    conn = MockConn(responses=[b"W0IA-7} Failure with K0ARK-7\r"])
+    node = BPQNode(
+        connection=conn, node_callsign="W0BPQ", node_ssid=1,
+        my_callsign="KD9ABC", my_ssid=0,
+        hop_path=[NodeHop("W0IA-7", port=3), NodeHop("K0ARK-7", port=1)],
+        path_strategy="path_route",
+    )
+    with pytest.raises(NodeError, match="K0ARK-7"):
+        node.connect_node()
+    assert conn.sent[0] == b"C 1 K0ARK-7\r"
 
 
 def test_connect_node_digipeat_no_c_commands():

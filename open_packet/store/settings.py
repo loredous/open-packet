@@ -37,3 +37,11 @@ class Settings:
     @auto_discover.setter
     def auto_discover(self, value: bool) -> None:
         self._db.set_setting("auto_discover", "true" if value else "false")
+
+    @property
+    def console_log_level(self) -> str:
+        return self._db.get_setting("console_log_level")
+
+    @console_log_level.setter
+    def console_log_level(self, value: str) -> None:
+        self._db.set_setting("console_log_level", value)

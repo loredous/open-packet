@@ -245,6 +245,13 @@ class Store:
         self._conn.execute("UPDATE bulletins SET wants_retrieval=1 WHERE id=?", (id,))
         self._conn.commit()
 
+    def toggle_bulletin_wants_retrieval(self, id: int) -> None:
+        assert self._conn
+        self._conn.execute(
+            "UPDATE bulletins SET wants_retrieval = NOT wants_retrieval WHERE id=?", (id,)
+        )
+        self._conn.commit()
+
     def list_bulletins_pending_retrieval(self, node_id: int) -> list[Bulletin]:
         """Bulletins marked for retrieval whose body has not yet been fetched."""
         assert self._conn

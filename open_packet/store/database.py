@@ -12,6 +12,7 @@ _KNOWN_SETTING_KEYS = frozenset({
     "console_visible",
     "console_buffer",
     "auto_discover",
+    "console_log_level",
 })
 
 
@@ -87,6 +88,7 @@ class Database:
             ("console_visible", "false"),
             ("console_buffer", "500"),
             ("auto_discover", "true"),
+            ("console_log_level", "basic"),
         ]:
             self._conn.execute(
                 "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",

@@ -30,10 +30,15 @@ class MessageList(DataTable):
         self.clear()
         self._messages = messages
         for msg in messages:
-            read_marker = " " if msg.read else "●"
+            is_pending = isinstance(msg, Bulletin) and msg.body is None
+            if is_pending and msg.wants_retrieval:
+                read_marker = "⬇"
+            elif msg.read:
+                read_marker = " "
+            else:
+                read_marker = "●"
             sent_str = msg.timestamp.strftime("%m/%d %H:%M") if msg.timestamp else "—"
             retrieved_str = msg.synced_at.strftime("%m/%d %H:%M") if msg.synced_at else "—"
-            is_pending = isinstance(msg, Bulletin) and msg.body is None
             if is_pending:
                 self.add_row(
                     read_marker,

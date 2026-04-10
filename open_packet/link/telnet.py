@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import socket
 import time
+from collections.abc import Callable
 
 from open_packet.link.base import ConnectionBase, ConnectionError
 
@@ -22,11 +23,19 @@ def _strip_iac(data: bytes) -> bytes:
 
 
 class TelnetLink(ConnectionBase):
-    def __init__(self, host: str, port: int, username: str, password: str):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        username: str,
+        password: str,
+        on_frame: Callable[[str, str], None] | None = None,
+    ):
         self._host = host
         self._port = port
         self._username = username
         self._password = password
+        self._on_frame = on_frame
         self._sock: socket.socket | None = None
 
     def connect(self, callsign: str, ssid: int, via_path=None) -> None:
@@ -98,6 +107,8 @@ class TelnetLink(ConnectionBase):
         if self._sock is None:
             raise ConnectionError('Not connected')
         self._sock.sendall(data)
+        if self._on_frame:
+            self._on_frame(">", data.decode("ascii", errors="replace").rstrip())
 
     def receive_frame(self, timeout: float = 5.0) -> bytes | None:
         if self._sock is None:
@@ -105,6 +116,11 @@ class TelnetLink(ConnectionBase):
         self._sock.settimeout(timeout)
         try:
             data = self._sock.recv(4096)
-            return _strip_iac(data) if data else None
+            if not data:
+                return None
+            result = _strip_iac(data)
+            if self._on_frame:
+                self._on_frame("<", result.decode("ascii", errors="replace").rstrip())
+            return result
         except socket.timeout:
             return None

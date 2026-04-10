@@ -130,12 +130,20 @@ class OpenPacketApp(App):
 
         self._start_engine(db, operator, node_record)
 
-    def _build_connection(self, iface: Interface, op: Operator):
+    def _make_frame_logger(self):
+        from open_packet.engine.events import ConsoleEvent as _CE
+        evt_queue = self._evt_queue
+        def _log(direction: str, summary: str) -> None:
+            evt_queue.put(_CE(direction, summary, level="debug"))
+        return _log
+
+    def _build_connection(self, iface: Interface, op: Operator, on_frame=None):
         match iface.iface_type:
             case "telnet":
                 return TelnetLink(
                     host=iface.host, port=iface.port,
                     username=iface.username, password=iface.password,
+                    on_frame=on_frame,
                 )
             case "kiss_tcp":
                 transport = TCPTransport(host=iface.host, port=iface.port)
@@ -143,6 +151,7 @@ class OpenPacketApp(App):
                     kiss=KISSLink(transport=transport),
                     my_callsign=op.callsign,
                     my_ssid=op.ssid,
+                    on_frame=on_frame,
                 )
             case "kiss_serial":
                 transport = SerialTransport(device=iface.device, baud=iface.baud)
@@ -150,6 +159,7 @@ class OpenPacketApp(App):
                     kiss=KISSLink(transport=transport),
                     my_callsign=op.callsign,
                     my_ssid=op.ssid,
+                    on_frame=on_frame,
                 )
             case _:
                 return None
@@ -172,7 +182,7 @@ class OpenPacketApp(App):
             self._update_status_bar_identity()
             return
 
-        connection = self._build_connection(iface, operator)
+        connection = self._build_connection(iface, operator, on_frame=self._make_frame_logger())
         if connection is None:
             raise ValueError(f"Unknown interface type: {iface.iface_type!r}")
 
@@ -336,6 +346,9 @@ class OpenPacketApp(App):
             self._refresh_message_list()
             return
         if isinstance(event, ConsoleEvent):
+            if getattr(event, "level", "basic") == "debug":
+                if not self._settings or self._settings.console_log_level != "debug":
+                    return
             try:
                 self.query_one("ConsolePanel").log_frame(event.direction, event.text)
             except Exception:
@@ -512,7 +525,7 @@ class OpenPacketApp(App):
         msg = self._selected_message
         if not isinstance(msg, Bulletin) or msg.id is None or msg.body is not None or not self._store:
             return
-        self._store.mark_bulletin_wants_retrieval(msg.id)
+        self._store.toggle_bulletin_wants_retrieval(msg.id)
         self._refresh_message_list()
         self._refresh_folder_counts()
 
@@ -563,7 +576,7 @@ class OpenPacketApp(App):
         if op is None:
             return
 
-        connection = self._build_connection(iface, op)
+        connection = self._build_connection(iface, op, on_frame=self._make_frame_logger())
         if connection is None:
             return
 

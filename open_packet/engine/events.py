@@ -56,6 +56,7 @@ class MessageQueuedEvent:
 class ConsoleEvent:
     direction: str  # ">" sent, "<" received, "!" error/info
     text: str
+    level: str = "basic"
 
 
 @dataclass

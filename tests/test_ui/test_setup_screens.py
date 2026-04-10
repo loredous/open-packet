@@ -78,7 +78,7 @@ async def test_settings_node_button():
 @pytest.mark.asyncio
 async def test_settings_close_button():
     app = _ScreenTestApp(SettingsScreen)
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 40)) as pilot:
         await pilot.click("#close_btn")
         await pilot.pause()
     assert app.dismiss_result is None
@@ -87,7 +87,7 @@ async def test_settings_close_button():
 @pytest.mark.asyncio
 async def test_operator_setup_valid_input():
     app = _ScreenTestApp(OperatorSetupScreen)
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 40)) as pilot:
         await pilot.click("#callsign_field")
         await pilot.press(*"kd9abc")
         await pilot.click("#ssid_field")
@@ -108,7 +108,7 @@ async def test_operator_setup_valid_input():
 @pytest.mark.asyncio
 async def test_operator_setup_empty_ssid_defaults_to_zero():
     app = _ScreenTestApp(OperatorSetupScreen)
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 40)) as pilot:
         await pilot.click("#callsign_field")
         await pilot.press(*"kd9abc")
         # leave ssid_field blank
@@ -153,7 +153,7 @@ async def test_operator_setup_invalid_ssid_does_not_dismiss():
 @pytest.mark.asyncio
 async def test_operator_setup_cancel():
     app = _ScreenTestApp(OperatorSetupScreen)
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 40)) as pilot:
         await pilot.click("#cancel_btn")
         await pilot.pause()
     assert app.dismiss_result is None

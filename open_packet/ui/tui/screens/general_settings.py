@@ -1,7 +1,7 @@
 from __future__ import annotations
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
-from textual.widgets import Button, Label, Input, Switch
+from textual.widgets import Button, Label, Input, Select, Switch
 from textual.containers import Vertical, Horizontal
 from open_packet.store.settings import Settings
 
@@ -65,6 +65,14 @@ class GeneralSettingsScreen(ModalScreen):
                     classes="field-input",
                 )
             with Horizontal(classes="field-row"):
+                yield Label("Log Level", classes="field-label")
+                yield Select(
+                    options=[("Basic", "basic"), ("Debug", "debug")],
+                    value=self._settings.console_log_level,
+                    id="console_log_level_field",
+                    classes="field-input",
+                )
+            with Horizontal(classes="field-row"):
                 yield Label("Auto-Discover", classes="field-label")
                 yield Switch(
                     value=self._settings.auto_discover,
@@ -91,9 +99,11 @@ class GeneralSettingsScreen(ModalScreen):
             self.app.notify("Console buffer must be a number", severity="error")
             return
 
+        console_log_level = self.query_one("#console_log_level_field", Select).value
         old_auto_discover = self._settings.auto_discover
         self._settings.export_path = export_path
         self._settings.console_buffer = console_buffer
+        self._settings.console_log_level = console_log_level
         self._settings.auto_discover = auto_discover
 
         needs_restart = auto_discover != old_auto_discover

@@ -162,7 +162,13 @@ class BPQNode(NodeBase):
                     self._send_text(f"C {hop.port} {hop.callsign}")
                 else:
                     self._send_text(f"C {hop.callsign}")
-                response = self._recv_until_prompt()
+                response = self._recv_until_prompt(end_on_cr=True)
+                # Relay nodes send "Failure with X" (or similar) when the
+                # target is unreachable — detect and raise immediately.
+                if "Failure" in response or "No link" in response:
+                    raise NodeError(
+                        f"Relay could not reach {hop.callsign}: {response.strip()!r}"
+                    )
                 # Relay nodes send "Connected to X" before the remote node's
                 # greeting arrives.  Wait for the remote greeting if needed.
                 if not _has_prompt(response) and "Connected to" in response:

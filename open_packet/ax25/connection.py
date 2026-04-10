@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 import time
+from collections.abc import Callable
 from enum import Enum
 from typing import Optional
 
@@ -26,6 +27,12 @@ def _split_callsign(s: str) -> tuple[str, int]:
     return s.upper(), 0
 
 logger = logging.getLogger(__name__)
+
+
+def _frame_repr(data: bytes) -> str:
+    text = "".join(chr(b) if 32 <= b < 127 else "." for b in data)
+    return repr(text[:40])
+
 
 # AX.25 v2.2 defaults (§6.7)
 T1_DEFAULT = 3.0    # Acknowledgment timer (seconds)
@@ -62,10 +69,12 @@ class AX25Connection(ConnectionBase):
         t3: float = T3_DEFAULT,
         n2: int   = N2_DEFAULT,
         k: int    = K_DEFAULT,
+        on_frame: Callable[[str, str], None] | None = None,
     ) -> None:
         self._kiss         = kiss
         self._my_call      = my_callsign
         self._my_ssid      = my_ssid
+        self._on_frame     = on_frame
         self._dest_call: Optional[str] = None
         self._dest_ssid: int = 0
 
@@ -236,6 +245,12 @@ class AX25Connection(ConnectionBase):
         if not self._is_for_us(f):
             return None
 
+        if self._on_frame:
+            if f.frame_type == FrameType.I:
+                self._on_frame("<", f"I({f.ns},{f.nr}) {_frame_repr(f.info)}")
+            else:
+                self._on_frame("<", f"{f.frame_type.value} {f.source}→{f.destination}")
+
         if f.frame_type == FrameType.I:
             return self._handle_i_frame(f)
         elif f.frame_type == FrameType.RR:
@@ -373,6 +388,8 @@ class AX25Connection(ConnectionBase):
         raw = encode_sabm(self._dest_call, self._dest_ssid,
                           self._my_call, self._my_ssid, poll=poll, via=via)
         self._kiss.send_frame(raw)
+        if self._on_frame:
+            self._on_frame(">", f"SABM {self._my_call}→{self._dest_call} (poll)")
         logger.debug("→ SABM (P=%s, via=%s)", poll, via)
 
     def _send_ua(self, final: bool = True) -> None:
@@ -389,6 +406,8 @@ class AX25Connection(ConnectionBase):
         raw = encode_disc(self._dest_call, self._dest_ssid,
                           self._my_call, self._my_ssid, poll=poll)
         self._kiss.send_frame(raw)
+        if self._on_frame:
+            self._on_frame(">", f"DISC {self._my_call}→{self._dest_call}")
 
     def _send_i_frame(self, payload: bytes) -> None:
         ns = self.V_S
@@ -400,6 +419,8 @@ class AX25Connection(ConnectionBase):
         self._unacked[ns] = payload
         self.V_S = (self.V_S + 1) % 8
         self._kiss.send_frame(raw)
+        if self._on_frame:
+            self._on_frame(">", f"I({ns},{self.V_A}) {_frame_repr(payload)}")
         self._ack_pending = False
         if not self._t1.running:
             self._t1.start(self._t1_timeout)
@@ -412,18 +433,24 @@ class AX25Connection(ConnectionBase):
                         self._my_call, self._my_ssid,
                         nr=nr, poll=poll, command=command)
         self._kiss.send_frame(raw)
+        if self._on_frame:
+            self._on_frame(">", f"RR NR={nr}")
 
     def _send_rnr(self, final: bool = False) -> None:
         raw = encode_rnr(self._dest_call, self._dest_ssid,
                          self._my_call, self._my_ssid,
                          nr=self.V_R, poll=final, command=not final)
         self._kiss.send_frame(raw)
+        if self._on_frame:
+            self._on_frame(">", f"RNR NR={self.V_R}")
 
     def _send_rej(self, poll: bool = False) -> None:
         raw = encode_rej(self._dest_call, self._dest_ssid,
                          self._my_call, self._my_ssid,
                          nr=self.V_R, poll=poll)
         self._kiss.send_frame(raw)
+        if self._on_frame:
+            self._on_frame(">", f"REJ NR={self.V_R}")
 
     # ------------------------------------------------------------------ #
     # Internal: helpers                                                    #

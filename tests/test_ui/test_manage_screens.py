@@ -153,7 +153,7 @@ async def test_operator_setup_prepopulates_fields(db_with_operators):
             self.push_screen(OperatorSetupScreen(op), callback=capture)
 
     app = _EditApp()
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 40)) as pilot:
         await pilot.pause()
         callsign_val = app.screen.query_one("#callsign_field").value
         assert callsign_val == op.callsign
@@ -177,7 +177,7 @@ async def test_operator_setup_edit_preserves_id(db_with_operators):
             self.push_screen(OperatorSetupScreen(op), callback=capture)
 
     app = _EditApp()
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 40)) as pilot:
         await pilot.pause()
         # Save without changing — id should be preserved in the returned object
         await pilot.click("#save_btn")

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import queue
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -22,6 +22,28 @@ from open_packet.store.models import Operator, Node, Message, Bulletin, BBSFile
 from open_packet.store.store import Store
 
 logger = logging.getLogger(__name__)
+
+_BBS_DATE_FORMATS_WITH_YEAR = ["%d-%b-%y", "%m/%d/%y", "%d/%m/%y"]
+_BBS_DATE_FORMATS_NO_YEAR   = ["%d-%b", "%m/%d"]
+
+
+def _parse_bbs_date(date_str: str, now: datetime) -> datetime:
+    """Parse a BPQ32 date string into a UTC datetime, falling back to *now*."""
+    for fmt in _BBS_DATE_FORMATS_WITH_YEAR:
+        try:
+            return datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            pass
+    for fmt in _BBS_DATE_FORMATS_NO_YEAR:
+        try:
+            parsed = datetime.strptime(date_str, fmt)
+            candidate = parsed.replace(year=now.year, tzinfo=timezone.utc)
+            if candidate > now + timedelta(days=1):
+                candidate = candidate.replace(year=now.year - 1)
+            return candidate
+        except ValueError:
+            pass
+    return now
 
 
 class Engine:
@@ -87,6 +109,7 @@ class Engine:
                 self._handle(cmd)
             except Exception as e:
                 logger.exception("Engine error handling %s", type(cmd).__name__)
+                self._emit(ConsoleEvent("!", str(e), level="basic"))
                 self._emit(ErrorEvent(message=str(e)))
                 self._set_status(ConnectionStatus.ERROR, str(e))
 
@@ -158,11 +181,13 @@ class Engine:
         # Phase 1: Retrieve new messages
         retrieved = 0
         self._set_status(ConnectionStatus.SYNCING, "Listing messages…")
+        self._emit(ConsoleEvent("!", "Listing messages…", level="basic"))
         headers = node.list_messages()
         self._emit(ConsoleEvent(">", f"Listing messages ({len(headers)} found)"))
         total_msgs = len(headers)
         for i, header in enumerate(headers, 1):
             self._set_status(ConnectionStatus.SYNCING, f"Reading message {i} of {total_msgs}")
+            self._emit(ConsoleEvent("!", f"Reading message {i} of {total_msgs}", level="basic"))
             msg = node.read_message(header.bbs_id)
             now = datetime.now(timezone.utc)
             saved = self._store.save_message(Message(
@@ -173,7 +198,7 @@ class Engine:
                 to_call=header.to_call,
                 subject=header.subject,
                 body=msg.body,
-                timestamp=now,
+                timestamp=_parse_bbs_date(header.date_str, now),
             ))
             if saved:
                 retrieved += 1
@@ -189,6 +214,7 @@ class Engine:
         outbound = self._store.list_outbox_messages(self._operator.id)
         for i, m in enumerate(outbound, 1):
             self._set_status(ConnectionStatus.SYNCING, f"Sending message {i} of {len(outbound)}")
+            self._emit(ConsoleEvent("!", f"Sending message {i} of {len(outbound)}", level="basic"))
             self._emit(ConsoleEvent(">", f"Sending to {m.to_call}: {m.subject}"))
             node.send_message(m.to_call, m.subject, m.body)
             self._store.mark_message_sent(m.id)
@@ -198,14 +224,17 @@ class Engine:
         pending_bulletins = self._store.list_outbox_bulletins(self._operator.id)
         for i, bul in enumerate(pending_bulletins, 1):
             self._set_status(ConnectionStatus.SYNCING, f"Posting bulletin {i} of {len(pending_bulletins)}")
+            self._emit(ConsoleEvent("!", f"Posting bulletin {i} of {len(pending_bulletins)}", level="basic"))
             self._emit(ConsoleEvent(">", f"Posting bulletin to {bul.category}: {bul.subject}"))
             node.post_bulletin(bul.category, bul.subject, bul.body)
             self._store.mark_bulletin_sent(bul.id)
 
         # Phase 4: Save bulletin headers (body not retrieved yet)
         self._set_status(ConnectionStatus.SYNCING, "Listing bulletins…")
+        self._emit(ConsoleEvent("!", "Listing bulletins…", level="basic"))
         bulletin_headers = node.list_bulletins()
         self._emit(ConsoleEvent(">", f"Listing bulletins ({len(bulletin_headers)} available)"))
+        bulletin_now = datetime.now(timezone.utc)
         for header in bulletin_headers:
             self._store.save_bulletin(Bulletin(
                 operator_id=self._operator.id,
@@ -214,7 +243,7 @@ class Engine:
                 category=header.to_call,
                 from_call=header.from_call,
                 subject=header.subject,
-                timestamp=datetime.now(timezone.utc),
+                timestamp=_parse_bbs_date(header.date_str, bulletin_now),
             ))
 
         # Phase 5: Retrieve bodies for bulletins queued by the user
@@ -223,6 +252,7 @@ class Engine:
         total_pending = len(pending)
         for i, bul in enumerate(pending, 1):
             self._set_status(ConnectionStatus.SYNCING, f"Retrieving bulletin {i} of {total_pending}")
+            self._emit(ConsoleEvent("!", f"Retrieving bulletin {i} of {total_pending}", level="basic"))
             try:
                 raw = node.read_bulletin(bul.bbs_id)
             except Exception:
@@ -235,6 +265,7 @@ class Engine:
 
         # Phase 6: Save file headers (content not retrieved yet)
         self._set_status(ConnectionStatus.SYNCING, "Listing files…")
+        self._emit(ConsoleEvent("!", "Listing files…", level="basic"))
         try:
             file_headers = node.list_files()
             self._emit(ConsoleEvent(">", f"Listing files ({len(file_headers)} available)"))
@@ -259,6 +290,7 @@ class Engine:
         total_files = len(pending_files)
         for i, f in enumerate(pending_files, 1):
             self._set_status(ConnectionStatus.SYNCING, f"Retrieving file {i} of {total_files}")
+            self._emit(ConsoleEvent("!", f"Retrieving file {i} of {total_files}", level="basic"))
             try:
                 raw = node.read_file(f.filename)
             except Exception:
@@ -355,6 +387,10 @@ class Engine:
 
             self._last_sync = datetime.now(timezone.utc)
             self._messages_last_sync = retrieved
+            parts = [f"{retrieved} new", f"{bulletins_retrieved} bulletins", f"{sent} sent"]
+            if files_retrieved:
+                parts.append(f"{files_retrieved} files")
+            self._emit(ConsoleEvent("<", f"Sync complete: {', '.join(parts)}", level="basic"))
             self._emit(SyncCompleteEvent(
                 messages_retrieved=retrieved,
                 messages_sent=sent,

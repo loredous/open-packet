@@ -24,7 +24,7 @@ def _session_label(session) -> Text:
 class FolderTree(Tree):
     DEFAULT_CSS = """
     FolderTree {
-        width: 18;
+        width: 25;
         border-right: solid $primary;
     }
     """
@@ -141,8 +141,11 @@ class FolderTree(Tree):
 
         self._recompute_width()
 
+    def on_resize(self) -> None:
+        self._recompute_width()
+
     def _recompute_width(self) -> None:
-        """Set width to fit the longest visible label, clamped to [18, 32].
+        """Set width to fit the longest visible label, clamped to [25, 32].
 
         Depth-1 nodes (Inbox, Outbox, Sent) get +4 for tree indent.
         Depth-2 nodes (bulletin categories, sessions) get +8.
@@ -169,4 +172,4 @@ class FolderTree(Tree):
         max1 = max((len(s) for s in depth1), default=0)
         max2 = max((len(s) for s in depth2), default=0)
         needed = max(max1 + 4, max2 + 8)
-        self.styles.width = max(18, min(32, needed))
+        self.styles.width = max(25, min(32, needed))
