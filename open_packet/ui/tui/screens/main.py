@@ -29,19 +29,17 @@ class MainScreen(Screen):
     """
 
     BINDINGS = [
-        Binding("ctrl+c", "check_mail", "Send/Receive", priority=True),
-        Binding("ctrl+n", "new_message", "New", priority=True),
-        Binding("ctrl+b", "new_bulletin", "Bulletin", priority=True),
-        Binding("f", "form_message", "Form Msg", priority=True),
-        Binding("ctrl+t", "terminal_connect", "Terminal", priority=True),
-        Binding("ctrl+x", "delete_message", "Delete", priority=True),
-        Binding("ctrl+r", "reply_message", "Reply", priority=True),
-        Binding("a", "archive_message", "Archive", priority=True),
-        Binding("r", "queue_bulletin_retrieval", "Queue Retrieval", priority=True),
-        Binding("ctrl+s", "settings", "Settings", priority=True),
+        Binding("ctrl+a", "archive_message", "Archive", priority=True),
         Binding("`", "toggle_console", "Console", priority=True),
+        Binding("ctrl+x", "delete_message", "Delete", priority=True),
         Binding("ctrl+d", "disconnect_session", "Disconnect", priority=True),
+        Binding("ctrl+n", "new_item", "New...", priority=True),
+        Binding("ctrl+u", "queue_bulletin_retrieval", "Queue Retrieval", priority=True),
         Binding("ctrl+q", "quit", "Quit", priority=True),
+        Binding("ctrl+r", "reply_message", "Reply", priority=True),
+        Binding("ctrl+c", "check_mail", "Send/Receive", priority=True),
+        Binding("ctrl+s", "settings", "Settings", priority=True),
+        Binding("ctrl+t", "terminal_connect", "Terminal", priority=True),
     ]
 
     def compose(self) -> ComposeResult:
@@ -87,11 +85,8 @@ class MainScreen(Screen):
     def action_check_mail(self) -> None:
         self.app.check_mail()
 
-    def action_new_message(self) -> None:
-        self.app.open_compose()
-
-    def action_new_bulletin(self) -> None:
-        self.app.open_compose_bulletin()
+    def action_new_item(self) -> None:
+        self.app.open_new_item()
 
     def action_terminal_connect(self) -> None:
         self.app.open_terminal_connect()
@@ -117,5 +112,3 @@ class MainScreen(Screen):
     def action_quit(self) -> None:
         self.app.exit()
 
-    def action_form_message(self) -> None:
-        self.app.open_form_compose()

@@ -786,3 +786,153 @@ async def test_selecting_message_clears_unread_indicator(app_db_path, tmp_path):
 
         # The indicator must now be cleared
         assert msg_list.get_cell_at(Coordinate(0, 0)) == " "
+
+
+# ─── Issue #5: Hotkey cleanup tests ────────────────────────────────────────────
+
+@pytest.fixture
+def _populated_db(tmp_path):
+    """Create a pre-populated DB with operator + node so no setup screens appear."""
+    from open_packet.store.database import Database
+    from open_packet.store.models import Operator, Node, Interface
+
+    db = Database(str(tmp_path / "hotkey_test.db"))
+    db.initialize()
+    db.insert_operator(Operator(callsign="KD9ABC", ssid=1, label="home", is_default=True))
+    iface = db.insert_interface(Interface(
+        label="Test", iface_type="kiss_tcp", host="localhost", port=8910
+    ))
+    db.insert_node(Node(label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+                        is_default=True, interface_id=iface.id))
+    db.close()
+    return str(tmp_path / "hotkey_test.db")
+
+
+@pytest.mark.asyncio
+async def test_ctrl_n_opens_new_item_modal(_populated_db):
+    """ctrl+n should open the NewItemScreen modal."""
+    from open_packet.ui.tui.screens.new_item import NewItemScreen
+
+    app = OpenPacketApp(db_path=_populated_db)
+    async with app.run_test() as pilot:
+        await pilot.press("ctrl+n")
+        await pilot.pause()
+        assert isinstance(app.screen, NewItemScreen)
+
+
+@pytest.mark.asyncio
+async def test_new_item_modal_escape_dismisses(_populated_db):
+    """Pressing Escape on the NewItemScreen should dismiss the modal."""
+    from open_packet.ui.tui.screens.new_item import NewItemScreen
+    from open_packet.ui.tui.screens.main import MainScreen
+
+    app = OpenPacketApp(db_path=_populated_db)
+    async with app.run_test() as pilot:
+        await pilot.press("ctrl+n")
+        await pilot.pause()
+        assert isinstance(app.screen, NewItemScreen)
+        await pilot.press("escape")
+        await pilot.pause()
+        assert isinstance(app.screen, MainScreen)
+
+
+@pytest.mark.asyncio
+async def test_new_item_modal_m_opens_compose(_populated_db):
+    """Pressing 'm' in NewItemScreen should open ComposeScreen."""
+    from open_packet.ui.tui.screens.new_item import NewItemScreen
+    from open_packet.ui.tui.screens.compose import ComposeScreen
+
+    app = OpenPacketApp(db_path=_populated_db)
+    async with app.run_test() as pilot:
+        await pilot.press("ctrl+n")
+        await pilot.pause()
+        assert isinstance(app.screen, NewItemScreen)
+        await pilot.press("m")
+        await pilot.pause()
+        assert isinstance(app.screen, ComposeScreen)
+
+
+@pytest.mark.asyncio
+async def test_new_item_modal_b_opens_bulletin(_populated_db):
+    """Pressing 'b' in NewItemScreen should open ComposeBulletinScreen."""
+    from open_packet.ui.tui.screens.new_item import NewItemScreen
+    from open_packet.ui.tui.screens.compose_bulletin import ComposeBulletinScreen
+
+    app = OpenPacketApp(db_path=_populated_db)
+    async with app.run_test() as pilot:
+        await pilot.press("ctrl+n")
+        await pilot.pause()
+        assert isinstance(app.screen, NewItemScreen)
+        await pilot.press("b")
+        await pilot.pause()
+        assert isinstance(app.screen, ComposeBulletinScreen)
+
+
+@pytest.mark.asyncio
+async def test_ctrl_a_archives_message(_populated_db, tmp_path):
+    """ctrl+a should trigger archive action."""
+    from open_packet.store.database import Database
+    from open_packet.store.store import Store
+    from open_packet.store.models import Operator, Message
+    from datetime import datetime, timezone
+
+    db = Database(_populated_db)
+    db.initialize()
+    op = db.get_default_operator()
+    node = db.get_default_node()
+    store = Store(db)
+    msg = store.save_message(Message(
+        operator_id=op.id, node_id=node.id, bbs_id="T001",
+        from_call="W0TEST", to_call="KD9ABC", subject="Archive Test",
+        body="Body", timestamp=datetime.now(timezone.utc),
+    ))
+    db.close()
+
+    app = OpenPacketApp(db_path=_populated_db)
+    app._store = Store(Database(_populated_db))
+    app._active_operator = op
+    app._selected_message = msg
+    app._active_folder = "Inbox"
+
+    async with app.run_test() as pilot:
+        await pilot.press("ctrl+a")
+        await pilot.pause()
+        archived = app._store.list_archived_messages(operator_id=op.id)
+        assert any(m.id == msg.id for m in archived)
+
+
+def test_main_screen_no_bare_letter_bindings():
+    """No binding in MainScreen.BINDINGS should be a bare letter (non-ctrl) except backtick."""
+    from open_packet.ui.tui.screens.main import MainScreen
+    for binding in MainScreen.BINDINGS:
+        key = binding.key
+        # Backtick is the allowed exception for console
+        if key == "`":
+            continue
+        assert key.startswith("ctrl+") or key.startswith("f"), (
+            f"Binding '{key}' ({binding.description!r}) is not Ctrl+key — violates hotkey policy"
+        )
+
+
+def test_main_screen_bindings_sorted_alphabetically():
+    """BINDINGS in MainScreen should be sorted alphabetically by description."""
+    from open_packet.ui.tui.screens.main import MainScreen
+    descriptions = [b.description for b in MainScreen.BINDINGS]
+    assert descriptions == sorted(descriptions), (
+        f"BINDINGS are not sorted alphabetically by description.\n"
+        f"Current order: {descriptions}\n"
+        f"Expected:      {sorted(descriptions)}"
+    )
+
+
+def test_app_has_commands_provider():
+    """OpenPacketApp should have a COMMANDS set containing OpenPacketCommands."""
+    from open_packet.ui.tui.app import OpenPacketApp, OpenPacketCommands
+    assert OpenPacketCommands in OpenPacketApp.COMMANDS
+
+
+def test_new_item_screen_exists():
+    """NewItemScreen should be importable and be a ModalScreen."""
+    from textual.screen import ModalScreen
+    from open_packet.ui.tui.screens.new_item import NewItemScreen
+    assert issubclass(NewItemScreen, ModalScreen)
