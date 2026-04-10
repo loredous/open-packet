@@ -4,9 +4,10 @@ import logging
 import os
 import queue
 from pathlib import Path
-from typing import Optional
+from typing import Any, AsyncGenerator, Optional
 
 from textual.app import App
+from textual.command import Hit, Hits, Provider
 from textual.css.query import NoMatches
 
 from open_packet.engine.commands import (
@@ -54,9 +55,36 @@ def _setup_logging(log_path: str) -> None:
     )
 
 
+class OpenPacketCommands(Provider):
+    """Command palette provider for open-packet application commands."""
+
+    async def search(self, query: str) -> Hits:
+        app: OpenPacketApp = self.app  # type: ignore[assignment]
+        matcher = self.matcher(query)
+
+        commands: list[tuple[str, str, Any]] = [
+            ("New Message", "Compose a new message", app.open_compose),
+            ("New Bulletin", "Post a new bulletin", app.open_compose_bulletin),
+            ("New Form Message", "Compose a form-based message", app.open_form_compose),
+            ("Send/Receive", "Check mail and sync with BBS", app.check_mail),
+            ("Toggle Console", "Show or hide the console panel", app._toggle_console_from_palette),
+            ("Settings", "Open application settings", app.open_settings),
+            ("Edit Operators", "Manage operator profiles", app._palette_edit_operators),
+            ("Edit Nodes", "Manage node configurations", app._palette_edit_nodes),
+            ("Edit Interfaces", "Manage radio interfaces", app._palette_edit_interfaces),
+            ("Terminal Connect", "Open a terminal connection", app.open_terminal_connect),
+        ]
+
+        for display, help_text, callback in commands:
+            score = matcher.match(display)
+            if score > 0:
+                yield Hit(score, matcher.highlight(display), callback, help=help_text)
+
+
 class OpenPacketApp(App):
     SCREENS = {"compose": ComposeScreen}
     TITLE = "open-packet"
+    COMMANDS = {OpenPacketCommands}
 
     def __init__(self, db_path: str, console_log: Optional[str] = None,
                  forms_dir: Optional[str] = None, **kwargs):
@@ -543,6 +571,45 @@ class OpenPacketApp(App):
         self._store.toggle_bulletin_wants_retrieval(msg.id)
         self._refresh_message_list()
         self._refresh_folder_counts()
+
+    def open_new_item(self) -> None:
+        """Open the 'New Item' modal to choose what to create."""
+        from open_packet.ui.tui.screens.new_item import NewItemScreen
+        self.push_screen(NewItemScreen(), callback=self._on_new_item_result)
+
+    def _on_new_item_result(self, result: str | None) -> None:
+        if result == "message":
+            self.open_compose()
+        elif result == "bulletin":
+            self.open_compose_bulletin()
+        elif result == "form":
+            self.open_form_compose()
+
+    def _toggle_console_from_palette(self) -> None:
+        """Toggle console panel visibility (used by command palette)."""
+        try:
+            panel = self.query_one("ConsolePanel")
+            panel.display = not panel.display
+        except NoMatches:
+            pass
+
+    def _palette_edit_operators(self) -> None:
+        """Open operator management from the command palette."""
+        if self._db:
+            from open_packet.ui.tui.screens.manage_operators import OperatorManageScreen
+            self.push_screen(OperatorManageScreen(self._db), callback=self._on_manage_result)
+
+    def _palette_edit_nodes(self) -> None:
+        """Open node management from the command palette."""
+        if self._db:
+            from open_packet.ui.tui.screens.manage_nodes import NodeManageScreen
+            self.push_screen(NodeManageScreen(self._db), callback=self._on_manage_result)
+
+    def _palette_edit_interfaces(self) -> None:
+        """Open interface management from the command palette."""
+        if self._db:
+            from open_packet.ui.tui.screens.manage_interfaces import InterfaceManageScreen
+            self.push_screen(InterfaceManageScreen(self._db), callback=self._on_manage_result)
 
     def open_compose(self, to_call: str = "", subject: str = "", body: str = "") -> None:
         self.push_screen(
