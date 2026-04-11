@@ -88,3 +88,23 @@ def test_scheduled_sr_persisted_across_instances(db):
     s2 = Settings(db)
     assert s2.scheduled_sr_enabled is True
     assert s2.scheduled_sr_interval == 10
+
+
+def test_notifications_enabled_default(db):
+    s = Settings(db)
+    assert s.notifications_enabled is True
+
+
+def test_notifications_enabled_set(db):
+    s = Settings(db)
+    s.notifications_enabled = False
+    assert s.notifications_enabled is False
+    s.notifications_enabled = True
+    assert s.notifications_enabled is True
+
+
+def test_notifications_enabled_persisted_across_instances(db):
+    s1 = Settings(db)
+    s1.notifications_enabled = False
+    s2 = Settings(db)
+    assert s2.notifications_enabled is False

@@ -91,6 +91,12 @@ class GeneralSettingsScreen(ModalScreen):
                     id="scheduled_sr_interval_field",
                     classes="field-input",
                 )
+            with Horizontal(classes="field-row"):
+                yield Label("Notifications", classes="field-label")
+                yield Switch(
+                    value=self._settings.notifications_enabled,
+                    id="notifications_enabled_field",
+                )
             with Horizontal(classes="footer-row"):
                 yield Button("Save", id="save_btn", variant="primary")
                 yield Button("Cancel", id="cancel_btn")
@@ -107,6 +113,7 @@ class GeneralSettingsScreen(ModalScreen):
         auto_discover = self.query_one("#auto_discover_field", Switch).value
         scheduled_sr_enabled = self.query_one("#scheduled_sr_enabled_field", Switch).value
         scheduled_sr_interval_raw = self.query_one("#scheduled_sr_interval_field", Input).value.strip()
+        notifications_enabled = self.query_one("#notifications_enabled_field", Switch).value
 
         try:
             console_buffer = int(console_buffer_raw)
@@ -132,6 +139,7 @@ class GeneralSettingsScreen(ModalScreen):
         self._settings.auto_discover = auto_discover
         self._settings.scheduled_sr_enabled = scheduled_sr_enabled
         self._settings.scheduled_sr_interval = scheduled_sr_interval
+        self._settings.notifications_enabled = notifications_enabled
 
         needs_restart = auto_discover != old_auto_discover
         self.dismiss(needs_restart)

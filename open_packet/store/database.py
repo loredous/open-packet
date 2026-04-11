@@ -15,6 +15,7 @@ _KNOWN_SETTING_KEYS = frozenset({
     "console_log_level",
     "scheduled_sr_enabled",
     "scheduled_sr_interval",
+    "notifications_enabled",
 })
 
 
@@ -93,6 +94,7 @@ class Database:
             ("console_log_level", "basic"),
             ("scheduled_sr_enabled", "false"),
             ("scheduled_sr_interval", "30"),
+            ("notifications_enabled", "true"),
         ]:
             self._conn.execute(
                 "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",

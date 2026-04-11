@@ -411,15 +411,22 @@ class OpenPacketApp(App):
         elif isinstance(event, SyncCompleteEvent):
             from datetime import datetime
             status_bar.last_sync = datetime.now().strftime("%H:%M")
-            parts = [
-                f"{event.messages_retrieved} new",
-                f"{event.bulletins_retrieved} bulletins",
-                f"{event.messages_sent} sent",
-            ]
-            if getattr(event, "files_retrieved", 0) > 0:
-                export_path = self._settings.export_path if self._settings else "~/.local/share/open-packet/export"
-                parts.append(f"{event.files_retrieved} file(s) saved to {export_path}/files/")
-            self.notify(f"Sync complete: {', '.join(parts)}")
+            notifications_enabled = self._settings.notifications_enabled if self._settings else True
+            has_new_items = (
+                event.messages_retrieved > 0
+                or event.bulletins_retrieved > 0
+                or getattr(event, "files_retrieved", 0) > 0
+            )
+            if notifications_enabled and has_new_items:
+                parts = []
+                if event.messages_retrieved > 0:
+                    parts.append(f"{event.messages_retrieved} new message(s)")
+                if event.bulletins_retrieved > 0:
+                    parts.append(f"{event.bulletins_retrieved} new bulletin(s)")
+                if getattr(event, "files_retrieved", 0) > 0:
+                    export_path = self._settings.export_path if self._settings else "~/.local/share/open-packet/export"
+                    parts.append(f"{event.files_retrieved} file(s) saved to {export_path}/files/")
+                self.notify(f"New items received: {', '.join(parts)}")
             self._refresh_message_list()
         elif isinstance(event, ErrorEvent):
             self.notify(f"Error: {event.message}", severity="error")
