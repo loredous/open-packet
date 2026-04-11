@@ -1082,3 +1082,43 @@ def test_migration_adds_archived_column_to_existing_db():
     db2.close()
     os.unlink(f.name)
     assert "archived" in cols
+
+
+# ---------------------------------------------------------------------------
+# NTS message number persistence
+# ---------------------------------------------------------------------------
+
+def test_nts_msg_number_defaults_to_one(db):
+    op = db.insert_operator(Operator(callsign="KD9NTS", ssid=0, label="nts", is_default=False))
+    assert db.get_nts_msg_number(op.id) == 1
+
+
+def test_nts_msg_number_set_and_get(db):
+    op = db.insert_operator(Operator(callsign="KD9NTS", ssid=0, label="nts", is_default=False))
+    db.set_nts_msg_number(op.id, 42)
+    assert db.get_nts_msg_number(op.id) == 42
+
+
+def test_nts_msg_number_persists_across_instances(tmp_path):
+    db_path = str(tmp_path / "test.db")
+    db1 = Database(db_path)
+    db1.initialize()
+    op = db1.insert_operator(Operator(callsign="KD9NTS", ssid=0, label="nts", is_default=False))
+    db1.set_nts_msg_number(op.id, 99)
+    db1.close()
+
+    db2 = Database(db_path)
+    db2.initialize()
+    assert db2.get_nts_msg_number(op.id) == 99
+    db2.close()
+
+
+def test_store_get_nts_msg_number(store):
+    s, op, node = store
+    assert s.get_nts_msg_number(op.id) == 1
+
+
+def test_store_set_and_get_nts_msg_number(store):
+    s, op, node = store
+    s.set_nts_msg_number(op.id, 7)
+    assert s.get_nts_msg_number(op.id) == 7
