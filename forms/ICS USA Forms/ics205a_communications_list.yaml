@@ -1,0 +1,345 @@
+name: ICS 205A Communications List
+category: ICS USA Forms
+subject_template: "ICS 205A - {{ Incident_Name }} - {{ DateTimePrepared }}"
+body_template: |
+  ICS 205A COMMUNICATIONS LIST
+
+  1. Incident Name: {{ Incident_Name }}
+  2. Date/Time Prepared: {{ DateTimePrepared }}
+
+  3. Operational Period:
+  From: {{ DateFrom }} {{ TimeFrom }}
+  To:   {{ DateTo }} {{ TimeTo }}
+
+  4. BASIC LOCAL COMMUNICATIONS INFORMATION:
+
+  NAME/AGENCY: {{ Name1 }}  ICS POSITION: {{ Position1 }}
+  OFFICE PH: {{ OfficePhone1 }}  CELL PH: {{ CellPhone1 }}
+  PAGER/RADIO: {{ PagerRadio1 }}  EMAIL: {{ Email1 }}
+
+  NAME/AGENCY: {{ Name2 }}  ICS POSITION: {{ Position2 }}
+  OFFICE PH: {{ OfficePhone2 }}  CELL PH: {{ CellPhone2 }}
+  PAGER/RADIO: {{ PagerRadio2 }}  EMAIL: {{ Email2 }}
+
+  NAME/AGENCY: {{ Name3 }}  ICS POSITION: {{ Position3 }}
+  OFFICE PH: {{ OfficePhone3 }}  CELL PH: {{ CellPhone3 }}
+  PAGER/RADIO: {{ PagerRadio3 }}  EMAIL: {{ Email3 }}
+
+  NAME/AGENCY: {{ Name4 }}  ICS POSITION: {{ Position4 }}
+  OFFICE PH: {{ OfficePhone4 }}  CELL PH: {{ CellPhone4 }}
+  PAGER/RADIO: {{ PagerRadio4 }}  EMAIL: {{ Email4 }}
+
+  NAME/AGENCY: {{ Name5 }}  ICS POSITION: {{ Position5 }}
+  OFFICE PH: {{ OfficePhone5 }}  CELL PH: {{ CellPhone5 }}
+  PAGER/RADIO: {{ PagerRadio5 }}  EMAIL: {{ Email5 }}
+
+  NAME/AGENCY: {{ Name6 }}  ICS POSITION: {{ Position6 }}
+  OFFICE PH: {{ OfficePhone6 }}  CELL PH: {{ CellPhone6 }}
+  PAGER/RADIO: {{ PagerRadio6 }}  EMAIL: {{ Email6 }}
+
+  NAME/AGENCY: {{ Name7 }}  ICS POSITION: {{ Position7 }}
+  OFFICE PH: {{ OfficePhone7 }}  CELL PH: {{ CellPhone7 }}
+  PAGER/RADIO: {{ PagerRadio7 }}  EMAIL: {{ Email7 }}
+
+  NAME/AGENCY: {{ Name8 }}  ICS POSITION: {{ Position8 }}
+  OFFICE PH: {{ OfficePhone8 }}  CELL PH: {{ CellPhone8 }}
+  PAGER/RADIO: {{ PagerRadio8 }}  EMAIL: {{ Email8 }}
+
+  --------------------------------------
+  Prepared by: {{ PreparedName }}  Position/Title: {{ PreparedTitle }}
+  Date/Time: {{ PreparedDateTime }}
+
+fields:
+  - name: Incident_Name
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTimePrepared
+    label: "2. Date/Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateFrom
+    label: "3. Op Period - Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "3. Op Period - Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: DateTo
+    label: "3. Op Period - Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeTo
+    label: "3. Op Period - Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: Name1
+    label: "Entry 1 - Name/Agency"
+    type: text
+    max_length: 50
+
+  - name: Position1
+    label: "Entry 1 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: OfficePhone1
+    label: "Entry 1 - Office Phone"
+    type: text
+    max_length: 20
+
+  - name: CellPhone1
+    label: "Entry 1 - Cell Phone"
+    type: text
+    max_length: 20
+
+  - name: PagerRadio1
+    label: "Entry 1 - Pager/Radio"
+    type: text
+    max_length: 20
+
+  - name: Email1
+    label: "Entry 1 - Email"
+    type: text
+    max_length: 60
+
+  - name: Name2
+    label: "Entry 2 - Name/Agency"
+    type: text
+    max_length: 50
+
+  - name: Position2
+    label: "Entry 2 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: OfficePhone2
+    label: "Entry 2 - Office Phone"
+    type: text
+    max_length: 20
+
+  - name: CellPhone2
+    label: "Entry 2 - Cell Phone"
+    type: text
+    max_length: 20
+
+  - name: PagerRadio2
+    label: "Entry 2 - Pager/Radio"
+    type: text
+    max_length: 20
+
+  - name: Email2
+    label: "Entry 2 - Email"
+    type: text
+    max_length: 60
+
+  - name: Name3
+    label: "Entry 3 - Name/Agency"
+    type: text
+    max_length: 50
+
+  - name: Position3
+    label: "Entry 3 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: OfficePhone3
+    label: "Entry 3 - Office Phone"
+    type: text
+    max_length: 20
+
+  - name: CellPhone3
+    label: "Entry 3 - Cell Phone"
+    type: text
+    max_length: 20
+
+  - name: PagerRadio3
+    label: "Entry 3 - Pager/Radio"
+    type: text
+    max_length: 20
+
+  - name: Email3
+    label: "Entry 3 - Email"
+    type: text
+    max_length: 60
+
+  - name: Name4
+    label: "Entry 4 - Name/Agency"
+    type: text
+    max_length: 50
+
+  - name: Position4
+    label: "Entry 4 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: OfficePhone4
+    label: "Entry 4 - Office Phone"
+    type: text
+    max_length: 20
+
+  - name: CellPhone4
+    label: "Entry 4 - Cell Phone"
+    type: text
+    max_length: 20
+
+  - name: PagerRadio4
+    label: "Entry 4 - Pager/Radio"
+    type: text
+    max_length: 20
+
+  - name: Email4
+    label: "Entry 4 - Email"
+    type: text
+    max_length: 60
+
+  - name: Name5
+    label: "Entry 5 - Name/Agency"
+    type: text
+    max_length: 50
+
+  - name: Position5
+    label: "Entry 5 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: OfficePhone5
+    label: "Entry 5 - Office Phone"
+    type: text
+    max_length: 20
+
+  - name: CellPhone5
+    label: "Entry 5 - Cell Phone"
+    type: text
+    max_length: 20
+
+  - name: PagerRadio5
+    label: "Entry 5 - Pager/Radio"
+    type: text
+    max_length: 20
+
+  - name: Email5
+    label: "Entry 5 - Email"
+    type: text
+    max_length: 60
+
+  - name: Name6
+    label: "Entry 6 - Name/Agency"
+    type: text
+    max_length: 50
+
+  - name: Position6
+    label: "Entry 6 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: OfficePhone6
+    label: "Entry 6 - Office Phone"
+    type: text
+    max_length: 20
+
+  - name: CellPhone6
+    label: "Entry 6 - Cell Phone"
+    type: text
+    max_length: 20
+
+  - name: PagerRadio6
+    label: "Entry 6 - Pager/Radio"
+    type: text
+    max_length: 20
+
+  - name: Email6
+    label: "Entry 6 - Email"
+    type: text
+    max_length: 60
+
+  - name: Name7
+    label: "Entry 7 - Name/Agency"
+    type: text
+    max_length: 50
+
+  - name: Position7
+    label: "Entry 7 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: OfficePhone7
+    label: "Entry 7 - Office Phone"
+    type: text
+    max_length: 20
+
+  - name: CellPhone7
+    label: "Entry 7 - Cell Phone"
+    type: text
+    max_length: 20
+
+  - name: PagerRadio7
+    label: "Entry 7 - Pager/Radio"
+    type: text
+    max_length: 20
+
+  - name: Email7
+    label: "Entry 7 - Email"
+    type: text
+    max_length: 60
+
+  - name: Name8
+    label: "Entry 8 - Name/Agency"
+    type: text
+    max_length: 50
+
+  - name: Position8
+    label: "Entry 8 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: OfficePhone8
+    label: "Entry 8 - Office Phone"
+    type: text
+    max_length: 20
+
+  - name: CellPhone8
+    label: "Entry 8 - Cell Phone"
+    type: text
+    max_length: 20
+
+  - name: PagerRadio8
+    label: "Entry 8 - Pager/Radio"
+    type: text
+    max_length: 20
+
+  - name: Email8
+    label: "Entry 8 - Email"
+    type: text
+    max_length: 60
+
+  - name: PreparedName
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PreparedTitle
+    label: "Prepared by (Position/Title)"
+    type: text
+    max_length: 40
+
+  - name: PreparedDateTime
+    label: "Prepared by (Date/Time)"
+    type: text
+    required: true
+    max_length: 20
