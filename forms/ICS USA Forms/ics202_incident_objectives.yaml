@@ -1,0 +1,112 @@
+name: ICS 202 Incident Objectives
+category: ICS USA Forms
+subject_template: "ICS 202 IAP - {{ IncidentName }}, {{ DateTime }}"
+body_template: |
+  Incident Action Plan
+  ICS 202
+
+  1. Incident Name:
+  {{ IncidentName }}
+
+  2. Operational Period:
+  Date From: {{ DateFrom }}  Date To: {{ DateTo }}
+  Time From: {{ TimeFrom }}  Time To: {{ TimeTo }}
+
+  3. Objective(s)
+  {{ Objectives }}
+
+  4. Operational Period Command Emphasis:
+  {{ Emphasis }}
+
+  General Situational Awareness
+  {{ SitAwareness }}
+
+  5. Safety Plan Required: {{ PlanNeeded }}
+     Safety Plan(s) Located at: {{ PlansAt }}
+
+  7. Prepared by: {{ PreparedBy }}  Position/Title: {{ Position }}
+
+  8. Approved by Incident Commander: {{ ApprovedName }}
+  Date/Time: {{ DateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateFrom
+    label: "2. Operational Period - Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: DateTo
+    label: "2. Operational Period - Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "2. Operational Period - Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: TimeTo
+    label: "2. Operational Period - Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: Objectives
+    label: "3. Objective(s)"
+    type: textarea
+    required: true
+
+  - name: Emphasis
+    label: "4. Operational Period Command Emphasis"
+    type: textarea
+
+  - name: SitAwareness
+    label: "4. General Situational Awareness"
+    type: textarea
+
+  - name: PlanNeeded
+    label: "5. Safety Plan Required"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+    required: true
+
+  - name: PlansAt
+    label: "5. Safety Plan(s) Located at"
+    type: text
+    max_length: 80
+
+  - name: PreparedBy
+    label: "7. Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: Position
+    label: "7. Position/Title"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: ApprovedName
+    label: "8. Approved by Incident Commander"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: DateTime
+    label: "8. Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20

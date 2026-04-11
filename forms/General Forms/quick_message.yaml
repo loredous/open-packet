@@ -1,0 +1,40 @@
+name: Quick Message
+category: General Forms
+subject_template: "{{ Subjectline }}"
+body_template: |
+  To: {{ address }}
+  From: {{ From_Name }}
+  Sent: {{ time }}
+
+  {{ Message }}
+
+fields:
+  - name: address
+    label: "To (Callsign or Address)"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: Subjectline
+    label: "Subject"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: From_Name
+    label: "From (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: time
+    label: "Date/Time Sent"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: Message
+    label: "Message"
+    type: textarea
+    required: true

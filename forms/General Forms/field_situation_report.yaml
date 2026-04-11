@@ -1,0 +1,248 @@
+name: Field Situation Report
+category: General Forms
+subject_template: "//WL2K {{ Precedence }}/ Field Situation Report {{ UDTGfld }}"
+body_template: |
+  PRECEDENCE: {{ Precedence }}
+  DATE/TIME Group: {{ UDTGfld }}
+  TASK# {{ MsgNR }}
+  AGENCY: {{ Title }}
+  FROM: {{ From_Name }}
+  TO: {{ MsgTo }}
+  INFO (CC): {{ MsgCc }}
+  BT
+  UNCLASS
+
+  SUBJ: Field Situation Report {{ UDTGfld }}
+
+  1. EMERGENT/LIFE SAFETY Need {{ Safetyneed }}
+  Needs: {{ Comm0 }}
+
+  2. City: {{ City }}  County: {{ County }}  State: {{ State }}
+  4a. POTS landlines functioning: [ {{ k4 }} ]  {{ Comm1 }}
+  4b. VOIP landlines functioning: [ {{ k4A }} ]  {{ Comm1A }}
+  5a. Cell phone voice calls functioning: [ {{ k5 }} ]  {{ Comm2 }}
+  5b. Cell phone texts functioning: [ {{ k5A }} ]  {{ Comm2A }}
+  6. AM/FM Broadcast Stations functioning: [ {{ AMFM }} ]  {{ Comm3 }}
+  8. Public Water Works functioning: [ {{ WaterWorks }} ]  {{ Comm5 }}
+  9a. Commercial Power functioning: [ {{ k9 }} ]  {{ Comm6 }}
+  9b. Commercial Power Stable: [ {{ k9A }} ]  {{ Comm6A }}
+  10. Internet functioning: [ {{ Inter }} ]  {{ Comm7 }}
+  11a. NOAA Weather Radio functioning: [ {{ NOAA }} ]  {{ NOAAcom }}
+  12. Additional Comments: {{ Message }}
+  13. POC {{ POC }}
+
+  BT
+  NNNN
+
+fields:
+  - name: Precedence
+    label: "Precedence"
+    type: text
+    choices:
+      - Routine
+      - Priority
+      - Immediate
+      - Emergency
+    required: true
+
+  - name: UDTGfld
+    label: "Date/Time Group (DTMM/HHMMz)"
+    description: "e.g. 150900Z"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: MsgNR
+    label: "Task/Message #"
+    type: text
+    max_length: 20
+
+  - name: Title
+    label: "Agency"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: From_Name
+    label: "From"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: MsgTo
+    label: "To"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: MsgCc
+    label: "Info (CC)"
+    type: text
+    max_length: 60
+
+  - name: Safetyneed
+    label: "1. Emergent/Life Safety Need"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+    required: true
+
+  - name: Comm0
+    label: "1. Life Safety Needs Description"
+    type: textarea
+
+  - name: City
+    label: "2. City"
+    type: text
+    max_length: 40
+
+  - name: County
+    label: "2. County"
+    type: text
+    max_length: 40
+
+  - name: State
+    label: "2. State"
+    type: text
+    max_length: 20
+
+  - name: k4
+    label: "4a. POTS Landlines"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+      - "Unknown"
+
+  - name: Comm1
+    label: "4a. POTS Comments"
+    type: text
+    max_length: 60
+
+  - name: k4A
+    label: "4b. VOIP Landlines"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+      - "Unknown"
+
+  - name: Comm1A
+    label: "4b. VOIP Comments"
+    type: text
+    max_length: 60
+
+  - name: k5
+    label: "5a. Cell Voice"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+      - "Unknown"
+
+  - name: Comm2
+    label: "5a. Cell Voice Comments"
+    type: text
+    max_length: 60
+
+  - name: k5A
+    label: "5b. Cell Texts"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+      - "Unknown"
+
+  - name: Comm2A
+    label: "5b. Cell Texts Comments"
+    type: text
+    max_length: 60
+
+  - name: AMFM
+    label: "6. AM/FM Broadcast"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+      - "Unknown"
+
+  - name: Comm3
+    label: "6. AM/FM Comments"
+    type: text
+    max_length: 60
+
+  - name: WaterWorks
+    label: "8. Public Water Works"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+      - "Unknown"
+
+  - name: Comm5
+    label: "8. Water Comments"
+    type: text
+    max_length: 60
+
+  - name: k9
+    label: "9a. Commercial Power"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+      - "Unknown"
+
+  - name: Comm6
+    label: "9a. Power Comments"
+    type: text
+    max_length: 60
+
+  - name: k9A
+    label: "9b. Commercial Power Stable"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+      - "Unknown"
+
+  - name: Comm6A
+    label: "9b. Power Stability Comments"
+    type: text
+    max_length: 60
+
+  - name: Inter
+    label: "10. Internet"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+      - "Unknown"
+
+  - name: Comm7
+    label: "10. Internet Comments"
+    type: text
+    max_length: 60
+
+  - name: NOAA
+    label: "11a. NOAA Weather Radio"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+      - "Unknown"
+
+  - name: NOAAcom
+    label: "11a. NOAA Comments"
+    type: text
+    max_length: 60
+
+  - name: Message
+    label: "12. Additional Comments"
+    type: textarea
+
+  - name: POC
+    label: "13. Point of Contact"
+    type: text
+    required: true
+    max_length: 60

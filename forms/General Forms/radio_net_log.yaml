@@ -1,0 +1,331 @@
+name: Radio Net Log
+category: General Forms
+subject_template: "{{ Title }} Radio Net Log - {{ Incident_Name }}"
+body_template: |
+  Radio Net Log
+  ---------
+  1. Incident Name: {{ Incident_Name }}
+  2. Operational Period:
+     2a. Date From: {{ DateFrom }}  Date To: {{ DateTo }}
+     2b. Time From: {{ TimeFrom }}  Time To: {{ TimeTo }}
+  3. Name/Position (NCS): {{ NCS }}
+  4. Name/Position (Backup): {{ BackupNCS }}
+
+  -----
+  #   Call Sign   Location   Check in   Check out   Comments
+  1   {{ A1 }}    {{ A2 }}   {{ A3 }}   {{ A4 }}    {{ A5 }}
+  2   {{ B1 }}    {{ B2 }}   {{ B3 }}   {{ B4 }}    {{ B5 }}
+  3   {{ C1 }}    {{ C2 }}   {{ C3 }}   {{ C4 }}    {{ C5 }}
+  4   {{ D1 }}    {{ D2 }}   {{ D3 }}   {{ D4 }}    {{ D5 }}
+  5   {{ E1 }}    {{ E2 }}   {{ E3 }}   {{ E4 }}    {{ E5 }}
+  6   {{ F1 }}    {{ F2 }}   {{ F3 }}   {{ F4 }}    {{ F5 }}
+  7   {{ G1 }}    {{ G2 }}   {{ G3 }}   {{ G4 }}    {{ G5 }}
+  8   {{ H1 }}    {{ H2 }}   {{ H3 }}   {{ H4 }}    {{ H5 }}
+  9   {{ I1 }}    {{ I2 }}   {{ I3 }}   {{ I4 }}    {{ I5 }}
+  10  {{ J1 }}    {{ J2 }}   {{ J3 }}   {{ J4 }}    {{ J5 }}
+
+  ---------------------------------------------
+  Comments or Additional Information:
+  {{ Comments }}
+
+fields:
+  - name: Title
+    label: "Net Name/Title"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: Incident_Name
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateFrom
+    label: "2a. Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: DateTo
+    label: "2a. Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "2b. Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: TimeTo
+    label: "2b. Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: NCS
+    label: "3. NCS Name/Position"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: BackupNCS
+    label: "4. Backup NCS Name/Position"
+    type: text
+    max_length: 60
+
+  - name: A1
+    label: "Station 1 - Call Sign"
+    type: text
+    max_length: 12
+
+  - name: A2
+    label: "Station 1 - Location"
+    type: text
+    max_length: 30
+
+  - name: A3
+    label: "Station 1 - Check In"
+    type: text
+    max_length: 10
+
+  - name: A4
+    label: "Station 1 - Check Out"
+    type: text
+    max_length: 10
+
+  - name: A5
+    label: "Station 1 - Comments"
+    type: text
+    max_length: 60
+
+  - name: B1
+    label: "Station 2 - Call Sign"
+    type: text
+    max_length: 12
+
+  - name: B2
+    label: "Station 2 - Location"
+    type: text
+    max_length: 30
+
+  - name: B3
+    label: "Station 2 - Check In"
+    type: text
+    max_length: 10
+
+  - name: B4
+    label: "Station 2 - Check Out"
+    type: text
+    max_length: 10
+
+  - name: B5
+    label: "Station 2 - Comments"
+    type: text
+    max_length: 60
+
+  - name: C1
+    label: "Station 3 - Call Sign"
+    type: text
+    max_length: 12
+
+  - name: C2
+    label: "Station 3 - Location"
+    type: text
+    max_length: 30
+
+  - name: C3
+    label: "Station 3 - Check In"
+    type: text
+    max_length: 10
+
+  - name: C4
+    label: "Station 3 - Check Out"
+    type: text
+    max_length: 10
+
+  - name: C5
+    label: "Station 3 - Comments"
+    type: text
+    max_length: 60
+
+  - name: D1
+    label: "Station 4 - Call Sign"
+    type: text
+    max_length: 12
+
+  - name: D2
+    label: "Station 4 - Location"
+    type: text
+    max_length: 30
+
+  - name: D3
+    label: "Station 4 - Check In"
+    type: text
+    max_length: 10
+
+  - name: D4
+    label: "Station 4 - Check Out"
+    type: text
+    max_length: 10
+
+  - name: D5
+    label: "Station 4 - Comments"
+    type: text
+    max_length: 60
+
+  - name: E1
+    label: "Station 5 - Call Sign"
+    type: text
+    max_length: 12
+
+  - name: E2
+    label: "Station 5 - Location"
+    type: text
+    max_length: 30
+
+  - name: E3
+    label: "Station 5 - Check In"
+    type: text
+    max_length: 10
+
+  - name: E4
+    label: "Station 5 - Check Out"
+    type: text
+    max_length: 10
+
+  - name: E5
+    label: "Station 5 - Comments"
+    type: text
+    max_length: 60
+
+  - name: F1
+    label: "Station 6 - Call Sign"
+    type: text
+    max_length: 12
+
+  - name: F2
+    label: "Station 6 - Location"
+    type: text
+    max_length: 30
+
+  - name: F3
+    label: "Station 6 - Check In"
+    type: text
+    max_length: 10
+
+  - name: F4
+    label: "Station 6 - Check Out"
+    type: text
+    max_length: 10
+
+  - name: F5
+    label: "Station 6 - Comments"
+    type: text
+    max_length: 60
+
+  - name: G1
+    label: "Station 7 - Call Sign"
+    type: text
+    max_length: 12
+
+  - name: G2
+    label: "Station 7 - Location"
+    type: text
+    max_length: 30
+
+  - name: G3
+    label: "Station 7 - Check In"
+    type: text
+    max_length: 10
+
+  - name: G4
+    label: "Station 7 - Check Out"
+    type: text
+    max_length: 10
+
+  - name: G5
+    label: "Station 7 - Comments"
+    type: text
+    max_length: 60
+
+  - name: H1
+    label: "Station 8 - Call Sign"
+    type: text
+    max_length: 12
+
+  - name: H2
+    label: "Station 8 - Location"
+    type: text
+    max_length: 30
+
+  - name: H3
+    label: "Station 8 - Check In"
+    type: text
+    max_length: 10
+
+  - name: H4
+    label: "Station 8 - Check Out"
+    type: text
+    max_length: 10
+
+  - name: H5
+    label: "Station 8 - Comments"
+    type: text
+    max_length: 60
+
+  - name: I1
+    label: "Station 9 - Call Sign"
+    type: text
+    max_length: 12
+
+  - name: I2
+    label: "Station 9 - Location"
+    type: text
+    max_length: 30
+
+  - name: I3
+    label: "Station 9 - Check In"
+    type: text
+    max_length: 10
+
+  - name: I4
+    label: "Station 9 - Check Out"
+    type: text
+    max_length: 10
+
+  - name: I5
+    label: "Station 9 - Comments"
+    type: text
+    max_length: 60
+
+  - name: J1
+    label: "Station 10 - Call Sign"
+    type: text
+    max_length: 12
+
+  - name: J2
+    label: "Station 10 - Location"
+    type: text
+    max_length: 30
+
+  - name: J3
+    label: "Station 10 - Check In"
+    type: text
+    max_length: 10
+
+  - name: J4
+    label: "Station 10 - Check Out"
+    type: text
+    max_length: 10
+
+  - name: J5
+    label: "Station 10 - Comments"
+    type: text
+    max_length: 60
+
+  - name: Comments
+    label: "Comments or Additional Information"
+    type: textarea
