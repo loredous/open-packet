@@ -88,20 +88,39 @@ class Store:
         combined.sort(key=lambda x: x.timestamp)
         return combined
 
-    def list_outbox_messages(self, operator_id: int) -> list[Message]:
+    def list_outbox_messages(self, operator_id: int, node_id: Optional[int] = None) -> list[Message]:
         assert self._conn
-        rows = self._conn.execute(
-            "SELECT * FROM messages WHERE operator_id=? AND queued=1 AND sent=0 AND deleted=0 ORDER BY timestamp ASC",
-            (operator_id,),
-        ).fetchall()
+        if node_id is not None:
+            # Include messages that target this node (via message_target_nodes table),
+            # falling back to the message's own node_id for legacy rows with no target entries.
+            rows = self._conn.execute(
+                """SELECT DISTINCT m.* FROM messages m
+                   LEFT JOIN message_target_nodes mtn ON m.id = mtn.message_id
+                   WHERE m.operator_id = ?
+                     AND m.queued = 1 AND m.sent = 0 AND m.deleted = 0
+                     AND (mtn.node_id = ? OR (mtn.message_id IS NULL AND m.node_id = ?))
+                   ORDER BY m.timestamp ASC""",
+                (operator_id, node_id, node_id),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM messages WHERE operator_id=? AND queued=1 AND sent=0 AND deleted=0 ORDER BY timestamp ASC",
+                (operator_id,),
+            ).fetchall()
         return [self._row_to_message(r) for r in rows]
 
-    def list_outbox_bulletins(self, operator_id: int) -> list[Bulletin]:
+    def list_outbox_bulletins(self, operator_id: int, node_id: Optional[int] = None) -> list[Bulletin]:
         assert self._conn
-        rows = self._conn.execute(
-            "SELECT * FROM bulletins WHERE operator_id=? AND queued=1 AND sent=0 ORDER BY timestamp ASC",
-            (operator_id,),
-        ).fetchall()
+        if node_id is not None:
+            rows = self._conn.execute(
+                "SELECT * FROM bulletins WHERE operator_id=? AND queued=1 AND sent=0 AND node_id=? ORDER BY timestamp ASC",
+                (operator_id, node_id),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM bulletins WHERE operator_id=? AND queued=1 AND sent=0 ORDER BY timestamp ASC",
+                (operator_id,),
+            ).fetchall()
         return [self._row_to_bulletin(r) for r in rows]
 
     def count_folder_stats(self, operator_id: int) -> dict[str, tuple | dict]:
@@ -303,8 +322,20 @@ class Store:
         ).fetchone()
         return row is not None
 
+    def add_message_target_nodes(self, message_id: int, node_ids: list[int]) -> None:
+        self._db.add_message_target_nodes(message_id, node_ids)
+
+    def get_message_target_nodes(self, message_id: int) -> list[int]:
+        return self._db.get_message_target_nodes(message_id)
+
     def list_nodes(self) -> list:
         return self._db.list_nodes()
+
+    def list_node_groups(self) -> list:
+        return self._db.list_node_groups()
+
+    def get_node_group(self, group_id: int):
+        return self._db.get_node_group(group_id)
 
     def upsert_node_neighbor(self, node_id: int, callsign: str, port: int | None) -> None:
         assert self._conn
