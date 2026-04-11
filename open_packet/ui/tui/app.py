@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import queue
+from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncGenerator, Optional
 
@@ -161,13 +162,13 @@ class OpenPacketApp(App):
 
         self._start_engine(db, operator, node_record)
 
-    def _make_frame_logger(self):
+    def _make_frame_logger(self, interface_id: Optional[int] = None):
         from open_packet.engine.events import ConsoleEvent as _CE, FrameReceivedEvent as _FRE
         evt_queue = self._evt_queue
         def _log(direction: str, summary: str) -> None:
             evt_queue.put(_CE(direction, summary, level="debug"))
             if direction == "<":
-                evt_queue.put(_FRE())
+                evt_queue.put(_FRE(interface_id=interface_id))
         return _log
 
     def _build_connection(self, iface: Interface, op: Operator, on_frame=None):
@@ -215,7 +216,7 @@ class OpenPacketApp(App):
             self._update_status_bar_identity()
             return
 
-        connection = self._build_connection(iface, operator, on_frame=self._make_frame_logger())
+        connection = self._build_connection(iface, operator, on_frame=self._make_frame_logger(interface_id=iface.id))
         if connection is None:
             raise ValueError(f"Unknown interface type: {iface.iface_type!r}")
 
@@ -406,8 +407,9 @@ class OpenPacketApp(App):
             return
 
         if isinstance(event, FrameReceivedEvent):
-            from datetime import datetime
-            status_bar.last_frame = datetime.now().strftime("%H:%M:%S")
+            active_id = self._active_interface.id if self._active_interface else None
+            if event.interface_id is None or event.interface_id == active_id:
+                status_bar.last_frame = event.timestamp.astimezone().strftime("%H:%M:%S")
             return
         if isinstance(event, ConnectionStatusEvent):
             status_bar.status = event.status
@@ -415,7 +417,6 @@ class OpenPacketApp(App):
             if event.status == ConnectionStatus.ERROR:
                 self.notify(f"Error: {event.detail}", severity="error")
         elif isinstance(event, SyncCompleteEvent):
-            from datetime import datetime
             status_bar.last_sync = datetime.now().strftime("%H:%M")
             parts = [
                 f"{event.messages_retrieved} new",

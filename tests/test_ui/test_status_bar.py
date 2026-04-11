@@ -136,12 +136,11 @@ async def test_left_label_updates_on_last_frame_change():
         assert "Last frame: 12:34:56" in _label_text(app.query_one("#status_left"))
 
 
-async def test_frame_received_event_updates_status_bar():
-    """FrameReceivedEvent emitted into the event queue should update last_frame on StatusBar."""
+async def test_frame_received_event_handling_updates_last_frame():
+    """Polling a FrameReceivedEvent and updating last_frame should change the status bar text."""
     import queue
+    from datetime import timezone
     from open_packet.engine.events import FrameReceivedEvent
-
-    received_times = []
 
     class _App(App):
         def compose(self) -> ComposeResult:
@@ -156,8 +155,7 @@ async def test_frame_received_event_updates_status_bar():
             while not self._evt_queue.empty():
                 event = self._evt_queue.get_nowait()
                 if isinstance(event, FrameReceivedEvent):
-                    from datetime import datetime
-                    self.query_one(StatusBar).last_frame = datetime.now().strftime("%H:%M:%S")
+                    self.query_one(StatusBar).last_frame = event.timestamp.astimezone().strftime("%H:%M:%S")
 
     app = _App()
     async with app.run_test() as pilot:
