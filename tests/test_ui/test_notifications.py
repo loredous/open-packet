@@ -4,7 +4,6 @@ import pytest
 from open_packet.engine.events import SyncCompleteEvent
 from open_packet.store.database import Database
 from open_packet.store.models import Operator, Node, Interface
-from open_packet.store.settings import Settings
 from open_packet.ui.tui.app import OpenPacketApp
 
 
