@@ -38,4 +38,11 @@ class PostBulletinCommand:
     body: str
 
 
-Command = ConnectCommand | DisconnectCommand | CheckMailCommand | SendMessageCommand | DeleteMessageCommand | PostBulletinCommand
+@dataclass
+class UploadFileCommand:
+    local_path: str       # absolute path on the local filesystem
+    bbs_filename: str     # filename as it will appear on the BBS
+    description: str      # one-line description shown in DIR listing
+
+
+Command = ConnectCommand | DisconnectCommand | CheckMailCommand | SendMessageCommand | DeleteMessageCommand | PostBulletinCommand | UploadFileCommand

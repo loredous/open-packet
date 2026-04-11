@@ -20,6 +20,7 @@ All keyboard shortcuts available in the main open-packet TUI are listed below.
 | **Ctrl+X** | Delete | Delete the selected message (with confirmation) |
 | **A** | Archive / Unarchive | Move selected message to/from Archive |
 | **R** | Queue Retrieval | Mark selected bulletin or file for body retrieval |
+| **U** | Upload File | Open the upload dialog (Files view only) |
 | **Ctrl+S** | Settings | Open the Settings screen |
 | **Ctrl+D** | Disconnect | Disconnect the current terminal session |
 | **`` ` ``** | Console | Toggle the AX.25 frame console panel |
@@ -50,4 +51,4 @@ All keyboard shortcuts available in the main open-packet TUI are listed below.
 | **Escape** | Close settings |
 
 > [!NOTE]
-> All shortcuts use the form **Ctrl+\<key\>** except the console toggle (`` ` ``), archive (**A**), retrieval queue (**R**), and form message (**F**).
+> All shortcuts use the form **Ctrl+\<key\>** except the console toggle (`` ` ``), archive (**A**), retrieval queue (**R**), file upload (**U**), and form message (**F**).

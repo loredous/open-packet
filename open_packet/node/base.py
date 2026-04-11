@@ -71,3 +71,6 @@ class NodeBase(ABC):
 
     @abstractmethod
     def read_file(self, filename: str) -> str: ...
+
+    @abstractmethod
+    def upload_file(self, filename: str, description: str, content: str) -> None: ...

@@ -66,4 +66,10 @@ class NeighborsDiscoveredEvent:
     shorter_path_candidates: list  # list[tuple[Node, list[NodeHop]]]
 
 
-Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent | NeighborsDiscoveredEvent
+@dataclass
+class FileUploadedEvent:
+    filename: str
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent | NeighborsDiscoveredEvent | FileUploadedEvent

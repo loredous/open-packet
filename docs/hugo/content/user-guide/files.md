@@ -31,4 +31,22 @@ On the next send/receive (**Ctrl+C**), open-packet will fetch the file content a
 > [!NOTE]
 > The export directory defaults to `~/.local/share/open-packet/export`. Files are saved using their original BBS filename.
 
+## Uploading Files
+
+You can upload a local file to the BBS directly from the file browser.
+
+To upload a file:
+
+1. Navigate to the **Files** view using the folder tree
+2. Press **U** to open the upload dialog
+3. Enter the **local file path** (e.g. `/home/user/documents/ares-form.txt`)
+4. Confirm or edit the **BBS filename** — the local filename is pre-filled automatically
+5. Enter a short **description** (one line, shown in the BBS `DIR` listing)
+6. Press **Upload** to send the file to the BBS
+
+open-packet connects to the BBS, uploads the file, and disconnects automatically. A notification confirms when the upload is complete.
+
+> [!NOTE]
+> The maximum file size is 65,535 bytes (64 KB), which is the LinBPQ/BPQ32 default limit.
+
 ![BBS files screenshot](../images/screenshot-files.png)
