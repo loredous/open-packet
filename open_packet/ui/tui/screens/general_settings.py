@@ -78,6 +78,19 @@ class GeneralSettingsScreen(ModalScreen):
                     value=self._settings.auto_discover,
                     id="auto_discover_field",
                 )
+            with Horizontal(classes="field-row"):
+                yield Label("Scheduled S/R", classes="field-label")
+                yield Switch(
+                    value=self._settings.scheduled_sr_enabled,
+                    id="scheduled_sr_enabled_field",
+                )
+            with Horizontal(classes="field-row"):
+                yield Label("S/R Interval (min)", classes="field-label")
+                yield Input(
+                    value=str(self._settings.scheduled_sr_interval),
+                    id="scheduled_sr_interval_field",
+                    classes="field-input",
+                )
             with Horizontal(classes="footer-row"):
                 yield Button("Save", id="save_btn", variant="primary")
                 yield Button("Cancel", id="cancel_btn")
@@ -92,11 +105,21 @@ class GeneralSettingsScreen(ModalScreen):
         export_path = self.query_one("#export_path_field", Input).value.strip()
         console_buffer_raw = self.query_one("#console_buffer_field", Input).value.strip()
         auto_discover = self.query_one("#auto_discover_field", Switch).value
+        scheduled_sr_enabled = self.query_one("#scheduled_sr_enabled_field", Switch).value
+        scheduled_sr_interval_raw = self.query_one("#scheduled_sr_interval_field", Input).value.strip()
 
         try:
             console_buffer = int(console_buffer_raw)
         except ValueError:
             self.app.notify("Console buffer must be a number", severity="error")
+            return
+
+        try:
+            scheduled_sr_interval = int(scheduled_sr_interval_raw)
+            if scheduled_sr_interval < 5:
+                raise ValueError
+        except ValueError:
+            self.app.notify("S/R interval must be a whole number >= 5 minutes", severity="error")
             return
 
         console_log_level = self.query_one("#console_log_level_field", Select).value
@@ -105,6 +128,8 @@ class GeneralSettingsScreen(ModalScreen):
         self._settings.console_buffer = console_buffer
         self._settings.console_log_level = console_log_level
         self._settings.auto_discover = auto_discover
+        self._settings.scheduled_sr_enabled = scheduled_sr_enabled
+        self._settings.scheduled_sr_interval = scheduled_sr_interval
 
         needs_restart = auto_discover != old_auto_discover
         self.dismiss(needs_restart)

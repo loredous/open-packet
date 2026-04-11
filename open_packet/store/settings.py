@@ -45,3 +45,19 @@ class Settings:
     @console_log_level.setter
     def console_log_level(self, value: str) -> None:
         self._db.set_setting("console_log_level", value)
+
+    @property
+    def scheduled_sr_enabled(self) -> bool:
+        return self._db.get_setting("scheduled_sr_enabled") == "true"
+
+    @scheduled_sr_enabled.setter
+    def scheduled_sr_enabled(self, value: bool) -> None:
+        self._db.set_setting("scheduled_sr_enabled", "true" if value else "false")
+
+    @property
+    def scheduled_sr_interval(self) -> int:
+        return int(self._db.get_setting("scheduled_sr_interval"))
+
+    @scheduled_sr_interval.setter
+    def scheduled_sr_interval(self, value: int) -> None:
+        self._db.set_setting("scheduled_sr_interval", str(value))
