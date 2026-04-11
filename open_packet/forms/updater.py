@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -66,23 +67,14 @@ def _fetch_bytes(url: str, timeout: int = 15) -> bytes:
         raise FormsUpdateError(f"Network error fetching {url}: {e.reason}") from e
 
 
-def _sha256_of_file(path: Path) -> str:
-    h = hashlib.sha256(path.read_bytes())
-    return h.hexdigest()
-
-
-def _sha256_of_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
 def _git_blob_sha(data: bytes) -> str:
-    """Compute git's SHA-1 blob hash for raw content bytes.
-
-    Matches the SHA values returned by the GitHub tree API so that local files
-    can be compared against the remote tree without downloading them first.
-    """
+    """Compute the git blob SHA-1 for *data* — matches the ``sha`` field in GitHub's tree API."""
     header = f"blob {len(data)}\0".encode()
-    return hashlib.sha1(header + data).hexdigest()
+    return hashlib.sha1(header + data).hexdigest()  # noqa: S324 — non-security use
+
+
+def _git_blob_sha_of_file(path: Path) -> str:
+    return _git_blob_sha(path.read_bytes())
 
 
 def _list_remote_form_files() -> list[dict]:
@@ -104,7 +96,6 @@ def _list_remote_form_files() -> list[dict]:
 
 def _raw_url(repo_path: str) -> str:
     """Convert a repo-relative path to a raw.githubusercontent.com URL."""
-    import urllib.parse
     encoded = urllib.parse.quote(repo_path)
     return f"{_RAW_BASE}/{_REPO}/{_BRANCH}/{encoded}"
 
@@ -116,9 +107,9 @@ def update_forms(
     """
     Sync form YAML files from the GitHub repo's main branch into ``forms_dir``.
 
-    Downloads only files that are new or have changed (compared by SHA-256 of
-    content).  Preserves any locally-added YAML files that do not exist in the
-    remote tree.
+    Uses the git blob SHA returned by the GitHub tree API to detect changes
+    without downloading files that are already up to date.  Preserves any
+    locally-added YAML files that do not exist in the remote tree.
 
     Args:
         forms_dir: Local directory where forms are stored.
@@ -138,15 +129,15 @@ def update_forms(
 
     for entry in remote_files:
         repo_path = entry["path"]
+        remote_sha = entry["sha"]
         # Strip leading "forms/" prefix to get the relative path within forms_dir
         rel_path = repo_path[len(_FORMS_PREFIX):]
         local_path = forms_dir / rel_path
-        remote_sha = entry.get("sha", "")
 
-        # Fast path: compare local file's git blob SHA with the remote tree SHA
-        # to avoid downloading files that haven't changed.
+        # Skip download when the local file's git blob SHA already matches the
+        # remote tree SHA — avoids unnecessary network requests.
         if local_path.exists() and remote_sha:
-            if _git_blob_sha(local_path.read_bytes()) == remote_sha:
+            if _git_blob_sha_of_file(local_path) == remote_sha:
                 result.skipped.append(rel_path)
                 if on_progress:
                     on_progress(f"Unchanged: {rel_path}")
