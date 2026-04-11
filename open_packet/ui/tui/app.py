@@ -24,6 +24,7 @@ from open_packet.ui.tui.screens.shorter_path_confirm import ShorterPathConfirmSc
 from open_packet.ax25.connection import AX25Connection
 from open_packet.link.kiss import KISSLink
 from open_packet.link.telnet import TelnetLink
+from open_packet.link.winlink_telnet import WinlinkTelnetLink
 from open_packet.node.bpq import BPQNode
 from open_packet.store.database import Database
 from open_packet.store.models import Operator, Node, Interface, Message, Bulletin, BBSFile
@@ -202,6 +203,14 @@ class OpenPacketApp(App):
                     my_ssid=op.ssid,
                     on_frame=on_frame,
                 )
+            case "winlink_telnet":
+                link = WinlinkTelnetLink(
+                    host=iface.host, port=iface.port or 8772,
+                    on_frame=on_frame,
+                )
+                # Mark the link so the engine knows it's a direct CMS connection
+                link._is_winlink_cms = True
+                return link
             case _:
                 return None
 
@@ -227,15 +236,28 @@ class OpenPacketApp(App):
         if connection is None:
             raise ValueError(f"Unknown interface type: {iface.iface_type!r}")
 
-        node = BPQNode(
-            connection=connection,
-            node_callsign=node_record.callsign,
-            node_ssid=node_record.ssid,
-            my_callsign=operator.callsign,
-            my_ssid=operator.ssid,
-            hop_path=node_record.hop_path,
-            path_strategy=node_record.path_strategy,
-        )
+        if iface.iface_type == "winlink_telnet":
+            from open_packet.node.winlink import WinlinkNode
+            node = WinlinkNode(
+                connection=connection,
+                my_callsign=operator.callsign,
+                my_ssid=operator.ssid,
+                winlink_password=operator.winlink_password or "",
+                is_telnet_cms=True,
+                on_log=lambda d, t: self._evt_queue.put(
+                    __import__('open_packet.engine.events', fromlist=['ConsoleEvent']).ConsoleEvent(d, t, level="debug")
+                ),
+            )
+        else:
+            node = BPQNode(
+                connection=connection,
+                node_callsign=node_record.callsign,
+                node_ssid=node_record.ssid,
+                my_callsign=operator.callsign,
+                my_ssid=operator.ssid,
+                hop_path=node_record.hop_path,
+                path_strategy=node_record.path_strategy,
+            )
 
         export_path = (
             os.path.expanduser(self._settings.export_path)

@@ -29,6 +29,7 @@ class SendMessageCommand:
     to_call: str
     subject: str
     body: str
+    message_type: str = "bbs"  # "bbs" or "winlink"
 
 
 @dataclass

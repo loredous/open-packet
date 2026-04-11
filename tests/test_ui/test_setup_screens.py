@@ -125,7 +125,7 @@ async def test_operator_setup_empty_ssid_defaults_to_zero():
 @pytest.mark.asyncio
 async def test_operator_setup_blank_callsign_does_not_dismiss():
     app = _ScreenTestApp(OperatorSetupScreen)
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 40)) as pilot:
         await pilot.click("#ssid_field")
         await pilot.press("1")
         await pilot.click("#label_field")
@@ -138,7 +138,7 @@ async def test_operator_setup_blank_callsign_does_not_dismiss():
 @pytest.mark.asyncio
 async def test_operator_setup_invalid_ssid_does_not_dismiss():
     app = _ScreenTestApp(OperatorSetupScreen)
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(80, 40)) as pilot:
         await pilot.click("#callsign_field")
         await pilot.press(*"KD9ABC")
         await pilot.click("#ssid_field")
