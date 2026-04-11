@@ -1,5 +1,6 @@
 ---
 title: "Architecture"
+description: "Codebase layers and design principles"
 weight: 1
 ---
 

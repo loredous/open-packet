@@ -11,13 +11,14 @@ from textual.command import Hit, Hits, Provider
 from textual.css.query import NoMatches
 
 from open_packet.engine.commands import (
-    CheckMailCommand, DeleteMessageCommand, SendMessageCommand, PostBulletinCommand
+    CheckMailCommand, DeleteMessageCommand, SendMessageCommand, PostBulletinCommand,
+    GroupSyncCommand, NodeSyncTarget,
 )
 from open_packet.engine.engine import Engine
 from open_packet.engine.events import (
     ConnectionStatusEvent, MessageReceivedEvent, SyncCompleteEvent,
     ErrorEvent, ConnectionStatus, MessageQueuedEvent, ConsoleEvent,
-    NeighborsDiscoveredEvent,
+    NeighborsDiscoveredEvent, GroupSyncCompleteEvent,
 )
 from open_packet.ui.tui.screens.shorter_path_confirm import ShorterPathConfirmScreen
 from open_packet.ax25.connection import AX25Connection
@@ -75,6 +76,15 @@ class OpenPacketCommands(Provider):
             ("Edit Interfaces", "Manage radio interfaces", app._palette_edit_interfaces),
             ("Terminal Connect", "Open a terminal connection", app.open_terminal_connect),
         ]
+
+        # Append one entry per configured node group
+        if app._db:
+            for grp in app._db.list_node_groups():
+                commands.append((
+                    f"Sync Group: {grp.name}",
+                    f"Send/receive all nodes in group \"{grp.name}\"",
+                    lambda g=grp: app.sync_node_group(g.id),
+                ))
 
         for display, help_text, callback in commands:
             score = matcher.match(display)
@@ -432,6 +442,8 @@ class OpenPacketApp(App):
             self.notify(f"Error: {event.message}", severity="error")
         elif isinstance(event, NeighborsDiscoveredEvent):
             self._queue_neighbor_prompts(event)
+        elif isinstance(event, GroupSyncCompleteEvent):
+            self._handle_group_sync_complete(event)
 
     def _queue_neighbor_prompts(self, event: NeighborsDiscoveredEvent) -> None:
         """Build a sequential queue of prompts and start showing them."""
@@ -517,6 +529,11 @@ class OpenPacketApp(App):
 
             msg_list = self.query_one("MessageList")
 
+            # Build node label lookup for display in the message list
+            node_labels: dict[int, str] = {
+                n.id: n.label for n in self._store.list_nodes() if n.id is not None
+            }
+
             if folder == "Inbox":
                 messages = [
                     m for m in self._store.list_messages(operator_id=operator_id)
@@ -539,7 +556,7 @@ class OpenPacketApp(App):
             else:
                 messages = []
 
-            msg_list.load_messages(messages)
+            msg_list.load_messages(messages, node_labels=node_labels)
             stats = self._store.count_folder_stats(operator_id)
             self.query_one("FolderTree").update_counts(stats)
         except Exception:
@@ -557,6 +574,69 @@ class OpenPacketApp(App):
     def check_mail(self) -> None:
         if self._engine:
             self._cmd_queue.put(CheckMailCommand())
+
+    def sync_node_group(self, group_id: int) -> None:
+        """Build a GroupSyncCommand for the given group and queue it."""
+        if not self._engine or not self._db or not self._active_operator:
+            self.notify("Cannot sync: engine not running", severity="warning")
+            return
+        group = self._db.get_node_group(group_id)
+        if group is None:
+            self.notify("Group not found", severity="error")
+            return
+        nodes = {n.id: n for n in self._db.list_nodes()}
+        interfaces = {i.id: i for i in self._db.list_interfaces()}
+        op = self._active_operator
+
+        targets: list[NodeSyncTarget] = []
+        for node_id in group.node_ids:
+            node_record = nodes.get(node_id)
+            if node_record is None or node_record.interface_id is None:
+                continue
+            iface = interfaces.get(node_record.interface_id)
+            if iface is None:
+                continue
+            connection = self._build_connection(iface, op, on_frame=self._make_frame_logger())
+            if connection is None:
+                continue
+            from open_packet.node.bpq import BPQNode
+            bpq_node = BPQNode(
+                connection=connection,
+                node_callsign=node_record.callsign,
+                node_ssid=node_record.ssid,
+                my_callsign=op.callsign,
+                my_ssid=op.ssid,
+                hop_path=node_record.hop_path,
+                path_strategy=node_record.path_strategy,
+            )
+            targets.append(NodeSyncTarget(
+                node_record=node_record,
+                interface=iface,
+                connection=connection,
+                bpq_node=bpq_node,
+            ))
+
+        if not targets:
+            self.notify(f"Group \"{group.name}\" has no connectable nodes", severity="warning")
+            return
+
+        self._cmd_queue.put(GroupSyncCommand(group_name=group.name, targets=targets))
+        self.notify(f"Group sync started: {group.name}")
+
+    def _handle_group_sync_complete(self, event: GroupSyncCompleteEvent) -> None:
+        synced = [r for r in event.results if not r.skipped]
+        skipped = [r for r in event.results if r.skipped]
+        total_msgs = sum(r.messages_retrieved for r in synced)
+        total_bulletins = sum(r.bulletins_retrieved for r in synced)
+        parts = [f"{len(synced)} node(s) synced"]
+        if skipped:
+            skip_names = ", ".join(r.node_label for r in skipped)
+            parts.append(f"{len(skipped)} skipped: {skip_names}")
+        parts.append(f"{total_msgs} new message(s)")
+        if total_bulletins:
+            parts.append(f"{total_bulletins} bulletin(s)")
+        self.notify(f"Group \"{event.group_name}\": {', '.join(parts)}")
+        self._refresh_message_list()
 
     def delete_selected_message(self) -> None:
         msg = self._selected_message
@@ -724,7 +804,30 @@ class OpenPacketApp(App):
 
     def _on_compose_bulletin_result(self, result) -> None:
         if result and isinstance(result, PostBulletinCommand):
-            self._cmd_queue.put(result)
+            self._pick_nodes_then(result)
+
+    def _pick_nodes_then(self, cmd) -> None:
+        """Show node picker if multiple nodes are configured, then queue the command."""
+        if self._db is None:
+            return
+        nodes = self._db.list_nodes()
+        if not nodes:
+            return
+        if len(nodes) == 1:
+            cmd.node_ids = [nodes[0].id]
+            self._cmd_queue.put(cmd)
+            return
+        from open_packet.ui.tui.screens.node_multi_picker import NodeMultiPickerScreen
+        self.push_screen(
+            NodeMultiPickerScreen(nodes=nodes),
+            callback=lambda node_ids: self._on_node_ids_picked(cmd, node_ids),
+        )
+
+    def _on_node_ids_picked(self, cmd, node_ids) -> None:
+        if not node_ids:
+            return
+        cmd.node_ids = node_ids
+        self._cmd_queue.put(cmd)
 
     def open_terminal_connect(self) -> None:
         if self._db is None:
@@ -808,7 +911,7 @@ class OpenPacketApp(App):
 
     def _on_compose_result(self, result) -> None:
         if result and isinstance(result, SendMessageCommand):
-            self._cmd_queue.put(result)
+            self._pick_nodes_then(result)
 
     def on_message_list_message_selected(self, event) -> None:
         self._selected_message = event.message

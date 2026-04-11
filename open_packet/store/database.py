@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime
 from typing import Optional
 
-from open_packet.store.models import Operator, Node, Message, Bulletin, Interface, BBSFile
+from open_packet.store.models import Operator, Node, Message, Bulletin, Interface, BBSFile, NodeGroup
 
 
 _KNOWN_SETTING_KEYS = frozenset({
@@ -255,6 +255,26 @@ class Database:
                 deleted INTEGER NOT NULL DEFAULT 0,
                 UNIQUE(node_id, filename)
             );
+
+            CREATE TABLE IF NOT EXISTS message_target_nodes (
+                message_id INTEGER NOT NULL REFERENCES messages(id),
+                node_id    INTEGER NOT NULL REFERENCES nodes(id),
+                PRIMARY KEY (message_id, node_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS node_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                deleted INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS node_group_members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL REFERENCES node_groups(id),
+                node_id INTEGER NOT NULL REFERENCES nodes(id),
+                position INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(group_id, node_id)
+            );
         """)
         self._conn.commit()
 
@@ -492,6 +512,22 @@ class Database:
         ).fetchone()[0]
         return (msg_count, bul_count)
 
+    def add_message_target_nodes(self, message_id: int, node_ids: list[int]) -> None:
+        assert self._conn
+        for node_id in node_ids:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO message_target_nodes (message_id, node_id) VALUES (?, ?)",
+                (message_id, node_id),
+            )
+        self._conn.commit()
+
+    def get_message_target_nodes(self, message_id: int) -> list[int]:
+        assert self._conn
+        rows = self._conn.execute(
+            "SELECT node_id FROM message_target_nodes WHERE message_id=?", (message_id,)
+        ).fetchall()
+        return [r["node_id"] for r in rows]
+
     def count_node_dependents(self, node_id: int) -> tuple[int, int]:
         assert self._conn
         msg_count = self._conn.execute(
@@ -501,3 +537,67 @@ class Database:
             "SELECT COUNT(*) FROM bulletins WHERE node_id=?", (node_id,)
         ).fetchone()[0]
         return (msg_count, bul_count)
+
+    # --- Node Group CRUD ---
+
+    def insert_node_group(self, group: NodeGroup) -> NodeGroup:
+        assert self._conn
+        cur = self._conn.execute(
+            "INSERT INTO node_groups (name) VALUES (?)", (group.name,)
+        )
+        group_id = cur.lastrowid
+        for position, node_id in enumerate(group.node_ids):
+            self._conn.execute(
+                "INSERT INTO node_group_members (group_id, node_id, position) VALUES (?, ?, ?)",
+                (group_id, node_id, position),
+            )
+        self._conn.commit()
+        return self.get_node_group(group_id)  # type: ignore
+
+    def get_node_group(self, group_id: int) -> Optional[NodeGroup]:
+        assert self._conn
+        row = self._conn.execute(
+            "SELECT * FROM node_groups WHERE id=? AND deleted=0", (group_id,)
+        ).fetchone()
+        if not row:
+            return None
+        return self._row_to_node_group(row)
+
+    def list_node_groups(self) -> list[NodeGroup]:
+        assert self._conn
+        rows = self._conn.execute(
+            "SELECT * FROM node_groups WHERE deleted=0 ORDER BY id"
+        ).fetchall()
+        return [self._row_to_node_group(r) for r in rows]
+
+    def update_node_group(self, group: NodeGroup) -> None:
+        assert self._conn
+        assert group.id is not None, "Cannot update node group without id"
+        self._conn.execute(
+            "UPDATE node_groups SET name=? WHERE id=?", (group.name, group.id)
+        )
+        self._conn.execute(
+            "DELETE FROM node_group_members WHERE group_id=?", (group.id,)
+        )
+        for position, node_id in enumerate(group.node_ids):
+            self._conn.execute(
+                "INSERT INTO node_group_members (group_id, node_id, position) VALUES (?, ?, ?)",
+                (group.id, node_id, position),
+            )
+        self._conn.commit()
+
+    def soft_delete_node_group(self, group_id: int) -> None:
+        assert self._conn
+        self._conn.execute(
+            "UPDATE node_groups SET deleted=1 WHERE id=?", (group_id,)
+        )
+        self._conn.commit()
+
+    def _row_to_node_group(self, row) -> NodeGroup:
+        assert self._conn
+        member_rows = self._conn.execute(
+            "SELECT node_id FROM node_group_members WHERE group_id=? ORDER BY position",
+            (row["id"],),
+        ).fetchall()
+        node_ids = [r["node_id"] for r in member_rows]
+        return NodeGroup(id=row["id"], name=row["name"], node_ids=node_ids)

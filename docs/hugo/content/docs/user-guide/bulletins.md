@@ -1,5 +1,6 @@
 ---
 title: "Bulletins"
+description: "Browse bulletin boards and retrieve bulletin bodies on demand"
 weight: 3
 ---
 
