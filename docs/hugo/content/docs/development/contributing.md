@@ -1,5 +1,6 @@
 ---
 title: "Contributing"
+description: "How to contribute to open-packet"
 weight: 2
 ---
 

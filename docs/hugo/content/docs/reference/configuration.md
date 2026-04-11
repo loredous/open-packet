@@ -1,5 +1,6 @@
 ---
 title: "Configuration"
+description: "Full configuration file reference"
 weight: 2
 ---
 

@@ -1,5 +1,6 @@
 ---
 title: "Messages"
+description: "Read, compose, reply, archive, and delete personal messages"
 weight: 2
 ---
 

@@ -1,5 +1,6 @@
 ---
 title: "Settings"
+description: "Manage operators, nodes, interfaces, and preferences"
 weight: 7
 ---
 
@@ -79,4 +80,4 @@ General settings include:
 - **Console visibility** — show the AX.25 frame console on startup
 - **Console buffer** — number of lines to retain in the console
 
-These can also be set via CLI flags or environment variables — see the [Configuration Reference]({{< relref "/reference/configuration" >}}).
+These can also be set via CLI flags or environment variables — see the [Configuration Reference]({{< relref "/docs/reference/configuration" >}}).

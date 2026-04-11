@@ -1,5 +1,6 @@
 ---
 title: "Getting Started"
+description: "Install, configure, and launch open-packet for the first time"
 weight: 1
 ---
 
