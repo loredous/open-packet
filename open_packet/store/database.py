@@ -247,6 +247,12 @@ class Database:
                 deleted INTEGER NOT NULL DEFAULT 0,
                 UNIQUE(node_id, filename)
             );
+
+            CREATE TABLE IF NOT EXISTS message_target_nodes (
+                message_id INTEGER NOT NULL REFERENCES messages(id),
+                node_id    INTEGER NOT NULL REFERENCES nodes(id),
+                PRIMARY KEY (message_id, node_id)
+            );
         """)
         self._conn.commit()
 
@@ -464,6 +470,22 @@ class Database:
             "SELECT COUNT(*) FROM bulletins WHERE operator_id=?", (op_id,)
         ).fetchone()[0]
         return (msg_count, bul_count)
+
+    def add_message_target_nodes(self, message_id: int, node_ids: list[int]) -> None:
+        assert self._conn
+        for node_id in node_ids:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO message_target_nodes (message_id, node_id) VALUES (?, ?)",
+                (message_id, node_id),
+            )
+        self._conn.commit()
+
+    def get_message_target_nodes(self, message_id: int) -> list[int]:
+        assert self._conn
+        rows = self._conn.execute(
+            "SELECT node_id FROM message_target_nodes WHERE message_id=?", (message_id,)
+        ).fetchall()
+        return [r["node_id"] for r in rows]
 
     def count_node_dependents(self, node_id: int) -> tuple[int, int]:
         assert self._conn
