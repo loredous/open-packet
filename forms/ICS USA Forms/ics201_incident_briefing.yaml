@@ -1,0 +1,66 @@
+name: ICS 201 Incident Briefing
+category: ICS USA Forms
+subject_template: "ICS 201 - {{ IncidentName }} - {{ DateTimeInitiated }}"
+body_template: |
+  INCIDENT BRIEFING (ICS 201)
+
+  1. Incident Name: {{ IncidentName }}
+  2. Incident Number: {{ IncidentNumber }}
+  3. Date/Time Initiated: {{ DateTimeInitiated }}
+
+  4. Map/Sketch (describe incident location and perimeter):
+  {{ MapSketch }}
+
+  5. Situation Summary and Health and Safety Briefing:
+  {{ SituationSummary }}
+
+  6. Prepared by: {{ PreparedBy }}
+  Position/Title: {{ Position }}
+  Date/Time: {{ PrepDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: IncidentNumber
+    label: "2. Incident Number"
+    type: text
+    max_length: 20
+
+  - name: DateTimeInitiated
+    label: "3. Date/Time Initiated"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: MapSketch
+    label: "4. Map/Sketch (incident location and perimeter)"
+    type: textarea
+
+  - name: SituationSummary
+    label: "5. Situation Summary and Health and Safety Briefing"
+    type: textarea
+    required: true
+
+  - name: PreparedBy
+    label: "6. Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: Position
+    label: "6. Position/Title"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepDateTime
+    label: "6. Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20

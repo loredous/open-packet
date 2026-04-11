@@ -1,0 +1,230 @@
+name: ICS 204 Assignment List
+category: ICS USA Forms
+subject_template: "ICS 204 - {{ IncidentName }} - {{ Branch }} {{ DivisionGroup }} - {{ DateFrom }} {{ TimeFrom }}"
+body_template: |
+  ASSIGNMENT LIST (ICS 204)
+
+  1. Incident Name: {{ IncidentName }}
+  2. Operational Period:
+     Date From: {{ DateFrom }}  Date To: {{ DateTo }}
+     Time From: {{ TimeFrom }}  Time To: {{ TimeTo }}
+
+  3. Branch: {{ Branch }}
+  4. Division/Group: {{ DivisionGroup }}
+  5. Operations Section Chief: {{ OpsChief }}
+  6. Branch Director: {{ BranchDirector }}
+  7. Division/Group Supervisor: {{ DivGroupSupervisor }}
+
+  8. RESOURCES ASSIGNED:
+
+  Name/Identifier: {{ Resource1Name }}  ICS Position: {{ Resource1Position }}  Contact: {{ Resource1Contact }}
+  Name/Identifier: {{ Resource2Name }}  ICS Position: {{ Resource2Position }}  Contact: {{ Resource2Contact }}
+  Name/Identifier: {{ Resource3Name }}  ICS Position: {{ Resource3Position }}  Contact: {{ Resource3Contact }}
+  Name/Identifier: {{ Resource4Name }}  ICS Position: {{ Resource4Position }}  Contact: {{ Resource4Contact }}
+  Name/Identifier: {{ Resource5Name }}  ICS Position: {{ Resource5Position }}  Contact: {{ Resource5Contact }}
+
+  9. WORK ASSIGNMENTS:
+  {{ WorkAssignments }}
+
+  10. SPECIAL INSTRUCTIONS:
+  {{ SpecialInstructions }}
+
+  11. COMMUNICATIONS:
+  Emergency: {{ EmergencyComms }}
+  Command: {{ CommandComms }}
+  Tactical: {{ TacticalComms }}
+
+  Prepared by: {{ PreparedBy }}
+  Position/Title: {{ PrepPosition }}
+  Date/Time: {{ PrepDateTime }}
+
+  Approved by (Planning Section Chief): {{ ApprovedBy }}
+  Date/Time: {{ ApprovalDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateFrom
+    label: "2. Operational Period - Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: DateTo
+    label: "2. Operational Period - Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "2. Operational Period - Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: TimeTo
+    label: "2. Operational Period - Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: Branch
+    label: "3. Branch"
+    type: text
+    max_length: 30
+
+  - name: DivisionGroup
+    label: "4. Division/Group"
+    type: text
+    max_length: 30
+
+  - name: OpsChief
+    label: "5. Operations Section Chief"
+    type: text
+    max_length: 40
+
+  - name: BranchDirector
+    label: "6. Branch Director"
+    type: text
+    max_length: 40
+
+  - name: DivGroupSupervisor
+    label: "7. Division/Group Supervisor"
+    type: text
+    max_length: 40
+
+  - name: Resource1Name
+    label: "8. Resource 1 - Name/Identifier"
+    type: text
+    max_length: 40
+
+  - name: Resource1Position
+    label: "8. Resource 1 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: Resource1Contact
+    label: "8. Resource 1 - Contact"
+    type: text
+    max_length: 40
+
+  - name: Resource2Name
+    label: "8. Resource 2 - Name/Identifier"
+    type: text
+    max_length: 40
+
+  - name: Resource2Position
+    label: "8. Resource 2 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: Resource2Contact
+    label: "8. Resource 2 - Contact"
+    type: text
+    max_length: 40
+
+  - name: Resource3Name
+    label: "8. Resource 3 - Name/Identifier"
+    type: text
+    max_length: 40
+
+  - name: Resource3Position
+    label: "8. Resource 3 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: Resource3Contact
+    label: "8. Resource 3 - Contact"
+    type: text
+    max_length: 40
+
+  - name: Resource4Name
+    label: "8. Resource 4 - Name/Identifier"
+    type: text
+    max_length: 40
+
+  - name: Resource4Position
+    label: "8. Resource 4 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: Resource4Contact
+    label: "8. Resource 4 - Contact"
+    type: text
+    max_length: 40
+
+  - name: Resource5Name
+    label: "8. Resource 5 - Name/Identifier"
+    type: text
+    max_length: 40
+
+  - name: Resource5Position
+    label: "8. Resource 5 - ICS Position"
+    type: text
+    max_length: 40
+
+  - name: Resource5Contact
+    label: "8. Resource 5 - Contact"
+    type: text
+    max_length: 40
+
+  - name: WorkAssignments
+    label: "9. Work Assignments"
+    type: textarea
+    required: true
+
+  - name: SpecialInstructions
+    label: "10. Special Instructions"
+    type: textarea
+
+  - name: EmergencyComms
+    label: "11. Emergency Communications"
+    description: "Channel name or frequency for emergency traffic"
+    type: text
+    max_length: 40
+
+  - name: CommandComms
+    label: "11. Command Communications"
+    description: "Channel name or frequency for command traffic"
+    type: text
+    max_length: 40
+
+  - name: TacticalComms
+    label: "11. Tactical Communications"
+    description: "Channel name or frequency for tactical traffic"
+    type: text
+    max_length: 40
+
+  - name: PreparedBy
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepPosition
+    label: "Prepared by - Position/Title"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepDateTime
+    label: "Prepared by - Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: ApprovedBy
+    label: "Approved by (Planning Section Chief Name)"
+    type: text
+    max_length: 40
+
+  - name: ApprovalDateTime
+    label: "Approved by - Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    max_length: 20
