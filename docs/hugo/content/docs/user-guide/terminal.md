@@ -1,5 +1,6 @@
 ---
 title: "Terminal Connect"
+description: "Open a raw terminal session to any AX.25 node"
 weight: 6
 ---
 

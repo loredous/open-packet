@@ -17,6 +17,11 @@ jobs:
           submodules: recursive
           fetch-depth: 0  # Fetch full history for git info in Hugo
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+
       - name: Set up Hugo
         uses: peaceiris/actions-hugo@v3
         with:
@@ -28,10 +33,65 @@ jobs:
           cd docs/hugo
           hugo --minify --baseURL "https://loredous.github.io/open-packet/"
 
+      - name: Generate PDF
+        run: |
+          sudo apt-get install -y chromium-browser
+          chromium-browser --headless --disable-gpu \
+            --print-to-pdf=docs/hugo/public/open-packet-docs.pdf \
+            --no-margins \
+            "file://$(pwd)/docs/hugo/public/docs/print/index.html" 2>/dev/null || \
+          chromium --headless --disable-gpu \
+            --print-to-pdf=docs/hugo/public/open-packet-docs.pdf \
+            --no-margins \
+            "file://$(pwd)/docs/hugo/public/docs/print/index.html" 2>/dev/null || true
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs/hugo/public
+
+  attach-pdf:
+    needs: build-docs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+
+      - name: Set up Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "latest"
+          extended: true
+
+      - name: Build Hugo site for PDF
+        run: |
+          cd docs/hugo
+          hugo --minify --baseURL "file://$(pwd)/public/"
+
+      - name: Generate PDF
+        run: |
+          sudo apt-get install -y chromium-browser
+          chromium-browser --headless --disable-gpu \
+            --print-to-pdf=open-packet-docs.pdf \
+            --no-margins \
+            "file://$(pwd)/docs/hugo/public/docs/print/index.html" 2>/dev/null || \
+          chromium --headless --disable-gpu \
+            --print-to-pdf=open-packet-docs.pdf \
+            --no-margins \
+            "file://$(pwd)/docs/hugo/public/docs/print/index.html" 2>/dev/null
+
+      - name: Attach PDF to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: open-packet-docs.pdf
 
   deploy-pages:
     needs: build-docs
