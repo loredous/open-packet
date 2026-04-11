@@ -17,7 +17,7 @@ from open_packet.engine.engine import Engine
 from open_packet.engine.events import (
     ConnectionStatusEvent, MessageReceivedEvent, SyncCompleteEvent,
     ErrorEvent, ConnectionStatus, MessageQueuedEvent, ConsoleEvent,
-    NeighborsDiscoveredEvent,
+    NeighborsDiscoveredEvent, FrameReceivedEvent,
 )
 from open_packet.ui.tui.screens.shorter_path_confirm import ShorterPathConfirmScreen
 from open_packet.ax25.connection import AX25Connection
@@ -162,10 +162,12 @@ class OpenPacketApp(App):
         self._start_engine(db, operator, node_record)
 
     def _make_frame_logger(self):
-        from open_packet.engine.events import ConsoleEvent as _CE
+        from open_packet.engine.events import ConsoleEvent as _CE, FrameReceivedEvent as _FRE
         evt_queue = self._evt_queue
         def _log(direction: str, summary: str) -> None:
             evt_queue.put(_CE(direction, summary, level="debug"))
+            if direction == "<":
+                evt_queue.put(_FRE())
         return _log
 
     def _build_connection(self, iface: Interface, op: Operator, on_frame=None):
@@ -403,6 +405,10 @@ class OpenPacketApp(App):
         except Exception:
             return
 
+        if isinstance(event, FrameReceivedEvent):
+            from datetime import datetime
+            status_bar.last_frame = datetime.now().strftime("%H:%M:%S")
+            return
         if isinstance(event, ConnectionStatusEvent):
             status_bar.status = event.status
             status_bar.sync_detail = event.detail if event.status == ConnectionStatus.SYNCING else ""
