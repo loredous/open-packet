@@ -606,3 +606,95 @@ def test_auto_forward_syncs_via_neighbors(tmp_path):
     os.unlink(f.name)
     # Should have connected at least twice: primary + auto-forward neighbor
     assert len(connect_calls) >= 2
+
+
+# --- UploadFileCommand tests ---
+
+def test_upload_file_command_connects_uploads_disconnects(db_and_store, tmp_path):
+    """UploadFileCommand triggers connect, upload_file call, disconnect, and FileUploadedEvent."""
+    from open_packet.engine.commands import UploadFileCommand
+    from open_packet.engine.events import FileUploadedEvent
+
+    db, store, op, node_record = db_and_store
+    mock_node = make_mock_node()
+    mock_connection = MagicMock()
+
+    # Write a small local file
+    local_file = tmp_path / "test.txt"
+    local_file.write_text("Hello BBS world")
+
+    cmd_queue = queue.Queue()
+    evt_queue = queue.Queue()
+    engine = Engine(
+        command_queue=cmd_queue, event_queue=evt_queue,
+        store=store, operator=op, node_record=node_record,
+        connection=mock_connection, node=mock_node,
+    )
+    engine.start()
+    cmd_queue.put(UploadFileCommand(
+        local_path=str(local_file),
+        bbs_filename="test.txt",
+        description="Test upload",
+    ))
+
+    events = []
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        try:
+            events.append(evt_queue.get(timeout=0.5))
+        except queue.Empty:
+            break
+    engine.stop()
+
+    # FileUploadedEvent must be emitted
+    uploaded = [e for e in events if isinstance(e, FileUploadedEvent)]
+    assert len(uploaded) == 1
+    assert uploaded[0].filename == "test.txt"
+
+    # upload_file must have been called with correct args
+    mock_node.upload_file.assert_called_once_with(
+        "test.txt", "Test upload", "Hello BBS world"
+    )
+
+    # Connection must have been disconnected
+    mock_connection.disconnect.assert_called()
+
+
+def test_upload_file_command_emits_status_events(db_and_store, tmp_path):
+    """UploadFileCommand emits CONNECTING and DISCONNECTED status events."""
+    from open_packet.engine.commands import UploadFileCommand
+
+    db, store, op, node_record = db_and_store
+    mock_node = make_mock_node()
+    mock_connection = MagicMock()
+
+    local_file = tmp_path / "info.txt"
+    local_file.write_text("Some content")
+
+    cmd_queue = queue.Queue()
+    evt_queue = queue.Queue()
+    engine = Engine(
+        command_queue=cmd_queue, event_queue=evt_queue,
+        store=store, operator=op, node_record=node_record,
+        connection=mock_connection, node=mock_node,
+    )
+    engine.start()
+    cmd_queue.put(UploadFileCommand(
+        local_path=str(local_file),
+        bbs_filename="info.txt",
+        description="Info file",
+    ))
+
+    events = []
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        try:
+            events.append(evt_queue.get(timeout=0.5))
+        except queue.Empty:
+            break
+    engine.stop()
+
+    status_events = [e for e in events if isinstance(e, ConnectionStatusEvent)]
+    statuses = [e.status for e in status_events]
+    assert ConnectionStatus.CONNECTING in statuses
+    assert ConnectionStatus.DISCONNECTED in statuses

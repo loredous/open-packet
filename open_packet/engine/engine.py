@@ -10,11 +10,12 @@ from typing import Optional
 from open_packet.engine.commands import (
     Command, CheckMailCommand, ConnectCommand, DisconnectCommand,
     SendMessageCommand, DeleteMessageCommand, PostBulletinCommand,
+    UploadFileCommand,
 )
 from open_packet.engine.events import (
     ConnectionStatusEvent, ConnectionStatus, MessageReceivedEvent,
     SyncCompleteEvent, ErrorEvent, MessageQueuedEvent, ConsoleEvent,
-    NeighborsDiscoveredEvent,
+    NeighborsDiscoveredEvent, FileUploadedEvent,
 )
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase
@@ -122,6 +123,8 @@ class Engine:
             self._do_delete_message(cmd)
         elif isinstance(cmd, PostBulletinCommand):
             self._do_post_bulletin(cmd)
+        elif isinstance(cmd, UploadFileCommand):
+            self._do_upload_file(cmd)
         elif isinstance(cmd, ConnectCommand):
             self._do_connect()
         elif isinstance(cmd, DisconnectCommand):
@@ -447,3 +450,41 @@ class Engine:
         )
         self._store.save_bulletin(bulletin)
         self._emit(MessageQueuedEvent())
+
+    def _do_upload_file(self, cmd: UploadFileCommand) -> None:
+        local = Path(cmd.local_path)
+        content = local.read_text(errors="replace")
+        node_addr = f"{self._node_record.callsign}-{self._node_record.ssid}"
+        self._set_status(ConnectionStatus.CONNECTING)
+        self._emit(ConsoleEvent(">", f"Connecting to {node_addr} for file upload…"))
+        try:
+            if (self._node_record.path_strategy == "path_route"
+                    and self._node_record.hop_path):
+                first = self._node_record.hop_path[0]
+                from open_packet.ax25.connection import _split_callsign
+                call, ssid = _split_callsign(first.callsign)
+                self._connection.connect(call, ssid)
+            else:
+                via = self._node_record.hop_path if self._node_record.path_strategy == "digipeat" else None
+                if via:
+                    self._connection.connect(
+                        self._node_record.callsign,
+                        self._node_record.ssid,
+                        via_path=via,
+                    )
+                else:
+                    self._connection.connect(
+                        self._node_record.callsign,
+                        self._node_record.ssid,
+                    )
+            self._node.wait_for_prompt()
+            self._node.connect_node()
+            self._set_status(ConnectionStatus.CONNECTED)
+            self._emit(ConsoleEvent(">", f"Uploading {cmd.bbs_filename}…"))
+            self._node.upload_file(cmd.bbs_filename, cmd.description, content)
+            self._emit(ConsoleEvent("<", f"Uploaded {cmd.bbs_filename}"))
+            self._emit(FileUploadedEvent(filename=cmd.bbs_filename))
+        finally:
+            self._connection.disconnect()
+            self._emit(ConsoleEvent("<", "Disconnected"))
+            self._set_status(ConnectionStatus.DISCONNECTED)
