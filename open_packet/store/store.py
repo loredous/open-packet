@@ -322,19 +322,31 @@ class Store:
         ).fetchone()
         return row is not None
 
-    def add_message_target_nodes(self, message_id: int, node_ids: list[int]) -> None:
-        self._db.add_message_target_nodes(message_id, node_ids)
+    def search_messages(self, operator_id: int, query: str) -> list[Message]:
+        """Search messages by subject, body, from_call, or to_call using case-insensitive substring matching."""
+        assert self._conn
+        pattern = f"%{query}%"
+        rows = self._conn.execute(
+            """SELECT * FROM messages
+               WHERE operator_id=? AND deleted=0
+                 AND (subject LIKE ? OR body LIKE ? OR from_call LIKE ? OR to_call LIKE ?)
+               ORDER BY timestamp DESC""",
+            (operator_id, pattern, pattern, pattern, pattern),
+        ).fetchall()
+        return [self._row_to_message(r) for r in rows]
 
-    def get_message_target_nodes(self, message_id: int) -> list[int]:
-        return self._db.get_message_target_nodes(message_id)
-
-    def get_nts_msg_number(self, operator_id: int) -> int:
-        """Return the next NTS message number for this operator."""
-        return self._db.get_nts_msg_number(operator_id)
-
-    def set_nts_msg_number(self, operator_id: int, number: int) -> None:
-        """Persist the NTS message number for this operator."""
-        self._db.set_nts_msg_number(operator_id, number)
+    def search_bulletins(self, operator_id: int, query: str) -> list[Bulletin]:
+        """Search bulletins by subject, body, from_call, or category using case-insensitive substring matching."""
+        assert self._conn
+        pattern = f"%{query}%"
+        rows = self._conn.execute(
+            """SELECT * FROM bulletins
+               WHERE operator_id=? AND queued=0
+                 AND (subject LIKE ? OR from_call LIKE ? OR category LIKE ? OR (body != ? AND body LIKE ?))
+               ORDER BY timestamp DESC""",
+            (operator_id, pattern, pattern, pattern, "\x00", pattern),
+        ).fetchall()
+        return [self._row_to_bulletin(r) for r in rows]
 
     def list_nodes(self) -> list:
         return self._db.list_nodes()
@@ -344,6 +356,18 @@ class Store:
 
     def get_node_group(self, group_id: int):
         return self._db.get_node_group(group_id)
+
+    def add_message_target_nodes(self, message_id: int, node_ids: list[int]) -> None:
+        return self._db.add_message_target_nodes(message_id, node_ids)
+
+    def get_message_target_nodes(self, message_id: int) -> list[int]:
+        return self._db.get_message_target_nodes(message_id)
+
+    def get_nts_msg_number(self, operator_id: int) -> int:
+        return self._db.get_nts_msg_number(operator_id)
+
+    def set_nts_msg_number(self, operator_id: int, number: int) -> None:
+        return self._db.set_nts_msg_number(operator_id, number)
 
     def upsert_node_neighbor(self, node_id: int, callsign: str, port: int | None) -> None:
         assert self._conn
