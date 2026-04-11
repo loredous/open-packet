@@ -60,4 +60,6 @@ class Settings:
 
     @scheduled_sr_interval.setter
     def scheduled_sr_interval(self, value: int) -> None:
+        if value < 5:
+            raise ValueError(f"scheduled_sr_interval must be >= 5 minutes, got {value}")
         self._db.set_setting("scheduled_sr_interval", str(value))

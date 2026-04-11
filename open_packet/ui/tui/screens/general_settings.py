@@ -114,13 +114,15 @@ class GeneralSettingsScreen(ModalScreen):
             self.app.notify("Console buffer must be a number", severity="error")
             return
 
-        try:
-            scheduled_sr_interval = int(scheduled_sr_interval_raw)
-            if scheduled_sr_interval < 5:
-                raise ValueError
-        except ValueError:
-            self.app.notify("S/R interval must be a whole number >= 5 minutes", severity="error")
-            return
+        scheduled_sr_interval = self._settings.scheduled_sr_interval
+        if scheduled_sr_enabled:
+            try:
+                scheduled_sr_interval = int(scheduled_sr_interval_raw)
+                if scheduled_sr_interval < 5:
+                    raise ValueError
+            except ValueError:
+                self.app.notify("S/R interval must be a whole number >= 5 minutes", severity="error")
+                return
 
         console_log_level = self.query_one("#console_log_level_field", Select).value
         old_auto_discover = self._settings.auto_discover

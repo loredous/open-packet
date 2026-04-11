@@ -270,7 +270,7 @@ class OpenPacketApp(App):
             self._scheduled_sr_timer.stop()
             self._scheduled_sr_timer = None
         if self._settings and self._settings.scheduled_sr_enabled:
-            interval_seconds = self._settings.scheduled_sr_interval * 60
+            interval_seconds = max(self._settings.scheduled_sr_interval * 60, 300)
             self._scheduled_sr_timer = self.set_interval(interval_seconds, self._do_scheduled_sr)
 
     def _update_status_bar_identity(self) -> None:

@@ -2,7 +2,6 @@
 import queue
 import pytest
 from open_packet.store.database import Database
-from open_packet.store.settings import Settings
 from open_packet.store.models import Operator, Node, Interface
 from open_packet.engine.commands import CheckMailCommand
 from open_packet.ui.tui.app import OpenPacketApp

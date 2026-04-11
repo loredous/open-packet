@@ -75,6 +75,12 @@ def test_scheduled_sr_interval_set(db):
     assert s.scheduled_sr_interval == 15
 
 
+def test_scheduled_sr_interval_minimum_enforced(db):
+    s = Settings(db)
+    with pytest.raises(ValueError, match="5 minutes"):
+        s.scheduled_sr_interval = 4
+
+
 def test_scheduled_sr_persisted_across_instances(db):
     s1 = Settings(db)
     s1.scheduled_sr_enabled = True
