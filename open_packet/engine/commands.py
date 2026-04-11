@@ -1,6 +1,12 @@
 # open_packet/engine/commands.py
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from open_packet.link.base import ConnectionBase
+    from open_packet.node.base import NodeBase
+    from open_packet.store.models import Node, Interface
 
 
 @dataclass
@@ -38,4 +44,20 @@ class PostBulletinCommand:
     body: str
 
 
-Command = ConnectCommand | DisconnectCommand | CheckMailCommand | SendMessageCommand | DeleteMessageCommand | PostBulletinCommand
+@dataclass
+class NodeSyncTarget:
+    """A single node to sync as part of a group operation."""
+    node_record: "Node"
+    interface: "Interface"
+    connection: "ConnectionBase"
+    bpq_node: "NodeBase"
+
+
+@dataclass
+class GroupSyncCommand:
+    """Trigger a sequential sync across all nodes in a group."""
+    group_name: str
+    targets: list[NodeSyncTarget] = field(default_factory=list)
+
+
+Command = ConnectCommand | DisconnectCommand | CheckMailCommand | SendMessageCommand | DeleteMessageCommand | PostBulletinCommand | GroupSyncCommand
