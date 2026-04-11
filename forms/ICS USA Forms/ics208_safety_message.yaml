@@ -1,0 +1,85 @@
+name: ICS 208 Safety Message
+category: ICS USA Forms
+subject_template: "ICS 208 - {{ IncidentName }} - {{ DateTimeFrom }}"
+body_template: |
+  ICS 208 SAFETY MESSAGE/PLAN
+
+  1. Incident Name: {{ IncidentName }}
+
+  2. Operational Period:
+  Date/Time From: {{ DateTimeFrom }}
+  Date/Time To:   {{ DateTimeTo }}
+
+  3. Safety Message/Expanded Safety Message or Safety Plan:
+  {{ SafetyMessage }}
+
+  4. Site Safety Plan Required: {{ SiteSafetyPlanRequired }}
+     Site Safety Plan(s) Located at: {{ SiteSafetyPlanLocation }}
+
+  5. Approved by Safety Officer:
+  Name: {{ SafetyOfficerName }}
+  Position/Title: {{ SafetyOfficerPosition }}
+  Signature: {{ SafetyOfficerSignature }}
+  Date/Time: {{ PreparedDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTimeFrom
+    label: "2. Operational Period - Date/Time From"
+    description: "e.g. 2025-01-15 0800"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateTimeTo
+    label: "2. Operational Period - Date/Time To"
+    description: "e.g. 2025-01-15 2000"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: SafetyMessage
+    label: "3. Safety Message/Expanded Safety Message or Safety Plan"
+    type: textarea
+    required: true
+
+  - name: SiteSafetyPlanRequired
+    label: "4. Site Safety Plan Required"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+    required: true
+
+  - name: SiteSafetyPlanLocation
+    label: "4. Site Safety Plan(s) Located at"
+    type: text
+    max_length: 80
+
+  - name: SafetyOfficerName
+    label: "5. Safety Officer Name"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: SafetyOfficerPosition
+    label: "5. Safety Officer Position/Title"
+    type: text
+    max_length: 40
+
+  - name: SafetyOfficerSignature
+    label: "5. Safety Officer Signature"
+    type: text
+    max_length: 40
+
+  - name: PreparedDateTime
+    label: "5. Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
