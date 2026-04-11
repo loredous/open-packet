@@ -70,6 +70,7 @@ class NeighborsDiscoveredEvent:
 class FrameReceivedEvent:
     """Emitted when a frame is received from the interface/TNC."""
     interface_id: Optional[int] = None
+    interface_label: Optional[str] = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 

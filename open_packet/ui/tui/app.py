@@ -162,13 +162,13 @@ class OpenPacketApp(App):
 
         self._start_engine(db, operator, node_record)
 
-    def _make_frame_logger(self, interface_id: Optional[int] = None):
+    def _make_frame_logger(self, interface_id: Optional[int] = None, interface_label: Optional[str] = None):
         from open_packet.engine.events import ConsoleEvent as _CE, FrameReceivedEvent as _FRE
         evt_queue = self._evt_queue
         def _log(direction: str, summary: str) -> None:
             evt_queue.put(_CE(direction, summary, level="debug"))
             if direction == "<":
-                evt_queue.put(_FRE(interface_id=interface_id))
+                evt_queue.put(_FRE(interface_id=interface_id, interface_label=interface_label))
         return _log
 
     def _build_connection(self, iface: Interface, op: Operator, on_frame=None):
@@ -216,7 +216,7 @@ class OpenPacketApp(App):
             self._update_status_bar_identity()
             return
 
-        connection = self._build_connection(iface, operator, on_frame=self._make_frame_logger(interface_id=iface.id))
+        connection = self._build_connection(iface, operator, on_frame=self._make_frame_logger(interface_id=iface.id, interface_label=iface.label))
         if connection is None:
             raise ValueError(f"Unknown interface type: {iface.iface_type!r}")
 
