@@ -1100,7 +1100,6 @@ def test_nts_msg_number_set_and_get(db):
 
 
 def test_nts_msg_number_persists_across_instances(tmp_path):
-    import os as _os
     db_path = str(tmp_path / "test.db")
     db1 = Database(db_path)
     db1.initialize()

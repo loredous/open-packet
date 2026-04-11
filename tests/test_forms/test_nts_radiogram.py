@@ -14,6 +14,18 @@ _NTS_YAML = _REPO_ROOT / "forms" / "NTS Forms" / "nts_radiogram.yaml"
 
 
 # ---------------------------------------------------------------------------
+# Hard-fail if the form YAML is missing — never silently skip
+# ---------------------------------------------------------------------------
+
+def test_nts_yaml_present():
+    """Fail fast if the NTS Radiogram YAML is missing or was renamed."""
+    assert _NTS_YAML.exists(), (
+        f"NTS radiogram YAML not found at {_NTS_YAML}. "
+        "Was the file moved or deleted?"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Word-count helper
 # ---------------------------------------------------------------------------
 
@@ -82,14 +94,12 @@ def test_form_field_non_computed_defaults(tmp_path):
 # NTS Radiogram YAML loads correctly
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_nts_radiogram_loads():
     form = load_form(_NTS_YAML)
     assert form.name == "NTS Radiogram"
     assert form.category == "NTS Forms"
 
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_nts_radiogram_has_required_fields():
     form = load_form(_NTS_YAML)
     field_names = {f.name for f in form.fields}
@@ -101,14 +111,12 @@ def test_nts_radiogram_has_required_fields():
     assert required <= field_names
 
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_nts_radiogram_precedence_choices():
     form = load_form(_NTS_YAML)
     prec = next(f for f in form.fields if f.name == "precedence")
     assert set(prec.choices) == {"R", "W", "P", "E"}
 
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_nts_radiogram_check_computed():
     form = load_form(_NTS_YAML)
     check_field = next(f for f in form.fields if f.name == "check")
@@ -116,7 +124,6 @@ def test_nts_radiogram_check_computed():
     assert check_field.compute == "word_count"
 
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_nts_radiogram_handling_instructions_optional():
     form = load_form(_NTS_YAML)
     hi = next(f for f in form.fields if f.name == "handling_instructions")
@@ -127,7 +134,6 @@ def test_nts_radiogram_handling_instructions_optional():
 # Validation: precedence codes
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_precedence_valid_codes():
     form = load_form(_NTS_YAML)
     prec = next(f for f in form.fields if f.name == "precedence")
@@ -135,7 +141,6 @@ def test_precedence_valid_codes():
         assert validate_field(prec, code) == []
 
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_precedence_invalid_code():
     form = load_form(_NTS_YAML)
     prec = next(f for f in form.fields if f.name == "precedence")
@@ -147,28 +152,24 @@ def test_precedence_invalid_code():
 # Validation: handling instructions pattern
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_handling_instructions_empty_ok():
     form = load_form(_NTS_YAML)
     hi = next(f for f in form.fields if f.name == "handling_instructions")
     assert validate_field(hi, "") == []
 
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_handling_instructions_single_valid():
     form = load_form(_NTS_YAML)
     hi = next(f for f in form.fields if f.name == "handling_instructions")
     assert validate_field(hi, "HXA") == []
 
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_handling_instructions_multiple_valid():
     form = load_form(_NTS_YAML)
     hi = next(f for f in form.fields if f.name == "handling_instructions")
     assert validate_field(hi, "HXA HXC HXF") == []
 
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_handling_instructions_invalid():
     form = load_form(_NTS_YAML)
     hi = next(f for f in form.fields if f.name == "handling_instructions")
@@ -176,7 +177,6 @@ def test_handling_instructions_invalid():
     assert errors
 
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_handling_instructions_freeform_text_invalid():
     form = load_form(_NTS_YAML)
     hi = next(f for f in form.fields if f.name == "handling_instructions")
@@ -188,14 +188,12 @@ def test_handling_instructions_freeform_text_invalid():
 # Validation: message number pattern
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_message_number_valid():
     form = load_form(_NTS_YAML)
     mn = next(f for f in form.fields if f.name == "message_number")
     assert validate_field(mn, "42") == []
 
 
-@pytest.mark.skipif(not _NTS_YAML.exists(), reason="NTS radiogram YAML not found")
 def test_message_number_invalid():
     form = load_form(_NTS_YAML)
     mn = next(f for f in form.fields if f.name == "message_number")

@@ -147,11 +147,19 @@ class FormFillScreen(ModalScreen):
                 values[f.name] = self.query_one(fid, Input).value
         return values
 
-    def _update_computed_fields(self) -> None:
-        """Recompute any fields that derive their value from another field."""
+    def _update_computed_fields(self, changed_field_name: Optional[str] = None) -> None:
+        """Recompute fields that derive their value from *changed_field_name*.
+
+        If *changed_field_name* is None all computed fields are refreshed (used
+        at mount time).  Only writes to a widget when the computed value actually
+        differs from the current value to avoid triggering spurious Changed events.
+        """
         values = self._get_values()
         for f in self._form.fields:
             if not f.computed_from or not f.compute:
+                continue
+            # When a specific source field is known, skip unrelated computed fields.
+            if changed_field_name is not None and f.computed_from != changed_field_name:
                 continue
             compute_fn = _COMPUTE_FNS.get(f.compute)
             if compute_fn is None:
@@ -159,7 +167,8 @@ class FormFillScreen(ModalScreen):
             source_value = values.get(f.computed_from, "")
             computed = compute_fn(source_value)
             widget = self.query_one(f"#field_{f.name}", Input)
-            widget.value = computed
+            if widget.value != computed:
+                widget.value = computed
 
     def _run_validation(self) -> bool:
         values = self._get_values()
@@ -175,12 +184,19 @@ class FormFillScreen(ModalScreen):
         self.query_one("#submit_btn", Button).disabled = has_errors
         return not has_errors
 
+    def _field_name_from_widget_id(self, widget_id: Optional[str]) -> Optional[str]:
+        if widget_id and widget_id.startswith("field_"):
+            return widget_id[len("field_"):]
+        return None
+
     def on_input_changed(self, event: Input.Changed) -> None:
-        self._update_computed_fields()
+        field_name = self._field_name_from_widget_id(event.input.id)
+        self._update_computed_fields(changed_field_name=field_name)
         self._run_validation()
 
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
-        self._update_computed_fields()
+        field_name = self._field_name_from_widget_id(event.text_area.id)
+        self._update_computed_fields(changed_field_name=field_name)
         self._run_validation()
 
     def on_select_changed(self, event: Select.Changed) -> None:
@@ -188,13 +204,14 @@ class FormFillScreen(ModalScreen):
 
     def _do_submit(self) -> None:
         values = self._get_values()
-        if self._on_field_values is not None:
-            self._on_field_values(values)
         try:
             subject, body = render(self._form, values)
-            self.dismiss((subject, body))
         except FormRenderError as e:
             self.query_one("#render_error", Label).update(f"Template error: {e}")
+            return
+        if self._on_field_values is not None:
+            self._on_field_values(values)
+        self.dismiss((subject, body))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "cancel_btn":

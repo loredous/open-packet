@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+from typing import Callable, Optional
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, TextArea
@@ -74,7 +75,9 @@ class ComposeScreen(ModalScreen):
             callback=self._on_form_filled,
         )
 
-    def _nts_form_extras(self, form_def) -> tuple[dict, object]:
+    def _nts_form_extras(
+        self, form_def
+    ) -> tuple[dict[str, str], Optional[Callable[[dict[str, str]], None]]]:
         """Delegate NTS-specific initial-values/callback to the app if available."""
         app = self.app
         if hasattr(app, "_nts_form_extras"):

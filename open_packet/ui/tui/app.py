@@ -4,7 +4,7 @@ import logging
 import os
 import queue
 from pathlib import Path
-from typing import Any, AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Callable, Optional
 
 from textual.app import App
 from textual.command import Hit, Hits, Provider
@@ -656,21 +656,24 @@ class OpenPacketApp(App):
             callback=self._on_form_fill_result,
         )
 
-    def _nts_form_extras(self, form_def) -> tuple[dict, object]:
+    def _nts_form_extras(
+        self, form_def
+    ) -> tuple[dict[str, str], Optional[Callable[[dict[str, str]], None]]]:
         """Return (initial_values, on_field_values) for NTS Radiogram forms, else empty defaults."""
         from open_packet.forms.loader import FormDefinition
         if not isinstance(form_def, FormDefinition) or form_def.name != "NTS Radiogram":
             return {}, None
         if self._store is None or self._active_operator is None or self._active_operator.id is None:
             return {}, None
-        op_id = self._active_operator.id
-        msg_num = self._store.get_nts_msg_number(op_id)
-        initial_values = {"message_number": str(msg_num)}
+        op_id: int = self._active_operator.id
+        store = self._store
+        msg_num = store.get_nts_msg_number(op_id)
+        initial_values: dict[str, str] = {"message_number": str(msg_num)}
 
-        def on_field_values(values: dict) -> None:
+        def on_field_values(values: dict[str, str]) -> None:
             raw = values.get("message_number", "").strip()
             if raw.isdigit():
-                self._store.set_nts_msg_number(op_id, int(raw) + 1)  # type: ignore[union-attr]
+                store.set_nts_msg_number(op_id, int(raw) + 1)
 
         return initial_values, on_field_values
 
