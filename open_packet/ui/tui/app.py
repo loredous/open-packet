@@ -108,6 +108,7 @@ class OpenPacketApp(App):
         self._pending_neighbor_prompts: list = []
         self._terminal_sessions: list[TerminalSession] = []
         self._active_session_idx: Optional[int] = None
+        self._scheduled_sr_timer = None
 
     @property
     def forms_dir(self) -> Path:
@@ -131,6 +132,7 @@ class OpenPacketApp(App):
         self.set_interval(0.1, self._poll_events)
         self.call_after_refresh(self._refresh_message_list)
         self.call_after_refresh(self._update_status_bar_identity)
+        self._update_scheduled_sr()
 
     def _init_engine(self) -> None:
         db_path = os.path.expanduser(self._db_path)
@@ -260,6 +262,18 @@ class OpenPacketApp(App):
         self._update_status_bar_identity()
         self._init_engine()
 
+    def _do_scheduled_sr(self) -> None:
+        if self._engine is not None:
+            self._cmd_queue.put(CheckMailCommand())
+
+    def _update_scheduled_sr(self) -> None:
+        if self._scheduled_sr_timer is not None:
+            self._scheduled_sr_timer.stop()
+            self._scheduled_sr_timer = None
+        if self._settings and self._settings.scheduled_sr_enabled:
+            interval_seconds = max(self._settings.scheduled_sr_interval * 60, 300)
+            self._scheduled_sr_timer = self.set_interval(interval_seconds, self._do_scheduled_sr)
+
     def _update_status_bar_identity(self) -> None:
         op = self._active_operator
         node = self._active_node
@@ -338,6 +352,7 @@ class OpenPacketApp(App):
     def _on_manage_result(self, needs_restart) -> None:
         if needs_restart:
             self._restart_engine()
+        self._update_scheduled_sr()
 
     # --- Event polling ---
 

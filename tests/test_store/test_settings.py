@@ -53,3 +53,38 @@ def test_settings_persisted_across_instances(db):
 def test_set_unknown_setting_raises(db):
     with pytest.raises(KeyError, match="Unknown setting"):
         db.set_setting("nonexistent_key", "value")
+
+
+def test_scheduled_sr_defaults(db):
+    s = Settings(db)
+    assert s.scheduled_sr_enabled is False
+    assert s.scheduled_sr_interval == 30
+
+
+def test_scheduled_sr_enabled_set(db):
+    s = Settings(db)
+    s.scheduled_sr_enabled = True
+    assert s.scheduled_sr_enabled is True
+    s.scheduled_sr_enabled = False
+    assert s.scheduled_sr_enabled is False
+
+
+def test_scheduled_sr_interval_set(db):
+    s = Settings(db)
+    s.scheduled_sr_interval = 15
+    assert s.scheduled_sr_interval == 15
+
+
+def test_scheduled_sr_interval_minimum_enforced(db):
+    s = Settings(db)
+    with pytest.raises(ValueError, match="5 minutes"):
+        s.scheduled_sr_interval = 4
+
+
+def test_scheduled_sr_persisted_across_instances(db):
+    s1 = Settings(db)
+    s1.scheduled_sr_enabled = True
+    s1.scheduled_sr_interval = 10
+    s2 = Settings(db)
+    assert s2.scheduled_sr_enabled is True
+    assert s2.scheduled_sr_interval == 10
