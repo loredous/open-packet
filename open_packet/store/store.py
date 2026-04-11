@@ -331,6 +331,12 @@ class Store:
     def list_nodes(self) -> list:
         return self._db.list_nodes()
 
+    def list_node_groups(self) -> list:
+        return self._db.list_node_groups()
+
+    def get_node_group(self, group_id: int):
+        return self._db.get_node_group(group_id)
+
     def upsert_node_neighbor(self, node_id: int, callsign: str, port: int | None) -> None:
         assert self._conn
         now = datetime.now(timezone.utc).isoformat()

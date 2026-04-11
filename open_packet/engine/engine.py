@@ -10,11 +10,12 @@ from typing import Optional
 from open_packet.engine.commands import (
     Command, CheckMailCommand, ConnectCommand, DisconnectCommand,
     SendMessageCommand, DeleteMessageCommand, PostBulletinCommand,
+    GroupSyncCommand,
 )
 from open_packet.engine.events import (
     ConnectionStatusEvent, ConnectionStatus, MessageReceivedEvent,
     SyncCompleteEvent, ErrorEvent, MessageQueuedEvent, ConsoleEvent,
-    NeighborsDiscoveredEvent,
+    NeighborsDiscoveredEvent, GroupSyncCompleteEvent, GroupSyncNodeResult,
 )
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase
@@ -116,6 +117,8 @@ class Engine:
     def _handle(self, cmd: Command) -> None:
         if isinstance(cmd, CheckMailCommand):
             self._do_check_mail()
+        elif isinstance(cmd, GroupSyncCommand):
+            self._do_group_sync(cmd)
         elif isinstance(cmd, SendMessageCommand):
             self._do_send_message(cmd)
         elif isinstance(cmd, DeleteMessageCommand):
@@ -420,6 +423,81 @@ class Engine:
         # Phase 5: Auto-forward via discovered neighbors
         if self._node_record.auto_forward:
             self._do_auto_forward()
+
+    def _do_group_sync(self, cmd: GroupSyncCommand) -> None:
+        """Sync each node in a group in order, skipping unreachable nodes."""
+        self._emit(ConsoleEvent("!", f"Starting group sync: {cmd.group_name}", level="basic"))
+        results: list[GroupSyncNodeResult] = []
+
+        for target in cmd.targets:
+            node_label = target.node_record.label
+            node_addr = f"{target.node_record.callsign}-{target.node_record.ssid}"
+            self._emit(ConsoleEvent(">", f"[Group {cmd.group_name}] Connecting to {node_addr}…"))
+            try:
+                node_record = target.node_record
+                connection = target.connection
+                bpq_node = target.bpq_node
+
+                if node_record.path_strategy == "path_route" and node_record.hop_path:
+                    first = node_record.hop_path[0]
+                    from open_packet.ax25.connection import _split_callsign
+                    call, ssid = _split_callsign(first.callsign)
+                    connection.connect(call, ssid)
+                else:
+                    via = node_record.hop_path if node_record.path_strategy == "digipeat" else None
+                    if via:
+                        connection.connect(node_record.callsign, node_record.ssid, via_path=via)
+                    else:
+                        connection.connect(node_record.callsign, node_record.ssid)
+
+                bpq_node.wait_for_prompt()
+                bpq_node.connect_node()
+                self._emit(ConsoleEvent("<", f"[Group {cmd.group_name}] Connected to {node_addr}"))
+
+                retrieved, sent, bulletins_retrieved, files_retrieved = self._run_sync_phases(bpq_node)
+                results.append(GroupSyncNodeResult(
+                    node_label=node_label,
+                    skipped=False,
+                    messages_retrieved=retrieved,
+                    messages_sent=sent,
+                    bulletins_retrieved=bulletins_retrieved,
+                    files_retrieved=files_retrieved,
+                ))
+                self._emit(ConsoleEvent(
+                    "<",
+                    f"[Group {cmd.group_name}] {node_label}: {retrieved} msgs, {bulletins_retrieved} bulletins",
+                    level="basic",
+                ))
+            except Exception as e:
+                logger.warning("Group sync: skipping %s due to error: %s", node_label, e)
+                results.append(GroupSyncNodeResult(
+                    node_label=node_label,
+                    skipped=True,
+                    skip_reason=str(e),
+                ))
+                self._emit(ConsoleEvent(
+                    "!",
+                    f"[Group {cmd.group_name}] {node_label}: skipped ({e})",
+                    level="basic",
+                ))
+            finally:
+                try:
+                    target.connection.disconnect()
+                except Exception:
+                    pass
+
+        skipped = [r for r in results if r.skipped]
+        synced = [r for r in results if not r.skipped]
+        total_msgs = sum(r.messages_retrieved for r in synced)
+        total_bulletins = sum(r.bulletins_retrieved for r in synced)
+        skip_names = ", ".join(r.node_label for r in skipped)
+        summary_parts = [f"{len(synced)} node(s) synced"]
+        if skipped:
+            summary_parts.append(f"{len(skipped)} skipped ({skip_names})")
+        summary_parts.append(f"{total_msgs} new msgs")
+        summary_parts.append(f"{total_bulletins} bulletins")
+        self._emit(ConsoleEvent("!", f"Group sync complete: {', '.join(summary_parts)}", level="basic"))
+        self._emit(GroupSyncCompleteEvent(group_name=cmd.group_name, results=results))
 
     def _do_send_message(self, cmd: SendMessageCommand) -> None:
         now = datetime.now(timezone.utc)
