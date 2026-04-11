@@ -303,6 +303,14 @@ class Store:
         ).fetchone()
         return row is not None
 
+    def get_nts_msg_number(self, operator_id: int) -> int:
+        """Return the next NTS message number for this operator."""
+        return self._db.get_nts_msg_number(operator_id)
+
+    def set_nts_msg_number(self, operator_id: int, number: int) -> None:
+        """Persist the NTS message number for this operator."""
+        self._db.set_nts_msg_number(operator_id, number)
+
     def list_nodes(self) -> list:
         return self._db.list_nodes()
 

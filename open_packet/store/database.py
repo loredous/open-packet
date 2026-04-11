@@ -119,6 +119,14 @@ class Database:
         except sqlite3.OperationalError:
             pass  # column already exists
 
+        try:
+            self._conn.execute(
+                "ALTER TABLE operators ADD COLUMN nts_msg_number INTEGER NOT NULL DEFAULT 1"
+            )
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
     def close(self) -> None:
         if self._conn:
             self._conn.close()
@@ -336,6 +344,25 @@ class Database:
         assert self._conn
         rows = self._conn.execute("SELECT * FROM nodes WHERE deleted=0 ORDER BY id").fetchall()
         return [self._row_to_node(r) for r in rows]
+
+    def get_nts_msg_number(self, operator_id: int) -> int:
+        """Return the next NTS message number for *operator_id* (default 1 if not set)."""
+        assert self._conn
+        row = self._conn.execute(
+            "SELECT nts_msg_number FROM operators WHERE id=?", (operator_id,)
+        ).fetchone()
+        if row is None:
+            return 1
+        val = row["nts_msg_number"]
+        return val if val is not None else 1
+
+    def set_nts_msg_number(self, operator_id: int, number: int) -> None:
+        """Persist the NTS message number for *operator_id*."""
+        assert self._conn
+        self._conn.execute(
+            "UPDATE operators SET nts_msg_number=? WHERE id=?", (number, operator_id)
+        )
+        self._conn.commit()
 
     def update_operator(self, op: Operator) -> None:
         assert self._conn

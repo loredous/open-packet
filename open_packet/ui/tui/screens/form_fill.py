@@ -1,5 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
+from typing import Callable, Optional
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, TextArea
@@ -8,6 +9,16 @@ from textual.containers import Horizontal, Vertical
 from open_packet.forms.loader import FormDefinition
 from open_packet.forms.renderer import FormRenderError, render
 from open_packet.forms.validator import validate_form
+
+
+def _compute_word_count(text: str) -> str:
+    """Return the number of whitespace-delimited words in *text* as a string."""
+    return str(len(text.split())) if text.strip() else "0"
+
+
+_COMPUTE_FNS: dict[str, Callable[[str], str]] = {
+    "word_count": _compute_word_count,
+}
 
 
 class _BypassConfirmScreen(ModalScreen):
@@ -63,11 +74,22 @@ class FormFillScreen(ModalScreen):
     FormFillScreen .field-error {
         color: $error;
     }
+    FormFillScreen .computed-field {
+        opacity: 0.7;
+    }
     """
 
-    def __init__(self, form: FormDefinition, **kwargs):
+    def __init__(
+        self,
+        form: FormDefinition,
+        initial_values: Optional[dict[str, str]] = None,
+        on_field_values: Optional[Callable[[dict[str, str]], None]] = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self._form = form
+        self._initial_values: dict[str, str] = initial_values or {}
+        self._on_field_values = on_field_values
 
     def compose(self) -> ComposeResult:
         with Vertical():
@@ -78,14 +100,28 @@ class FormFillScreen(ModalScreen):
                     yield Label(f.description, classes="field-desc")
                 if f.choices:
                     opts = [(c, c) for c in f.choices]
-                    yield Select(opts, allow_blank=True, id=f"field_{f.name}")
+                    initial = self._initial_values.get(f.name, "")
+                    if initial and initial in f.choices:
+                        yield Select(opts, value=initial, allow_blank=True, id=f"field_{f.name}")
+                    else:
+                        yield Select(opts, allow_blank=True, id=f"field_{f.name}")
                 elif f.type == "textarea":
-                    yield TextArea(id=f"field_{f.name}")
+                    initial = self._initial_values.get(f.name, "")
+                    yield TextArea(initial, id=f"field_{f.name}")
                 else:
-                    initial = ""
-                    if f.type == "datetime" and f.auto_populate and f.format:
+                    initial = self._initial_values.get(f.name, "")
+                    if not initial and f.type == "datetime" and f.auto_populate and f.format:
                         initial = datetime.now().strftime(f.format)
-                    yield Input(value=initial, id=f"field_{f.name}")
+                    if f.computed_from:
+                        # Computed fields are read-only; value is derived from another field
+                        yield Input(
+                            value=initial,
+                            id=f"field_{f.name}",
+                            disabled=True,
+                            classes="computed-field",
+                        )
+                    else:
+                        yield Input(value=initial, id=f"field_{f.name}")
                 yield Label("", id=f"error_{f.name}", classes="field-error")
             yield Label("", id="render_error", classes="field-error")
             with Horizontal():
@@ -94,6 +130,7 @@ class FormFillScreen(ModalScreen):
                 yield Button("Cancel", id="cancel_btn")
 
     def on_mount(self) -> None:
+        self._update_computed_fields()
         self._run_validation()
 
     def _get_values(self) -> dict[str, str]:
@@ -110,6 +147,20 @@ class FormFillScreen(ModalScreen):
                 values[f.name] = self.query_one(fid, Input).value
         return values
 
+    def _update_computed_fields(self) -> None:
+        """Recompute any fields that derive their value from another field."""
+        values = self._get_values()
+        for f in self._form.fields:
+            if not f.computed_from or not f.compute:
+                continue
+            compute_fn = _COMPUTE_FNS.get(f.compute)
+            if compute_fn is None:
+                continue
+            source_value = values.get(f.computed_from, "")
+            computed = compute_fn(source_value)
+            widget = self.query_one(f"#field_{f.name}", Input)
+            widget.value = computed
+
     def _run_validation(self) -> bool:
         values = self._get_values()
         errors = validate_form(self._form, values)
@@ -125,9 +176,11 @@ class FormFillScreen(ModalScreen):
         return not has_errors
 
     def on_input_changed(self, event: Input.Changed) -> None:
+        self._update_computed_fields()
         self._run_validation()
 
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        self._update_computed_fields()
         self._run_validation()
 
     def on_select_changed(self, event: Select.Changed) -> None:
@@ -135,6 +188,8 @@ class FormFillScreen(ModalScreen):
 
     def _do_submit(self) -> None:
         values = self._get_values()
+        if self._on_field_values is not None:
+            self._on_field_values(values)
         try:
             subject, body = render(self._form, values)
             self.dismiss((subject, body))

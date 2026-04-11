@@ -650,7 +650,29 @@ class OpenPacketApp(App):
         if form_def is None:
             return
         from open_packet.ui.tui.screens.form_fill import FormFillScreen
-        self.push_screen(FormFillScreen(form_def), callback=self._on_form_fill_result)
+        initial_values, on_field_values = self._nts_form_extras(form_def)
+        self.push_screen(
+            FormFillScreen(form_def, initial_values=initial_values, on_field_values=on_field_values),
+            callback=self._on_form_fill_result,
+        )
+
+    def _nts_form_extras(self, form_def) -> tuple[dict, object]:
+        """Return (initial_values, on_field_values) for NTS Radiogram forms, else empty defaults."""
+        from open_packet.forms.loader import FormDefinition
+        if not isinstance(form_def, FormDefinition) or form_def.name != "NTS Radiogram":
+            return {}, None
+        if self._store is None or self._active_operator is None or self._active_operator.id is None:
+            return {}, None
+        op_id = self._active_operator.id
+        msg_num = self._store.get_nts_msg_number(op_id)
+        initial_values = {"message_number": str(msg_num)}
+
+        def on_field_values(values: dict) -> None:
+            raw = values.get("message_number", "").strip()
+            if raw.isdigit():
+                self._store.set_nts_msg_number(op_id, int(raw) + 1)  # type: ignore[union-attr]
+
+        return initial_values, on_field_values
 
     def _on_form_fill_result(self, result) -> None:
         if result is None:
