@@ -63,3 +63,11 @@ class Settings:
         if value < 5:
             raise ValueError(f"scheduled_sr_interval must be >= 5 minutes, got {value}")
         self._db.set_setting("scheduled_sr_interval", str(value))
+
+    @property
+    def notifications_enabled(self) -> bool:
+        return self._db.get_setting("notifications_enabled") == "true"
+
+    @notifications_enabled.setter
+    def notifications_enabled(self, value: bool) -> None:
+        self._db.set_setting("notifications_enabled", "true" if value else "false")
