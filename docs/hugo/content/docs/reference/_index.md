@@ -1,10 +1,9 @@
 ---
 title: "Reference"
+description: "Configuration and keyboard shortcut reference"
+icon: "find_in_page"
 weight: 2
-bookCollapseSection: true
 ---
-
-# Reference
 
 | Topic | Description |
 |-------|-------------|

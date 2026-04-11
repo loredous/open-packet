@@ -1,5 +1,6 @@
 ---
 title: "BBS Files"
+description: "Browse and download files from BBS file directories"
 weight: 4
 ---
 
@@ -26,7 +27,7 @@ To download a file:
 1. Select the file in the list
 2. Press **R** to mark it for retrieval
 
-On the next send/receive (**Ctrl+C**), open-packet will fetch the file content and save it to the configured export directory (see [Configuration Reference]({{< relref "/reference/configuration" >}})).
+On the next send/receive (**Ctrl+C**), open-packet will fetch the file content and save it to the configured export directory (see [Configuration Reference]({{< relref "/docs/reference/configuration" >}})).
 
 > [!NOTE]
 > The export directory defaults to `~/.local/share/open-packet/export`. Files are saved using their original BBS filename.

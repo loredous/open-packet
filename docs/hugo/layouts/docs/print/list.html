@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.Language.Lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ .Site.Title }} — Full Documentation</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #111;
+      margin: 0;
+      padding: 0;
+    }
+
+    .print-cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+      page-break-after: always;
+    }
+
+    .print-cover h1 { font-size: 2.5em; margin-bottom: 0.25em; }
+    .print-cover p  { font-size: 1.1em; color: #555; }
+
+    .print-toc {
+      padding: 2em 3em;
+      page-break-after: always;
+    }
+
+    .print-toc h2 { font-size: 1.4em; border-bottom: 1px solid #ccc; padding-bottom: 0.3em; }
+    .print-toc ol { padding-left: 1.5em; }
+    .print-toc ol li { padding: 0.2em 0; }
+    .print-toc ol li a { text-decoration: none; color: #333; }
+
+    .print-section-header {
+      padding: 1em 3em 0.5em;
+      page-break-before: always;
+    }
+
+    .print-section-header h1 {
+      font-size: 2em;
+      border-bottom: 3px solid #333;
+      padding-bottom: 0.3em;
+    }
+
+    .print-page {
+      padding: 1.5em 3em;
+    }
+
+    .print-page h1 { font-size: 1.6em; border-bottom: 1px solid #aaa; padding-bottom: 0.25em; }
+    .print-page h2 { font-size: 1.3em; }
+    .print-page h3 { font-size: 1.1em; }
+
+    pre, code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.88em;
+      background: #f5f5f5;
+      border-radius: 3px;
+    }
+
+    pre {
+      padding: 1em;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    code { padding: 0.1em 0.3em; }
+    pre code { padding: 0; background: none; }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+      font-size: 0.9em;
+    }
+
+    table th, table td {
+      border: 1px solid #ccc;
+      padding: 0.4em 0.8em;
+      text-align: left;
+    }
+
+    table th { background: #f0f0f0; font-weight: 600; }
+
+    blockquote {
+      border-left: 4px solid #ccc;
+      margin: 1em 0;
+      padding: 0.5em 1em;
+      color: #555;
+    }
+
+    img { max-width: 100%; }
+
+    a { color: #0066cc; }
+
+    @media print {
+      body { font-size: 10pt; }
+      .print-cover { min-height: auto; padding: 5em 0; }
+      a { color: inherit; text-decoration: none; }
+      pre { font-size: 0.8em; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover page -->
+  <div class="print-cover">
+    <h1>{{ .Site.Title }}</h1>
+    <p>Full Documentation</p>
+    <p>Generated {{ now.Format "2006-01-02" }}</p>
+  </div>
+
+  <!-- Table of Contents -->
+  <div class="print-toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      {{- $docsSection := .Site.GetPage "/docs" -}}
+      {{- range $docsSection.Sections.ByParam "weight" -}}
+        {{- if not (in .RelPermalink "/print") -}}
+          <li><strong>{{ .Title }}</strong>
+            <ol>
+              {{- range .Pages.ByParam "weight" -}}
+                <li><a href="#{{ .File.UniqueID }}">{{ .Title }}</a></li>
+              {{- end -}}
+            </ol>
+          </li>
+        {{- end -}}
+      {{- end -}}
+    </ol>
+  </div>
+
+  <!-- Content: iterate sections in order, then their pages -->
+  {{- $docsSection := .Site.GetPage "/docs" -}}
+  {{- range $docsSection.Sections.ByParam "weight" -}}
+    {{- if not (in .RelPermalink "/print") -}}
+      <div class="print-section-header">
+        <h1>{{ .Title }}</h1>
+        {{- if .Description -}}<p>{{ .Description }}</p>{{- end -}}
+      </div>
+      {{- range .Pages.ByParam "weight" -}}
+        <div class="print-page" id="{{ .File.UniqueID }}">
+          {{- .Content -}}
+        </div>
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+
+</body>
+</html>

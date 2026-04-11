@@ -37,6 +37,7 @@ class MainScreen(Screen):
         Binding("ctrl+u", "queue_bulletin_retrieval", "Queue Retrieval", priority=True),
         Binding("ctrl+q", "quit", "Quit", priority=True),
         Binding("ctrl+r", "reply_message", "Reply", priority=True),
+        Binding("ctrl+f", "search", "Search", priority=True),
         Binding("ctrl+c", "check_mail", "Send/Receive", priority=True),
         Binding("ctrl+s", "settings", "Settings", priority=True),
         Binding("ctrl+t", "terminal_connect", "Terminal", priority=True),
@@ -81,6 +82,9 @@ class MainScreen(Screen):
     def action_toggle_console(self) -> None:
         panel = self.query_one("ConsolePanel")
         panel.display = not panel.display
+
+    def action_search(self) -> None:
+        self.app.open_search()
 
     def action_check_mail(self) -> None:
         self.app.check_mail()

@@ -26,6 +26,8 @@ class FormField:
     pattern: Optional[str] = None
     format: Optional[str] = None
     auto_populate: bool = False
+    computed_from: Optional[str] = None  # Name of field whose value drives this field
+    compute: str = ""  # Computation type, e.g. "word_count"
 
 
 @dataclass
@@ -57,6 +59,8 @@ def _parse_field(raw: object) -> FormField:
         pattern=raw.get("pattern"),
         format=raw.get("format"),
         auto_populate=raw.get("auto_populate", False),
+        computed_from=raw.get("computed_from"),
+        compute=raw.get("compute", ""),
     )
 
 

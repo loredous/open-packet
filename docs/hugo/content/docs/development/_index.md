@@ -1,10 +1,9 @@
 ---
 title: "Development"
+description: "Architecture and contribution guide for open-packet"
+icon: "code"
 weight: 3
-bookCollapseSection: true
 ---
-
-# Development
 
 | Topic | Description |
 |-------|-------------|

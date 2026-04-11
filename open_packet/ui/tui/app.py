@@ -5,20 +5,21 @@ import os
 import queue
 from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Callable, Optional
 
 from textual.app import App
 from textual.command import Hit, Hits, Provider
 from textual.css.query import NoMatches
 
 from open_packet.engine.commands import (
-    CheckMailCommand, DeleteMessageCommand, SendMessageCommand, PostBulletinCommand
+    CheckMailCommand, DeleteMessageCommand, SendMessageCommand, PostBulletinCommand,
+    GroupSyncCommand, NodeSyncTarget,
 )
 from open_packet.engine.engine import Engine
 from open_packet.engine.events import (
     ConnectionStatusEvent, MessageReceivedEvent, SyncCompleteEvent,
     ErrorEvent, ConnectionStatus, MessageQueuedEvent, ConsoleEvent,
-    NeighborsDiscoveredEvent, FrameReceivedEvent,
+    NeighborsDiscoveredEvent, FrameReceivedEvent, GroupSyncCompleteEvent,
 )
 from open_packet.ui.tui.screens.shorter_path_confirm import ShorterPathConfirmScreen
 from open_packet.ax25.connection import AX25Connection
@@ -36,6 +37,7 @@ from open_packet.ui.tui.screens.compose import ComposeScreen
 from open_packet.ui.tui.screens.compose_bulletin import ComposeBulletinScreen
 from open_packet.ui.tui.screens.connect_terminal import ConnectTerminalScreen
 from open_packet.ui.tui.screens.main import MainScreen
+from open_packet.ui.tui.screens.search import SearchScreen
 from open_packet.ui.tui.screens.settings import SettingsScreen
 from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
 from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
@@ -68,6 +70,7 @@ class OpenPacketCommands(Provider):
             ("New Bulletin", "Post a new bulletin", app.open_compose_bulletin),
             ("New Form Message", "Compose a form-based message", app.open_form_compose),
             ("Update Default Forms", "Download latest form definitions from the repository", app.update_default_forms),
+            ("Search Messages", "Search messages and bulletins by keyword", app.open_search),
             ("Send/Receive", "Check mail and sync with BBS", app.check_mail),
             ("Toggle Console", "Show or hide the console panel", app._toggle_console_from_palette),
             ("Settings", "Open application settings", app.open_settings),
@@ -76,6 +79,15 @@ class OpenPacketCommands(Provider):
             ("Edit Interfaces", "Manage radio interfaces", app._palette_edit_interfaces),
             ("Terminal Connect", "Open a terminal connection", app.open_terminal_connect),
         ]
+
+        # Append one entry per configured node group
+        if app._db:
+            for grp in app._db.list_node_groups():
+                commands.append((
+                    f"Sync Group: {grp.name}",
+                    f"Send/receive all nodes in group \"{grp.name}\"",
+                    lambda g=grp: app.sync_node_group(g.id),
+                ))
 
         for display, help_text, callback in commands:
             score = matcher.match(display)
@@ -417,20 +429,29 @@ class OpenPacketApp(App):
                 self.notify(f"Error: {event.detail}", severity="error")
         elif isinstance(event, SyncCompleteEvent):
             status_bar.last_sync = datetime.now().strftime("%H:%M")
-            parts = [
-                f"{event.messages_retrieved} new",
-                f"{event.bulletins_retrieved} bulletins",
-                f"{event.messages_sent} sent",
-            ]
-            if getattr(event, "files_retrieved", 0) > 0:
-                export_path = self._settings.export_path if self._settings else "~/.local/share/open-packet/export"
-                parts.append(f"{event.files_retrieved} file(s) saved to {export_path}/files/")
-            self.notify(f"Sync complete: {', '.join(parts)}")
+            notifications_enabled = self._settings.notifications_enabled if self._settings else True
+            has_new_items = (
+                event.messages_retrieved > 0
+                or event.bulletins_retrieved > 0
+                or getattr(event, "files_retrieved", 0) > 0
+            )
+            if notifications_enabled and has_new_items:
+                parts = []
+                if event.messages_retrieved > 0:
+                    parts.append(f"{event.messages_retrieved} new message(s)")
+                if event.bulletins_retrieved > 0:
+                    parts.append(f"{event.bulletins_retrieved} new bulletin(s)")
+                if getattr(event, "files_retrieved", 0) > 0:
+                    export_path = self._settings.export_path if self._settings else "~/.local/share/open-packet/export"
+                    parts.append(f"{event.files_retrieved} file(s) saved to {export_path}/files/")
+                self.notify(f"New items received: {', '.join(parts)}")
             self._refresh_message_list()
         elif isinstance(event, ErrorEvent):
             self.notify(f"Error: {event.message}", severity="error")
         elif isinstance(event, NeighborsDiscoveredEvent):
             self._queue_neighbor_prompts(event)
+        elif isinstance(event, GroupSyncCompleteEvent):
+            self._handle_group_sync_complete(event)
 
     def _queue_neighbor_prompts(self, event: NeighborsDiscoveredEvent) -> None:
         """Build a sequential queue of prompts and start showing them."""
@@ -516,6 +537,11 @@ class OpenPacketApp(App):
 
             msg_list = self.query_one("MessageList")
 
+            # Build node label lookup for display in the message list
+            node_labels: dict[int, str] = {
+                n.id: n.label for n in self._store.list_nodes() if n.id is not None
+            }
+
             if folder == "Inbox":
                 messages = [
                     m for m in self._store.list_messages(operator_id=operator_id)
@@ -538,7 +564,7 @@ class OpenPacketApp(App):
             else:
                 messages = []
 
-            msg_list.load_messages(messages)
+            msg_list.load_messages(messages, node_labels=node_labels)
             stats = self._store.count_folder_stats(operator_id)
             self.query_one("FolderTree").update_counts(stats)
         except Exception:
@@ -556,6 +582,69 @@ class OpenPacketApp(App):
     def check_mail(self) -> None:
         if self._engine:
             self._cmd_queue.put(CheckMailCommand())
+
+    def sync_node_group(self, group_id: int) -> None:
+        """Build a GroupSyncCommand for the given group and queue it."""
+        if not self._engine or not self._db or not self._active_operator:
+            self.notify("Cannot sync: engine not running", severity="warning")
+            return
+        group = self._db.get_node_group(group_id)
+        if group is None:
+            self.notify("Group not found", severity="error")
+            return
+        nodes = {n.id: n for n in self._db.list_nodes()}
+        interfaces = {i.id: i for i in self._db.list_interfaces()}
+        op = self._active_operator
+
+        targets: list[NodeSyncTarget] = []
+        for node_id in group.node_ids:
+            node_record = nodes.get(node_id)
+            if node_record is None or node_record.interface_id is None:
+                continue
+            iface = interfaces.get(node_record.interface_id)
+            if iface is None:
+                continue
+            connection = self._build_connection(iface, op, on_frame=self._make_frame_logger())
+            if connection is None:
+                continue
+            from open_packet.node.bpq import BPQNode
+            bpq_node = BPQNode(
+                connection=connection,
+                node_callsign=node_record.callsign,
+                node_ssid=node_record.ssid,
+                my_callsign=op.callsign,
+                my_ssid=op.ssid,
+                hop_path=node_record.hop_path,
+                path_strategy=node_record.path_strategy,
+            )
+            targets.append(NodeSyncTarget(
+                node_record=node_record,
+                interface=iface,
+                connection=connection,
+                bpq_node=bpq_node,
+            ))
+
+        if not targets:
+            self.notify(f"Group \"{group.name}\" has no connectable nodes", severity="warning")
+            return
+
+        self._cmd_queue.put(GroupSyncCommand(group_name=group.name, targets=targets))
+        self.notify(f"Group sync started: {group.name}")
+
+    def _handle_group_sync_complete(self, event: GroupSyncCompleteEvent) -> None:
+        synced = [r for r in event.results if not r.skipped]
+        skipped = [r for r in event.results if r.skipped]
+        total_msgs = sum(r.messages_retrieved for r in synced)
+        total_bulletins = sum(r.bulletins_retrieved for r in synced)
+        parts = [f"{len(synced)} node(s) synced"]
+        if skipped:
+            skip_names = ", ".join(r.node_label for r in skipped)
+            parts.append(f"{len(skipped)} skipped: {skip_names}")
+        parts.append(f"{total_msgs} new message(s)")
+        if total_bulletins:
+            parts.append(f"{total_bulletins} bulletin(s)")
+        self.notify(f"Group \"{event.group_name}\": {', '.join(parts)}")
+        self._refresh_message_list()
 
     def delete_selected_message(self) -> None:
         msg = self._selected_message
@@ -607,6 +696,36 @@ class OpenPacketApp(App):
         elif result == "form":
             self.open_form_compose()
 
+    def open_search(self) -> None:
+        """Open the search modal to find messages and bulletins by keyword."""
+        if not self._store or not self._active_operator:
+            self.notify("No operator active. Set up an operator first.", severity="warning")
+            return
+        self.push_screen(
+            SearchScreen(store=self._store, operator_id=self._active_operator.id),
+            callback=self._on_search_result,
+        )
+
+    def _on_search_result(self, result: Optional[Message | Bulletin]) -> None:
+        if result is None:
+            return
+        self._selected_message = result
+        try:
+            node_label = ""
+            if isinstance(result, Bulletin) and result.body is None and self._store:
+                nodes = {n.id: n.label for n in self._store.list_nodes()}
+                node_label = nodes.get(result.node_id, f"node #{result.node_id}")
+            self.query_one("MessageBody").show_message(result, node_label=node_label)
+        except Exception:
+            pass
+        if self._store and result.id is not None and not result.read:
+            if isinstance(result, Message):
+                self._store.mark_message_read(result.id)
+            elif isinstance(result, Bulletin):
+                self._store.mark_bulletin_read(result.id)
+            result.read = True
+            self._refresh_folder_counts()
+
     def _toggle_console_from_palette(self) -> None:
         """Toggle console panel visibility (used by command palette)."""
         try:
@@ -649,7 +768,32 @@ class OpenPacketApp(App):
         if form_def is None:
             return
         from open_packet.ui.tui.screens.form_fill import FormFillScreen
-        self.push_screen(FormFillScreen(form_def), callback=self._on_form_fill_result)
+        initial_values, on_field_values = self._nts_form_extras(form_def)
+        self.push_screen(
+            FormFillScreen(form_def, initial_values=initial_values, on_field_values=on_field_values),
+            callback=self._on_form_fill_result,
+        )
+
+    def _nts_form_extras(
+        self, form_def
+    ) -> tuple[dict[str, str], Optional[Callable[[dict[str, str]], None]]]:
+        """Return (initial_values, on_field_values) for NTS Radiogram forms, else empty defaults."""
+        from open_packet.forms.loader import FormDefinition
+        if not isinstance(form_def, FormDefinition) or form_def.name != "NTS Radiogram":
+            return {}, None
+        if self._store is None or self._active_operator is None or self._active_operator.id is None:
+            return {}, None
+        op_id: int = self._active_operator.id
+        store = self._store
+        msg_num = store.get_nts_msg_number(op_id)
+        initial_values: dict[str, str] = {"message_number": str(msg_num)}
+
+        def on_field_values(values: dict[str, str]) -> None:
+            raw = values.get("message_number", "").strip()
+            if raw.isdigit():
+                store.set_nts_msg_number(op_id, int(raw) + 1)
+
+        return initial_values, on_field_values
 
     def _on_form_fill_result(self, result) -> None:
         if result is None:
@@ -698,7 +842,30 @@ class OpenPacketApp(App):
 
     def _on_compose_bulletin_result(self, result) -> None:
         if result and isinstance(result, PostBulletinCommand):
-            self._cmd_queue.put(result)
+            self._pick_nodes_then(result)
+
+    def _pick_nodes_then(self, cmd) -> None:
+        """Show node picker if multiple nodes are configured, then queue the command."""
+        if self._db is None:
+            return
+        nodes = self._db.list_nodes()
+        if not nodes:
+            return
+        if len(nodes) == 1:
+            cmd.node_ids = [nodes[0].id]
+            self._cmd_queue.put(cmd)
+            return
+        from open_packet.ui.tui.screens.node_multi_picker import NodeMultiPickerScreen
+        self.push_screen(
+            NodeMultiPickerScreen(nodes=nodes),
+            callback=lambda node_ids: self._on_node_ids_picked(cmd, node_ids),
+        )
+
+    def _on_node_ids_picked(self, cmd, node_ids) -> None:
+        if not node_ids:
+            return
+        cmd.node_ids = node_ids
+        self._cmd_queue.put(cmd)
 
     def open_terminal_connect(self) -> None:
         if self._db is None:
@@ -782,7 +949,7 @@ class OpenPacketApp(App):
 
     def _on_compose_result(self, result) -> None:
         if result and isinstance(result, SendMessageCommand):
-            self._cmd_queue.put(result)
+            self._pick_nodes_then(result)
 
     def on_message_list_message_selected(self, event) -> None:
         self._selected_message = event.message
