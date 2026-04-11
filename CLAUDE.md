@@ -68,9 +68,11 @@ Operator identity and node configuration are stored in SQLite and managed via TU
 
 ## Documentation
 
-The user-facing documentation lives in `docs/hugo/` as a [Hugo](https://gohugo.io/) static site using the `hugo-book` theme (included as a Git submodule at `docs/hugo/themes/book`).
+The user-facing documentation lives in `docs/hugo/` as a [Hugo](https://gohugo.io/) static site using the [Lotus Docs](https://github.com/colinwilson/lotusdocs) theme (included as a Git submodule at `docs/hugo/themes/lotusdocs`). Hugo module dependencies (Bootstrap SCSS) are declared in `docs/hugo/go.mod`.
 
-**When to update docs:** Update the relevant page in `docs/hugo/content/` whenever you:
+Content lives under `docs/hugo/content/docs/` organised into three sections: `user-guide/`, `reference/`, and `development/`. A print/PDF view of the full documentation is available at `/docs/print/`.
+
+**When to update docs:** Update the relevant page in `docs/hugo/content/docs/` whenever you:
 - Add or change a user-visible feature → update `user-guide/`
 - Add, remove, or change a keyboard shortcut → update `reference/keyboard-shortcuts.md`
 - Change the config file format → update `reference/configuration.md`

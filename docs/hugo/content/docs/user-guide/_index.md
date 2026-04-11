@@ -1,10 +1,9 @@
 ---
 title: "User Guide"
+description: "Everything you need to use open-packet day-to-day"
+icon: "book"
 weight: 1
-bookCollapseSection: true
 ---
-
-# User Guide
 
 This section covers everything you need to use open-packet day-to-day.
 

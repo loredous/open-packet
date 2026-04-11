@@ -1,5 +1,6 @@
 ---
 title: "Keyboard Shortcuts"
+description: "All keyboard shortcuts available in the TUI"
 weight: 1
 ---
 
