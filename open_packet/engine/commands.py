@@ -1,6 +1,10 @@
 # open_packet/engine/commands.py
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from open_packet.link.base import ConnectionBase
+from open_packet.node.base import NodeBase
+from open_packet.store.models import Interface, Node
 
 
 @dataclass
