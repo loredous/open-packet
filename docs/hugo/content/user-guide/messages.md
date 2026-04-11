@@ -64,6 +64,14 @@ Select a message and press **Ctrl+X**. A confirmation dialog will appear. Confir
 > [!WARNING]
 > Deleting a message removes it from both the local database and the BBS (via a kill command sent on the next sync). This action cannot be undone.
 
+## Searching Messages and Bulletins
+
+Press **Ctrl+F** from anywhere in the main screen to open the search modal.
+
+Type a keyword (callsign, subject text, or any word from the body) and press **Enter** or click **Search**. Results from all folders (Inbox, Sent, Archive) and all bulletin categories are shown together, with the source folder or bulletin category displayed for each result.
+
+Selecting a result opens the message body in the main view and marks the item as read.
+
 ## Folder Statistics
 
 The folder tree shows unread message counts next to each folder name. These update automatically after each send/receive.

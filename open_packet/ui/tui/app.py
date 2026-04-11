@@ -35,6 +35,7 @@ from open_packet.ui.tui.screens.compose import ComposeScreen
 from open_packet.ui.tui.screens.compose_bulletin import ComposeBulletinScreen
 from open_packet.ui.tui.screens.connect_terminal import ConnectTerminalScreen
 from open_packet.ui.tui.screens.main import MainScreen
+from open_packet.ui.tui.screens.search import SearchScreen
 from open_packet.ui.tui.screens.settings import SettingsScreen
 from open_packet.ui.tui.screens.setup_operator import OperatorSetupScreen
 from open_packet.ui.tui.screens.setup_node import NodeSetupScreen
@@ -67,6 +68,7 @@ class OpenPacketCommands(Provider):
             ("New Bulletin", "Post a new bulletin", app.open_compose_bulletin),
             ("New Form Message", "Compose a form-based message", app.open_form_compose),
             ("Update Default Forms", "Download latest form definitions from the repository", app.update_default_forms),
+            ("Search Messages", "Search messages and bulletins by keyword", app.open_search),
             ("Send/Receive", "Check mail and sync with BBS", app.check_mail),
             ("Toggle Console", "Show or hide the console panel", app._toggle_console_from_palette),
             ("Settings", "Open application settings", app.open_settings),
@@ -607,6 +609,36 @@ class OpenPacketApp(App):
             self.open_compose_bulletin()
         elif result == "form":
             self.open_form_compose()
+
+    def open_search(self) -> None:
+        """Open the search modal to find messages and bulletins by keyword."""
+        if not self._store or not self._active_operator:
+            self.notify("No operator active. Set up an operator first.", severity="warning")
+            return
+        self.push_screen(
+            SearchScreen(store=self._store, operator_id=self._active_operator.id),
+            callback=self._on_search_result,
+        )
+
+    def _on_search_result(self, result: Optional[Message | Bulletin]) -> None:
+        if result is None:
+            return
+        self._selected_message = result
+        try:
+            node_label = ""
+            if isinstance(result, Bulletin) and result.body is None and self._store:
+                nodes = {n.id: n.label for n in self._store.list_nodes()}
+                node_label = nodes.get(result.node_id, f"node #{result.node_id}")
+            self.query_one("MessageBody").show_message(result, node_label=node_label)
+        except Exception:
+            pass
+        if self._store and result.id is not None and not result.read:
+            if isinstance(result, Message):
+                self._store.mark_message_read(result.id)
+            elif isinstance(result, Bulletin):
+                self._store.mark_bulletin_read(result.id)
+            result.read = True
+            self._refresh_folder_counts()
 
     def _toggle_console_from_palette(self) -> None:
         """Toggle console panel visibility (used by command palette)."""

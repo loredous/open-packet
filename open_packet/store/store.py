@@ -303,6 +303,32 @@ class Store:
         ).fetchone()
         return row is not None
 
+    def search_messages(self, operator_id: int, query: str) -> list[Message]:
+        """Search messages by subject, body, from_call, or to_call using case-insensitive substring matching."""
+        assert self._conn
+        pattern = f"%{query}%"
+        rows = self._conn.execute(
+            """SELECT * FROM messages
+               WHERE operator_id=? AND deleted=0
+                 AND (subject LIKE ? OR body LIKE ? OR from_call LIKE ? OR to_call LIKE ?)
+               ORDER BY timestamp DESC""",
+            (operator_id, pattern, pattern, pattern, pattern),
+        ).fetchall()
+        return [self._row_to_message(r) for r in rows]
+
+    def search_bulletins(self, operator_id: int, query: str) -> list[Bulletin]:
+        """Search bulletins by subject, body, from_call, or category using case-insensitive substring matching."""
+        assert self._conn
+        pattern = f"%{query}%"
+        rows = self._conn.execute(
+            """SELECT * FROM bulletins
+               WHERE operator_id=? AND queued=0
+                 AND (subject LIKE ? OR from_call LIKE ? OR category LIKE ? OR (body != ? AND body LIKE ?))
+               ORDER BY timestamp DESC""",
+            (operator_id, pattern, pattern, pattern, "\x00", pattern),
+        ).fetchall()
+        return [self._row_to_bulletin(r) for r in rows]
+
     def list_nodes(self) -> list:
         return self._db.list_nodes()
 
