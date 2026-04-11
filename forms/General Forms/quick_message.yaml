@@ -2,6 +2,7 @@ name: Quick Message
 category: General Forms
 subject_template: "{{ Subjectline }}"
 body_template: |
+  To: {{ address }}
   From {{ From_Name }}
   Sent on {{ time }}
 

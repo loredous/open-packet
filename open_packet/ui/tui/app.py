@@ -645,21 +645,29 @@ class OpenPacketApp(App):
         forms_dir = self.forms_dir
 
         def _run() -> None:
-            result = update_forms(
-                forms_dir=forms_dir,
-                on_progress=None,
-            )
-            if result.errors:
-                msg = f"Forms update finished with errors: {', '.join(result.errors[:3])}"
-                self.call_from_thread(self.notify, msg, severity="error")
-            elif result.total_new_or_updated == 0:
-                self.call_from_thread(self.notify, "Forms are already up to date.")
-            else:
-                msg = (
-                    f"Forms updated: {result.total_new_or_updated} new/updated "
-                    f"({len(result.skipped)} unchanged)."
+            try:
+                result = update_forms(
+                    forms_dir=forms_dir,
+                    on_progress=None,
                 )
-                self.call_from_thread(self.notify, msg)
+                if result.errors:
+                    msg = f"Forms update finished with errors: {', '.join(result.errors[:3])}"
+                    self.call_from_thread(self.notify, msg, severity="error")
+                elif result.total_new_or_updated == 0:
+                    self.call_from_thread(self.notify, "Forms are already up to date.")
+                else:
+                    msg = (
+                        f"Forms updated: {result.total_new_or_updated} new/updated "
+                        f"({len(result.skipped)} unchanged)."
+                    )
+                    self.call_from_thread(self.notify, msg)
+            except Exception as exc:
+                logger.exception("Unexpected error while updating default forms")
+                self.call_from_thread(
+                    self.notify,
+                    f"Forms update failed: {exc}",
+                    severity="error",
+                )
 
         thread = threading.Thread(target=_run, daemon=True)
         thread.start()

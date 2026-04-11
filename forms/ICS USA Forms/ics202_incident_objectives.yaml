@@ -16,7 +16,7 @@ body_template: |
   {{ Objectives }}
 
   4. Operational Period Command Emphasis:
-  {{ Emphais }}
+  {{ Emphasis }}
 
   General Situational Awareness
   {{ SitAwareness }}
@@ -24,7 +24,7 @@ body_template: |
   5. Safety Plan Required: {{ PlanNeeded }}
      Safety Plan(s) Located at: {{ PlansAt }}
 
-  7. Prepared by: {{ Prepedby }}  Position/Title: {{ Position }}
+  7. Prepared by: {{ PreparedBy }}  Position/Title: {{ Position }}
 
   8. Approved by Incident Commander: {{ ApprovedName }}
   Date/Time: {{ DateTime }}
@@ -65,7 +65,7 @@ fields:
     type: textarea
     required: true
 
-  - name: Emphais
+  - name: Emphasis
     label: "4. Operational Period Command Emphasis"
     type: textarea
 
@@ -86,7 +86,7 @@ fields:
     type: text
     max_length: 80
 
-  - name: Prepedby
+  - name: PreparedBy
     label: "7. Prepared by (Name)"
     type: text
     required: true

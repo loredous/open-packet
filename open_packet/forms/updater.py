@@ -75,6 +75,16 @@ def _sha256_of_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _git_blob_sha(data: bytes) -> str:
+    """Compute git's SHA-1 blob hash for raw content bytes.
+
+    Matches the SHA values returned by the GitHub tree API so that local files
+    can be compared against the remote tree without downloading them first.
+    """
+    header = f"blob {len(data)}\0".encode()
+    return hashlib.sha1(header + data).hexdigest()
+
+
 def _list_remote_form_files() -> list[dict]:
     """Return list of {path, sha} dicts for .yaml files under forms/ on main branch."""
     url = f"{_GITHUB_API_BASE}/repos/{_REPO}/git/trees/{_BRANCH}?recursive=1"
@@ -131,25 +141,26 @@ def update_forms(
         # Strip leading "forms/" prefix to get the relative path within forms_dir
         rel_path = repo_path[len(_FORMS_PREFIX):]
         local_path = forms_dir / rel_path
+        remote_sha = entry.get("sha", "")
+
+        # Fast path: compare local file's git blob SHA with the remote tree SHA
+        # to avoid downloading files that haven't changed.
+        if local_path.exists() and remote_sha:
+            if _git_blob_sha(local_path.read_bytes()) == remote_sha:
+                result.skipped.append(rel_path)
+                if on_progress:
+                    on_progress(f"Unchanged: {rel_path}")
+                continue
 
         try:
             remote_content = _fetch_bytes(_raw_url(repo_path))
         except FormsUpdateError as exc:
             logger.warning("Failed to fetch %s: %s", repo_path, exc)
-            result.errors.append(rel_path)
+            error_message = f"{rel_path}: {exc}"
+            result.errors.append(error_message)
             if on_progress:
-                on_progress(f"Error: {rel_path}")
+                on_progress(f"Error: {error_message}")
             continue
-
-        # Compare with existing local file
-        if local_path.exists():
-            local_hash = _sha256_of_file(local_path)
-            remote_hash = _sha256_of_bytes(remote_content)
-            if local_hash == remote_hash:
-                result.skipped.append(rel_path)
-                if on_progress:
-                    on_progress(f"Unchanged: {rel_path}")
-                continue
 
         # Write new or updated file
         local_path.parent.mkdir(parents=True, exist_ok=True)

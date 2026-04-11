@@ -2,15 +2,15 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from open_packet.forms.updater import (
     FormsUpdateError,
     UpdateResult,
+    _git_blob_sha,
     _sha256_of_bytes,
     _sha256_of_file,
     update_forms,
@@ -101,21 +101,18 @@ def test_update_forms_skips_unchanged_files(tmp_path):
     local_file = local_dir / "ics213.yaml"
     local_file.write_bytes(form_data)
 
+    # Use the actual git blob SHA so the fast-path comparison skips the download
+    remote_sha = _git_blob_sha(form_data)
     partial_tree = {
         "tree": [
-            {"type": "blob", "path": "forms/ICS USA Forms/ics213.yaml", "sha": "abc"},
+            {"type": "blob", "path": "forms/ICS USA Forms/ics213.yaml", "sha": remote_sha},
         ]
     }
 
-    def fake_fetch_json(url, timeout=15):
-        return partial_tree
-
-    def fake_fetch_bytes(url, timeout=15):
-        return form_data
-
     with (
-        patch("open_packet.forms.updater._fetch_json", side_effect=fake_fetch_json),
-        patch("open_packet.forms.updater._fetch_bytes", side_effect=fake_fetch_bytes),
+        patch("open_packet.forms.updater._fetch_json", return_value=partial_tree),
+        # _fetch_bytes should NOT be called since git blob SHA matches
+        patch("open_packet.forms.updater._fetch_bytes", side_effect=AssertionError("should not download unchanged file")),
     ):
         result = update_forms(tmp_path)
 
