@@ -529,6 +529,11 @@ class OpenPacketApp(App):
 
             msg_list = self.query_one("MessageList")
 
+            # Build node label lookup for display in the message list
+            node_labels: dict[int, str] = {
+                n.id: n.label for n in self._store.list_nodes() if n.id is not None
+            }
+
             if folder == "Inbox":
                 messages = [
                     m for m in self._store.list_messages(operator_id=operator_id)
@@ -551,7 +556,7 @@ class OpenPacketApp(App):
             else:
                 messages = []
 
-            msg_list.load_messages(messages)
+            msg_list.load_messages(messages, node_labels=node_labels)
             stats = self._store.count_folder_stats(operator_id)
             self.query_one("FolderTree").update_counts(stats)
         except Exception:
@@ -774,7 +779,30 @@ class OpenPacketApp(App):
 
     def _on_compose_bulletin_result(self, result) -> None:
         if result and isinstance(result, PostBulletinCommand):
-            self._cmd_queue.put(result)
+            self._pick_nodes_then(result)
+
+    def _pick_nodes_then(self, cmd) -> None:
+        """Show node picker if multiple nodes are configured, then queue the command."""
+        if self._db is None:
+            return
+        nodes = self._db.list_nodes()
+        if not nodes:
+            return
+        if len(nodes) == 1:
+            cmd.node_ids = [nodes[0].id]
+            self._cmd_queue.put(cmd)
+            return
+        from open_packet.ui.tui.screens.node_multi_picker import NodeMultiPickerScreen
+        self.push_screen(
+            NodeMultiPickerScreen(nodes=nodes),
+            callback=lambda node_ids: self._on_node_ids_picked(cmd, node_ids),
+        )
+
+    def _on_node_ids_picked(self, cmd, node_ids) -> None:
+        if not node_ids:
+            return
+        cmd.node_ids = node_ids
+        self._cmd_queue.put(cmd)
 
     def open_terminal_connect(self) -> None:
         if self._db is None:
@@ -858,7 +886,7 @@ class OpenPacketApp(App):
 
     def _on_compose_result(self, result) -> None:
         if result and isinstance(result, SendMessageCommand):
-            self._cmd_queue.put(result)
+            self._pick_nodes_then(result)
 
     def on_message_list_message_selected(self, event) -> None:
         self._selected_message = event.message
