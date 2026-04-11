@@ -25,6 +25,7 @@ class Operator:
     is_default: bool = False
     id: Optional[int] = None
     created_at: Optional[datetime] = None
+    winlink_password: Optional[str] = None
 
 
 @dataclass
@@ -46,6 +47,9 @@ class Node:
     hop_path: list["NodeHop"] = field(default_factory=list)
     path_strategy: str = "path_route"
     auto_forward: bool = False
+    has_bbs: bool = True
+    has_winlink: bool = False
+    has_files: bool = True
 
 
 @dataclass
@@ -65,6 +69,7 @@ class Message:
     archived: bool = False
     id: Optional[int] = None
     synced_at: Optional[datetime] = None
+    message_type: str = "bbs"  # "bbs" or "winlink"
 
 
 @dataclass

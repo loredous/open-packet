@@ -26,6 +26,10 @@ class OperatorSetupScreen(ModalScreen):
         color: $error;
         height: 1;
     }
+    OperatorSetupScreen .section {
+        margin-top: 1;
+        color: $accent;
+    }
     """
 
     def __init__(self, operator: Optional[Operator] = None, **kwargs):
@@ -51,6 +55,13 @@ class OperatorSetupScreen(ModalScreen):
             yield Label("", id="label_error", classes="error")
             yield Label("Set as default:")
             yield Switch(value=op.is_default if op else True, id="default_switch")
+            yield Label("Winlink Password (optional):", classes="section")
+            yield Input(
+                placeholder="Your Winlink account password",
+                id="winlink_password_field",
+                password=True,
+                value=op.winlink_password if op and op.winlink_password else "",
+            )
             with Horizontal():
                 yield Button("Save", variant="primary", id="save_btn")
                 yield Button("Cancel", id="cancel_btn")
@@ -98,12 +109,14 @@ class OperatorSetupScreen(ModalScreen):
                 ssid = int(ssid_str) if ssid_str else 0
                 label = self.query_one("#label_field", Input).value.strip()
                 is_default = self.query_one("#default_switch", Switch).value
+                winlink_password = self.query_one("#winlink_password_field", Input).value.strip()
                 self.dismiss(Operator(
                     callsign=callsign,
                     ssid=ssid,
                     label=label,
                     is_default=is_default,
                     id=self._operator.id if self._operator else None,
+                    winlink_password=winlink_password or None,
                 ))
 
     def on_key(self, event) -> None:

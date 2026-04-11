@@ -119,6 +119,34 @@ class Database:
         except sqlite3.OperationalError:
             pass  # column already exists
 
+        # Winlink support migrations
+        try:
+            self._conn.execute(
+                "ALTER TABLE operators ADD COLUMN winlink_password TEXT"
+            )
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+        for sql in [
+            "ALTER TABLE nodes ADD COLUMN has_bbs INTEGER NOT NULL DEFAULT 1",
+            "ALTER TABLE nodes ADD COLUMN has_winlink INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE nodes ADD COLUMN has_files INTEGER NOT NULL DEFAULT 1",
+        ]:
+            try:
+                self._conn.execute(sql)
+                self._conn.commit()
+            except sqlite3.OperationalError:
+                pass  # column already exists
+
+        try:
+            self._conn.execute(
+                "ALTER TABLE messages ADD COLUMN message_type TEXT NOT NULL DEFAULT 'bbs'"
+            )
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
     def close(self) -> None:
         if self._conn:
             self._conn.close()
@@ -267,21 +295,26 @@ class Database:
     def insert_operator(self, op: Operator) -> Operator:
         assert self._conn
         cur = self._conn.execute(
-            "INSERT INTO operators (callsign, ssid, label, is_default) VALUES (?, ?, ?, ?)",
-            (op.callsign, op.ssid, op.label, int(op.is_default)),
+            "INSERT INTO operators (callsign, ssid, label, is_default, winlink_password) VALUES (?, ?, ?, ?, ?)",
+            (op.callsign, op.ssid, op.label, int(op.is_default), op.winlink_password),
         )
         self._conn.commit()
         return self.get_operator(cur.lastrowid)  # type: ignore
+
+    def _row_to_operator(self, row) -> Operator:
+        keys = row.keys()
+        return Operator(
+            id=row["id"], callsign=row["callsign"], ssid=row["ssid"],
+            label=row["label"], is_default=bool(row["is_default"]),
+            winlink_password=row["winlink_password"] if "winlink_password" in keys else None,
+        )
 
     def get_operator(self, id: int) -> Optional[Operator]:
         assert self._conn
         row = self._conn.execute("SELECT * FROM operators WHERE id=? AND deleted=0", (id,)).fetchone()
         if not row:
             return None
-        return Operator(
-            id=row["id"], callsign=row["callsign"], ssid=row["ssid"],
-            label=row["label"], is_default=bool(row["is_default"]),
-        )
+        return self._row_to_operator(row)
 
     def get_default_operator(self) -> Optional[Operator]:
         assert self._conn
@@ -290,10 +323,7 @@ class Database:
         ).fetchone()
         if not row:
             return None
-        return Operator(
-            id=row["id"], callsign=row["callsign"], ssid=row["ssid"],
-            label=row["label"], is_default=bool(row["is_default"]),
-        )
+        return self._row_to_operator(row)
 
     def _row_to_node(self, row) -> Node:
         keys = row.keys()
@@ -305,6 +335,9 @@ class Database:
             hop_path=_json_to_hops(row["hop_path"] if "hop_path" in keys else "[]"),
             path_strategy=row["path_strategy"] if "path_strategy" in keys else "path_route",
             auto_forward=bool(row["auto_forward"]) if "auto_forward" in keys else False,
+            has_bbs=bool(row["has_bbs"]) if "has_bbs" in keys else True,
+            has_winlink=bool(row["has_winlink"]) if "has_winlink" in keys else False,
+            has_files=bool(row["has_files"]) if "has_files" in keys else True,
         )
 
     def insert_node(self, node: Node) -> Node:
@@ -312,11 +345,12 @@ class Database:
         cur = self._conn.execute(
             """INSERT INTO nodes
                (label, callsign, ssid, node_type, is_default, interface_id,
-                hop_path, path_strategy, auto_forward)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                hop_path, path_strategy, auto_forward, has_bbs, has_winlink, has_files)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (node.label, node.callsign, node.ssid, node.node_type,
              int(node.is_default), node.interface_id,
-             _hops_to_json(node.hop_path), node.path_strategy, int(node.auto_forward)),
+             _hops_to_json(node.hop_path), node.path_strategy, int(node.auto_forward),
+             int(node.has_bbs), int(node.has_winlink), int(node.has_files)),
         )
         self._conn.commit()
         return self.get_node(cur.lastrowid)  # type: ignore
@@ -340,11 +374,7 @@ class Database:
     def list_operators(self) -> list[Operator]:
         assert self._conn
         rows = self._conn.execute("SELECT * FROM operators WHERE deleted=0 ORDER BY id").fetchall()
-        return [
-            Operator(id=r["id"], callsign=r["callsign"], ssid=r["ssid"],
-                     label=r["label"], is_default=bool(r["is_default"]))
-            for r in rows
-        ]
+        return [self._row_to_operator(r) for r in rows]
 
     def list_nodes(self) -> list[Node]:
         assert self._conn
@@ -355,8 +385,8 @@ class Database:
         assert self._conn
         assert op.id is not None, "Cannot update operator without id"
         self._conn.execute(
-            "UPDATE operators SET callsign=?, ssid=?, label=?, is_default=? WHERE id=?",
-            (op.callsign, op.ssid, op.label, int(op.is_default), op.id),
+            "UPDATE operators SET callsign=?, ssid=?, label=?, is_default=?, winlink_password=? WHERE id=?",
+            (op.callsign, op.ssid, op.label, int(op.is_default), op.winlink_password, op.id),
         )
         self._conn.commit()
 
@@ -365,11 +395,13 @@ class Database:
         assert node.id is not None, "Cannot update node without id"
         self._conn.execute(
             """UPDATE nodes SET label=?, callsign=?, ssid=?, node_type=?,
-               is_default=?, interface_id=?, hop_path=?, path_strategy=?, auto_forward=?
+               is_default=?, interface_id=?, hop_path=?, path_strategy=?, auto_forward=?,
+               has_bbs=?, has_winlink=?, has_files=?
                WHERE id=?""",
             (node.label, node.callsign, node.ssid, node.node_type,
              int(node.is_default), node.interface_id,
              _hops_to_json(node.hop_path), node.path_strategy, int(node.auto_forward),
+             int(node.has_bbs), int(node.has_winlink), int(node.has_files),
              node.id),
         )
         self._conn.commit()

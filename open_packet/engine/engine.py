@@ -178,9 +178,13 @@ class Engine:
         self._connection.disconnect()
         self._set_status(ConnectionStatus.DISCONNECTED)
 
-    def _run_sync_phases(self, node) -> tuple[int, int, int, int]:
+    def _run_sync_phases(self, node, message_type: str = "bbs") -> tuple[int, int, int, int]:
         """Run the sync phases. Returns (retrieved, sent, bulletins_retrieved, files_retrieved).
-        Does NOT emit SyncCompleteEvent — caller is responsible for that."""
+        Does NOT emit SyncCompleteEvent — caller is responsible for that.
+
+        :param message_type: "bbs" for BBS sync, "winlink" for Winlink sync.
+            Controls which outbox messages are sent during this sync.
+        """
         # Phase 1: Retrieve new messages
         retrieved = 0
         self._set_status(ConnectionStatus.SYNCING, "Listing messages…")
@@ -202,6 +206,7 @@ class Engine:
                 subject=header.subject,
                 body=msg.body,
                 timestamp=_parse_bbs_date(header.date_str, now),
+                message_type=message_type,
             ))
             if saved:
                 retrieved += 1
@@ -212,9 +217,12 @@ class Engine:
                     subject=header.subject,
                 ))
 
-        # Phase 2: Send queued outbound messages
+        # Phase 2: Send queued outbound messages (only matching message_type)
         sent = 0
-        outbound = self._store.list_outbox_messages(self._operator.id)
+        if message_type == "bbs":
+            outbound = self._store.list_outbox_bbs_messages(self._operator.id)
+        else:
+            outbound = self._store.list_outbox_winlink_messages(self._operator.id)
         for i, m in enumerate(outbound, 1):
             self._set_status(ConnectionStatus.SYNCING, f"Sending message {i} of {len(outbound)}")
             self._emit(ConsoleEvent("!", f"Sending message {i} of {len(outbound)}", level="basic"))
@@ -223,8 +231,8 @@ class Engine:
             self._store.mark_message_sent(m.id)
             sent += 1
 
-        # Phase 3: Send queued bulletins
-        pending_bulletins = self._store.list_outbox_bulletins(self._operator.id)
+        # Phase 3: Send queued bulletins (BBS only)
+        pending_bulletins = self._store.list_outbox_bulletins(self._operator.id) if message_type == "bbs" else []
         for i, bul in enumerate(pending_bulletins, 1):
             self._set_status(ConnectionStatus.SYNCING, f"Posting bulletin {i} of {len(pending_bulletins)}")
             self._emit(ConsoleEvent("!", f"Posting bulletin {i} of {len(pending_bulletins)}", level="basic"))
@@ -353,65 +361,138 @@ class Engine:
                 except Exception:
                     pass
 
+    def _connect_ax25(self) -> None:
+        """Establish the AX.25/link-layer connection to the configured node."""
+        if (self._node_record.path_strategy == "path_route"
+                and self._node_record.hop_path):
+            first = self._node_record.hop_path[0]
+            from open_packet.ax25.connection import _split_callsign
+            call, ssid = _split_callsign(first.callsign)
+            self._connection.connect(call, ssid)
+        else:
+            via = (self._node_record.hop_path
+                   if self._node_record.path_strategy == "digipeat" else None)
+            if via:
+                self._connection.connect(
+                    self._node_record.callsign,
+                    self._node_record.ssid,
+                    via_path=via,
+                )
+            else:
+                self._connection.connect(
+                    self._node_record.callsign,
+                    self._node_record.ssid,
+                )
+
+    def _do_winlink_sync(self) -> tuple[int, int]:
+        """Run a Winlink B2F sync session.  Returns (retrieved, sent)."""
+        from open_packet.node.winlink import WinlinkNode
+        from open_packet.winlink.b2f import B2FError
+
+        node_addr = f"{self._node_record.callsign}-{self._node_record.ssid}"
+        self._emit(ConsoleEvent("!", "Starting Winlink sync…", level="basic"))
+
+        # Determine if this is a direct telnet CMS connection
+        is_telnet_cms = getattr(self._connection, "_is_winlink_cms", False)
+
+        try:
+            self._connect_ax25()
+        except Exception:
+            # For winlink_telnet interface type, connection is already established
+            # by the TelnetLink-equivalent; try connecting without AX.25
+            try:
+                self._connection.connect(
+                    self._node_record.callsign,
+                    self._node_record.ssid,
+                )
+            except Exception as exc:
+                raise
+
+        winlink_node = WinlinkNode(
+            connection=self._connection,
+            my_callsign=self._operator.callsign,
+            my_ssid=self._operator.ssid,
+            winlink_password=getattr(self._operator, "winlink_password", "") or "",
+            is_telnet_cms=is_telnet_cms,
+            on_log=lambda d, t: self._emit(ConsoleEvent(d, t, level="debug")),
+        )
+        try:
+            winlink_node.connect_node()
+            self._emit(ConsoleEvent("<", f"Winlink B2F session started with {node_addr}"))
+            retrieved, sent, _, _ = self._run_sync_phases(winlink_node, message_type="winlink")
+        finally:
+            winlink_node.finish_session()
+            self._connection.disconnect()
+
+        return retrieved, sent
+
     def _do_check_mail(self) -> None:
         node_addr = f"{self._node_record.callsign}-{self._node_record.ssid}"
         self._set_status(ConnectionStatus.CONNECTING)
         self._emit(ConsoleEvent(">", f"Connecting to {node_addr}..."))
         new_neighbors: list = []
         shorter_path_candidates: list = []
-        try:
-            if (self._node_record.path_strategy == "path_route"
-                    and self._node_record.hop_path):
-                first = self._node_record.hop_path[0]
-                from open_packet.ax25.connection import _split_callsign
-                call, ssid = _split_callsign(first.callsign)
-                self._connection.connect(call, ssid)
-            else:
-                via = self._node_record.hop_path if self._node_record.path_strategy == "digipeat" else None
-                if via:
-                    self._connection.connect(
-                        self._node_record.callsign,
-                        self._node_record.ssid,
-                        via_path=via,
-                    )
-                else:
-                    self._connection.connect(
-                        self._node_record.callsign,
-                        self._node_record.ssid,
-                    )
-            self._node.wait_for_prompt()
-            if self._auto_discover:
-                new_neighbors, shorter_path_candidates = self._discover_neighbors()
-            self._node.connect_node()
-            self._emit(ConsoleEvent("<", f"Connected to {node_addr}"))
-            self._set_status(ConnectionStatus.SYNCING)
 
-            retrieved, sent, bulletins_retrieved, files_retrieved = self._run_sync_phases(self._node)
+        total_retrieved = 0
+        total_sent = 0
+        total_bulletins = 0
+        total_files = 0
 
-            self._last_sync = datetime.now(timezone.utc)
-            self._messages_last_sync = retrieved
-            parts = [f"{retrieved} new", f"{bulletins_retrieved} bulletins", f"{sent} sent"]
-            if files_retrieved:
-                parts.append(f"{files_retrieved} files")
-            self._emit(ConsoleEvent("<", f"Sync complete: {', '.join(parts)}", level="basic"))
-            self._emit(SyncCompleteEvent(
-                messages_retrieved=retrieved,
-                messages_sent=sent,
-                bulletins_retrieved=bulletins_retrieved,
-                files_retrieved=files_retrieved,
+        # --- BBS sync ---
+        if self._node_record.has_bbs:
+            try:
+                self._connect_ax25()
+                self._node.wait_for_prompt()
+                if self._auto_discover:
+                    new_neighbors, shorter_path_candidates = self._discover_neighbors()
+                self._node.connect_node()
+                self._emit(ConsoleEvent("<", f"Connected to {node_addr}"))
+                self._set_status(ConnectionStatus.SYNCING)
+
+                retrieved, sent, bulletins_retrieved, files_retrieved = self._run_sync_phases(
+                    self._node, message_type="bbs"
+                )
+                total_retrieved += retrieved
+                total_sent += sent
+                total_bulletins += bulletins_retrieved
+                total_files += files_retrieved
+            finally:
+                self._connection.disconnect()
+                self._emit(ConsoleEvent("<", "BBS disconnected"))
+
+        # --- Winlink sync ---
+        if self._node_record.has_winlink:
+            try:
+                self._set_status(ConnectionStatus.CONNECTING, "Winlink…")
+                wl_retrieved, wl_sent = self._do_winlink_sync()
+                total_retrieved += wl_retrieved
+                total_sent += wl_sent
+            except Exception as exc:
+                logger.exception("Winlink sync failed for %s", node_addr)
+                self._emit(ConsoleEvent("!", f"Winlink sync failed: {exc}", level="basic"))
+
+        self._last_sync = datetime.now(timezone.utc)
+        self._messages_last_sync = total_retrieved
+        parts = [f"{total_retrieved} new", f"{total_bulletins} bulletins", f"{total_sent} sent"]
+        if total_files:
+            parts.append(f"{total_files} files")
+        self._emit(ConsoleEvent("<", f"Sync complete: {', '.join(parts)}", level="basic"))
+        self._emit(SyncCompleteEvent(
+            messages_retrieved=total_retrieved,
+            messages_sent=total_sent,
+            bulletins_retrieved=total_bulletins,
+            files_retrieved=total_files,
+        ))
+        self._set_status(ConnectionStatus.DISCONNECTED)
+
+        if new_neighbors or shorter_path_candidates:
+            self._emit(NeighborsDiscoveredEvent(
+                node_id=self._node_record.id,
+                new_neighbors=new_neighbors,
+                shorter_path_candidates=shorter_path_candidates,
             ))
-        finally:
-            self._connection.disconnect()
-            self._emit(ConsoleEvent("<", "Disconnected"))
-            self._set_status(ConnectionStatus.DISCONNECTED)
-            if new_neighbors or shorter_path_candidates:
-                self._emit(NeighborsDiscoveredEvent(
-                    node_id=self._node_record.id,
-                    new_neighbors=new_neighbors,
-                    shorter_path_candidates=shorter_path_candidates,
-                ))
 
-        # Phase 5: Auto-forward via discovered neighbors
+        # Auto-forward via discovered neighbors
         if self._node_record.auto_forward:
             self._do_auto_forward()
 
@@ -492,6 +573,7 @@ class Engine:
 
     def _do_send_message(self, cmd: SendMessageCommand) -> None:
         now = datetime.now(timezone.utc)
+        message_type = getattr(cmd, "message_type", "bbs")
         self._store.save_message(Message(
             operator_id=self._operator.id,
             node_id=self._node_record.id,
@@ -502,6 +584,7 @@ class Engine:
             body=cmd.body,
             timestamp=now,
             queued=True,
+            message_type=message_type,
         ))
         self._emit(MessageQueuedEvent())
 
