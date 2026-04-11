@@ -1,0 +1,310 @@
+name: ICS 215 Operational Planning Worksheet
+category: ICS USA Forms
+subject_template: "ICS 215 - {{ Incident_Name }} - {{ DateTimeFrom }} to {{ DateTimeTo }}"
+body_template: |
+  ICS 215 OPERATIONAL PLANNING WORKSHEET
+
+  1. Incident Name: {{ Incident_Name }}
+  2. Operational Period:
+     From: {{ DateTimeFrom }}
+     To:   {{ DateTimeTo }}
+
+  3. Branch: {{ Branch }}
+  4. Division/Group: {{ Division_Group }}
+  5. Operations Chief: {{ Ops_Chief }}
+
+  -----------------------------------------------------------------------
+  6. RESOURCES:
+
+  Resource 1:
+    Resource Identifier: {{ ResourceID1 }}
+    Kind/Type: {{ KindType1 }}
+    Required: {{ Required1 }}
+    Have: {{ Have1 }}
+    Need to Order: {{ NeedToOrder1 }}
+    Reporting Location: {{ ReportingLocation1 }}
+    Reporting Time: {{ ReportingTime1 }}
+
+  Resource 2:
+    Resource Identifier: {{ ResourceID2 }}
+    Kind/Type: {{ KindType2 }}
+    Required: {{ Required2 }}
+    Have: {{ Have2 }}
+    Need to Order: {{ NeedToOrder2 }}
+    Reporting Location: {{ ReportingLocation2 }}
+    Reporting Time: {{ ReportingTime2 }}
+
+  Resource 3:
+    Resource Identifier: {{ ResourceID3 }}
+    Kind/Type: {{ KindType3 }}
+    Required: {{ Required3 }}
+    Have: {{ Have3 }}
+    Need to Order: {{ NeedToOrder3 }}
+    Reporting Location: {{ ReportingLocation3 }}
+    Reporting Time: {{ ReportingTime3 }}
+
+  Resource 4:
+    Resource Identifier: {{ ResourceID4 }}
+    Kind/Type: {{ KindType4 }}
+    Required: {{ Required4 }}
+    Have: {{ Have4 }}
+    Need to Order: {{ NeedToOrder4 }}
+    Reporting Location: {{ ReportingLocation4 }}
+    Reporting Time: {{ ReportingTime4 }}
+
+  Resource 5:
+    Resource Identifier: {{ ResourceID5 }}
+    Kind/Type: {{ KindType5 }}
+    Required: {{ Required5 }}
+    Have: {{ Have5 }}
+    Need to Order: {{ NeedToOrder5 }}
+    Reporting Location: {{ ReportingLocation5 }}
+    Reporting Time: {{ ReportingTime5 }}
+
+  -----------------------------------------------------------------------
+  7. Work Assignment:
+  {{ Work_Assignment }}
+
+  8. Special Instructions:
+  {{ Special_Instructions }}
+
+  9. Communications (Voice/Data):
+  {{ Communications }}
+
+  -----------------------------------------------------------------------
+  Prepared By: {{ PreparedBy }}
+
+fields:
+  - name: Incident_Name
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTimeFrom
+    label: "2. Operational Period - From"
+    description: "e.g. 2025-01-15 0800"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateTimeTo
+    label: "2. Operational Period - To"
+    description: "e.g. 2025-01-15 2000"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: Branch
+    label: "3. Branch"
+    type: text
+    max_length: 30
+
+  - name: Division_Group
+    label: "4. Division/Group"
+    type: text
+    max_length: 30
+
+  - name: Ops_Chief
+    label: "5. Operations Chief"
+    type: text
+    max_length: 40
+
+  - name: ResourceID1
+    label: "Resource 1 - Resource Identifier"
+    type: text
+    max_length: 40
+
+  - name: KindType1
+    label: "Resource 1 - Kind/Type"
+    type: text
+    max_length: 20
+
+  - name: Required1
+    label: "Resource 1 - Required"
+    type: text
+    max_length: 10
+
+  - name: Have1
+    label: "Resource 1 - Have"
+    type: text
+    max_length: 10
+
+  - name: NeedToOrder1
+    label: "Resource 1 - Need to Order"
+    type: text
+    max_length: 10
+
+  - name: ReportingLocation1
+    label: "Resource 1 - Reporting Location"
+    type: text
+    max_length: 40
+
+  - name: ReportingTime1
+    label: "Resource 1 - Reporting Time"
+    description: "e.g. 0800"
+    type: text
+    max_length: 9
+
+  - name: ResourceID2
+    label: "Resource 2 - Resource Identifier"
+    type: text
+    max_length: 40
+
+  - name: KindType2
+    label: "Resource 2 - Kind/Type"
+    type: text
+    max_length: 20
+
+  - name: Required2
+    label: "Resource 2 - Required"
+    type: text
+    max_length: 10
+
+  - name: Have2
+    label: "Resource 2 - Have"
+    type: text
+    max_length: 10
+
+  - name: NeedToOrder2
+    label: "Resource 2 - Need to Order"
+    type: text
+    max_length: 10
+
+  - name: ReportingLocation2
+    label: "Resource 2 - Reporting Location"
+    type: text
+    max_length: 40
+
+  - name: ReportingTime2
+    label: "Resource 2 - Reporting Time"
+    description: "e.g. 0800"
+    type: text
+    max_length: 9
+
+  - name: ResourceID3
+    label: "Resource 3 - Resource Identifier"
+    type: text
+    max_length: 40
+
+  - name: KindType3
+    label: "Resource 3 - Kind/Type"
+    type: text
+    max_length: 20
+
+  - name: Required3
+    label: "Resource 3 - Required"
+    type: text
+    max_length: 10
+
+  - name: Have3
+    label: "Resource 3 - Have"
+    type: text
+    max_length: 10
+
+  - name: NeedToOrder3
+    label: "Resource 3 - Need to Order"
+    type: text
+    max_length: 10
+
+  - name: ReportingLocation3
+    label: "Resource 3 - Reporting Location"
+    type: text
+    max_length: 40
+
+  - name: ReportingTime3
+    label: "Resource 3 - Reporting Time"
+    description: "e.g. 0800"
+    type: text
+    max_length: 9
+
+  - name: ResourceID4
+    label: "Resource 4 - Resource Identifier"
+    type: text
+    max_length: 40
+
+  - name: KindType4
+    label: "Resource 4 - Kind/Type"
+    type: text
+    max_length: 20
+
+  - name: Required4
+    label: "Resource 4 - Required"
+    type: text
+    max_length: 10
+
+  - name: Have4
+    label: "Resource 4 - Have"
+    type: text
+    max_length: 10
+
+  - name: NeedToOrder4
+    label: "Resource 4 - Need to Order"
+    type: text
+    max_length: 10
+
+  - name: ReportingLocation4
+    label: "Resource 4 - Reporting Location"
+    type: text
+    max_length: 40
+
+  - name: ReportingTime4
+    label: "Resource 4 - Reporting Time"
+    description: "e.g. 0800"
+    type: text
+    max_length: 9
+
+  - name: ResourceID5
+    label: "Resource 5 - Resource Identifier"
+    type: text
+    max_length: 40
+
+  - name: KindType5
+    label: "Resource 5 - Kind/Type"
+    type: text
+    max_length: 20
+
+  - name: Required5
+    label: "Resource 5 - Required"
+    type: text
+    max_length: 10
+
+  - name: Have5
+    label: "Resource 5 - Have"
+    type: text
+    max_length: 10
+
+  - name: NeedToOrder5
+    label: "Resource 5 - Need to Order"
+    type: text
+    max_length: 10
+
+  - name: ReportingLocation5
+    label: "Resource 5 - Reporting Location"
+    type: text
+    max_length: 40
+
+  - name: ReportingTime5
+    label: "Resource 5 - Reporting Time"
+    description: "e.g. 0800"
+    type: text
+    max_length: 9
+
+  - name: Work_Assignment
+    label: "7. Work Assignment"
+    type: textarea
+
+  - name: Special_Instructions
+    label: "8. Special Instructions"
+    type: textarea
+
+  - name: Communications
+    label: "9. Communications (Voice/Data)"
+    type: text
+    max_length: 60
+
+  - name: PreparedBy
+    label: "Prepared By"
+    type: text
+    required: true
+    max_length: 40
