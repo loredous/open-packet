@@ -1,7 +1,8 @@
+import queue
 from textual.app import App, ComposeResult
 from textual.widgets import Label
 from open_packet.ui.tui.widgets.status_bar import StatusBar
-from open_packet.engine.events import ConnectionStatus
+from open_packet.engine.events import ConnectionStatus, FrameReceivedEvent
 from tests.test_ui.conftest import _label_text
 
 
@@ -138,10 +139,6 @@ async def test_left_label_updates_on_last_frame_change():
 
 async def test_frame_received_event_handling_updates_last_frame():
     """Polling a FrameReceivedEvent and updating last_frame should change the status bar text."""
-    import queue
-    from datetime import timezone
-    from open_packet.engine.events import FrameReceivedEvent
-
     class _App(App):
         def compose(self) -> ComposeResult:
             yield StatusBar()
