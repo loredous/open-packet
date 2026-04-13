@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import queue
+from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncGenerator, Callable, Optional
 
@@ -18,7 +19,7 @@ from open_packet.engine.engine import Engine
 from open_packet.engine.events import (
     ConnectionStatusEvent, MessageReceivedEvent, SyncCompleteEvent,
     ErrorEvent, ConnectionStatus, MessageQueuedEvent, ConsoleEvent,
-    NeighborsDiscoveredEvent, GroupSyncCompleteEvent,
+    NeighborsDiscoveredEvent, FrameReceivedEvent, GroupSyncCompleteEvent,
 )
 from open_packet.ui.tui.screens.shorter_path_confirm import ShorterPathConfirmScreen
 from open_packet.ax25.connection import AX25Connection
@@ -173,11 +174,12 @@ class OpenPacketApp(App):
 
         self._start_engine(db, operator, node_record)
 
-    def _make_frame_logger(self):
-        from open_packet.engine.events import ConsoleEvent as _CE
+    def _make_frame_logger(self, interface_id: Optional[int] = None, interface_label: Optional[str] = None):
         evt_queue = self._evt_queue
         def _log(direction: str, summary: str) -> None:
-            evt_queue.put(_CE(direction, summary, level="debug"))
+            evt_queue.put(ConsoleEvent(direction, summary, level="debug"))
+            if direction == "<":
+                evt_queue.put(FrameReceivedEvent(interface_id=interface_id, interface_label=interface_label))
         return _log
 
     def _build_connection(self, iface: Interface, op: Operator, on_frame=None):
@@ -225,7 +227,7 @@ class OpenPacketApp(App):
             self._update_status_bar_identity()
             return
 
-        connection = self._build_connection(iface, operator, on_frame=self._make_frame_logger())
+        connection = self._build_connection(iface, operator, on_frame=self._make_frame_logger(interface_id=iface.id, interface_label=iface.label))
         if connection is None:
             raise ValueError(f"Unknown interface type: {iface.iface_type!r}")
 
@@ -415,13 +417,17 @@ class OpenPacketApp(App):
         except Exception:
             return
 
+        if isinstance(event, FrameReceivedEvent):
+            active_id = self._active_interface.id if self._active_interface else None
+            if event.interface_id is None or event.interface_id == active_id:
+                status_bar.last_frame = event.timestamp.astimezone().strftime("%H:%M:%S")
+            return
         if isinstance(event, ConnectionStatusEvent):
             status_bar.status = event.status
             status_bar.sync_detail = event.detail if event.status == ConnectionStatus.SYNCING else ""
             if event.status == ConnectionStatus.ERROR:
                 self.notify(f"Error: {event.detail}", severity="error")
         elif isinstance(event, SyncCompleteEvent):
-            from datetime import datetime
             status_bar.last_sync = datetime.now().strftime("%H:%M")
             notifications_enabled = self._settings.notifications_enabled if self._settings else True
             has_new_items = (
