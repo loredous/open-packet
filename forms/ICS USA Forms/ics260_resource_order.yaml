@@ -1,0 +1,354 @@
+name: ICS 260 Resource Order
+category: ICS USA Forms
+subject_template: "ICS 260 - {{ Incident_Name }} - Order #{{ Order_Number }}"
+body_template: |
+  ICS 260 RESOURCE ORDER
+
+  1. Incident Name: {{ Incident_Name }}
+  2. Incident Number: {{ Incident_Number }}
+  3. Order Number: {{ Order_Number }}
+  4. Date/Time of Request: {{ Request_DateTime }}
+  5. Priority: {{ Priority }}
+  6. Requested by: {{ Requested_By }}  Position: {{ Requested_By_Position }}
+  7. Date/Time Needed: {{ Needed_DateTime }}
+  8. Delivery/Reporting Location: {{ Delivery_Location }}
+
+  ---------------------------------------------------------------
+  9. RESOURCE ORDER ITEMS:
+
+  QTY  KIND/TYPE       DESCRIPTION
+  {{ Qty1 }}  {{ KindType1 }}
+  Description: {{ Description1 }}
+  Reporting Location: {{ ReportLocation1 }}  Reporting Date/Time: {{ ReportDateTime1 }}
+  ETA: {{ ETA1 }}  Order #: {{ ItemOrderNo1 }}
+  Notes: {{ ItemNotes1 }}
+
+  {{ Qty2 }}  {{ KindType2 }}
+  Description: {{ Description2 }}
+  Reporting Location: {{ ReportLocation2 }}  Reporting Date/Time: {{ ReportDateTime2 }}
+  ETA: {{ ETA2 }}  Order #: {{ ItemOrderNo2 }}
+  Notes: {{ ItemNotes2 }}
+
+  {{ Qty3 }}  {{ KindType3 }}
+  Description: {{ Description3 }}
+  Reporting Location: {{ ReportLocation3 }}  Reporting Date/Time: {{ ReportDateTime3 }}
+  ETA: {{ ETA3 }}  Order #: {{ ItemOrderNo3 }}
+  Notes: {{ ItemNotes3 }}
+
+  {{ Qty4 }}  {{ KindType4 }}
+  Description: {{ Description4 }}
+  Reporting Location: {{ ReportLocation4 }}  Reporting Date/Time: {{ ReportDateTime4 }}
+  ETA: {{ ETA4 }}  Order #: {{ ItemOrderNo4 }}
+  Notes: {{ ItemNotes4 }}
+
+  {{ Qty5 }}  {{ KindType5 }}
+  Description: {{ Description5 }}
+  Reporting Location: {{ ReportLocation5 }}  Reporting Date/Time: {{ ReportDateTime5 }}
+  ETA: {{ ETA5 }}  Order #: {{ ItemOrderNo5 }}
+  Notes: {{ ItemNotes5 }}
+
+  ---------------------------------------------------------------
+  LOGISTICS
+
+  10. Logistics Order #: {{ Logistics_Order_Number }}
+  11. Confirmed by: {{ Confirmed_By }}
+  12. Date/Time Confirmed: {{ Confirmed_DateTime }}
+  13. Logistics Notes: {{ Logistics_Notes }}
+
+  ---------------------------------------------------------------
+  FINANCE
+
+  14. Finance Approval: {{ Finance_Approval }}
+  15. Date/Time: {{ Finance_DateTime }}
+
+  ---------------------------------------------------------------
+  Prepared by: {{ PreparedName }}
+  Date/Time: {{ PreparedDateTime }}
+
+fields:
+  - name: Incident_Name
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: Incident_Number
+    label: "2. Incident Number"
+    type: text
+    max_length: 20
+
+  - name: Order_Number
+    label: "3. Order Number"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: Request_DateTime
+    label: "4. Date/Time of Request"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: Priority
+    label: "5. Priority"
+    type: text
+    choices:
+      - Routine
+      - Priority
+      - Immediate
+      - Critical
+    required: true
+
+  - name: Requested_By
+    label: "6. Requested by (Name)"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: Requested_By_Position
+    label: "6. Requested by (Position/Section)"
+    type: text
+    max_length: 40
+
+  - name: Needed_DateTime
+    label: "7. Date/Time Needed"
+    description: "e.g. 2025-01-16 0800"
+    type: text
+    max_length: 20
+
+  - name: Delivery_Location
+    label: "8. Delivery/Reporting Location"
+    type: textarea
+
+  - name: Qty1
+    label: "Item 1 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: KindType1
+    label: "Item 1 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Description1
+    label: "Item 1 - Description"
+    type: textarea
+
+  - name: ReportLocation1
+    label: "Item 1 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: ReportDateTime1
+    label: "Item 1 - Reporting Date/Time"
+    type: text
+    max_length: 20
+
+  - name: ETA1
+    label: "Item 1 - ETA"
+    type: text
+    max_length: 20
+
+  - name: ItemOrderNo1
+    label: "Item 1 - Order #"
+    type: text
+    max_length: 20
+
+  - name: ItemNotes1
+    label: "Item 1 - Notes"
+    type: textarea
+
+  - name: Qty2
+    label: "Item 2 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: KindType2
+    label: "Item 2 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Description2
+    label: "Item 2 - Description"
+    type: textarea
+
+  - name: ReportLocation2
+    label: "Item 2 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: ReportDateTime2
+    label: "Item 2 - Reporting Date/Time"
+    type: text
+    max_length: 20
+
+  - name: ETA2
+    label: "Item 2 - ETA"
+    type: text
+    max_length: 20
+
+  - name: ItemOrderNo2
+    label: "Item 2 - Order #"
+    type: text
+    max_length: 20
+
+  - name: ItemNotes2
+    label: "Item 2 - Notes"
+    type: textarea
+
+  - name: Qty3
+    label: "Item 3 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: KindType3
+    label: "Item 3 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Description3
+    label: "Item 3 - Description"
+    type: textarea
+
+  - name: ReportLocation3
+    label: "Item 3 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: ReportDateTime3
+    label: "Item 3 - Reporting Date/Time"
+    type: text
+    max_length: 20
+
+  - name: ETA3
+    label: "Item 3 - ETA"
+    type: text
+    max_length: 20
+
+  - name: ItemOrderNo3
+    label: "Item 3 - Order #"
+    type: text
+    max_length: 20
+
+  - name: ItemNotes3
+    label: "Item 3 - Notes"
+    type: textarea
+
+  - name: Qty4
+    label: "Item 4 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: KindType4
+    label: "Item 4 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Description4
+    label: "Item 4 - Description"
+    type: textarea
+
+  - name: ReportLocation4
+    label: "Item 4 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: ReportDateTime4
+    label: "Item 4 - Reporting Date/Time"
+    type: text
+    max_length: 20
+
+  - name: ETA4
+    label: "Item 4 - ETA"
+    type: text
+    max_length: 20
+
+  - name: ItemOrderNo4
+    label: "Item 4 - Order #"
+    type: text
+    max_length: 20
+
+  - name: ItemNotes4
+    label: "Item 4 - Notes"
+    type: textarea
+
+  - name: Qty5
+    label: "Item 5 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: KindType5
+    label: "Item 5 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Description5
+    label: "Item 5 - Description"
+    type: textarea
+
+  - name: ReportLocation5
+    label: "Item 5 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: ReportDateTime5
+    label: "Item 5 - Reporting Date/Time"
+    type: text
+    max_length: 20
+
+  - name: ETA5
+    label: "Item 5 - ETA"
+    type: text
+    max_length: 20
+
+  - name: ItemOrderNo5
+    label: "Item 5 - Order #"
+    type: text
+    max_length: 20
+
+  - name: ItemNotes5
+    label: "Item 5 - Notes"
+    type: textarea
+
+  - name: Logistics_Order_Number
+    label: "10. Logistics Order #"
+    type: text
+    max_length: 20
+
+  - name: Confirmed_By
+    label: "11. Confirmed by"
+    type: text
+    max_length: 60
+
+  - name: Confirmed_DateTime
+    label: "12. Date/Time Confirmed"
+    type: text
+    max_length: 20
+
+  - name: Logistics_Notes
+    label: "13. Logistics Notes"
+    type: textarea
+
+  - name: Finance_Approval
+    label: "14. Finance Approval (Name)"
+    type: text
+    max_length: 60
+
+  - name: Finance_DateTime
+    label: "15. Finance Date/Time"
+    type: text
+    max_length: 20
+
+  - name: PreparedName
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PreparedDateTime
+    label: "Date/Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
