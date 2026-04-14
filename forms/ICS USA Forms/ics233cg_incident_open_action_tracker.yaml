@@ -1,0 +1,346 @@
+name: ICS 233CG Incident Open Action Tracker
+category: ICS USA Forms
+subject_template: "ICS 233CG - {{ Incident_Name }} - {{ DateTimeFrom }}"
+body_template: |
+  ICS 233CG INCIDENT OPEN ACTION TRACKER
+
+  1. Incident Name: {{ Incident_Name }}
+  2. Operational Period:
+     From: {{ DateTimeFrom }}
+     To:   {{ DateTimeTo }}
+
+  ---------------------------------------------------------------
+  3. OPEN ACTION ITEMS:
+
+  #  ACTION REQUIRED         RESPONSIBLE PARTY   DUE DATE/TIME   STATUS
+  {{ No1 }}  {{ Action1 }}
+     Responsible: {{ Responsible1 }}  Due: {{ DueDateTime1 }}  Status: {{ Status1 }}
+     Notes: {{ Notes1 }}
+
+  {{ No2 }}  {{ Action2 }}
+     Responsible: {{ Responsible2 }}  Due: {{ DueDateTime2 }}  Status: {{ Status2 }}
+     Notes: {{ Notes2 }}
+
+  {{ No3 }}  {{ Action3 }}
+     Responsible: {{ Responsible3 }}  Due: {{ DueDateTime3 }}  Status: {{ Status3 }}
+     Notes: {{ Notes3 }}
+
+  {{ No4 }}  {{ Action4 }}
+     Responsible: {{ Responsible4 }}  Due: {{ DueDateTime4 }}  Status: {{ Status4 }}
+     Notes: {{ Notes4 }}
+
+  {{ No5 }}  {{ Action5 }}
+     Responsible: {{ Responsible5 }}  Due: {{ DueDateTime5 }}  Status: {{ Status5 }}
+     Notes: {{ Notes5 }}
+
+  {{ No6 }}  {{ Action6 }}
+     Responsible: {{ Responsible6 }}  Due: {{ DueDateTime6 }}  Status: {{ Status6 }}
+     Notes: {{ Notes6 }}
+
+  {{ No7 }}  {{ Action7 }}
+     Responsible: {{ Responsible7 }}  Due: {{ DueDateTime7 }}  Status: {{ Status7 }}
+     Notes: {{ Notes7 }}
+
+  {{ No8 }}  {{ Action8 }}
+     Responsible: {{ Responsible8 }}  Due: {{ DueDateTime8 }}  Status: {{ Status8 }}
+     Notes: {{ Notes8 }}
+
+  ---------------------------------------------------------------
+  Prepared by: {{ PreparedName }}
+  Position/Title: {{ PreparedPosition }}
+  Date/Time: {{ PreparedDateTime }}
+
+fields:
+  - name: Incident_Name
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTimeFrom
+    label: "2. Operational Period - From"
+    description: "e.g. 2025-01-15 0800"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateTimeTo
+    label: "2. Operational Period - To"
+    description: "e.g. 2025-01-15 2000"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: No1
+    label: "Item 1 - Item #"
+    type: text
+    max_length: 5
+
+  - name: Action1
+    label: "Item 1 - Action Required"
+    type: textarea
+
+  - name: Responsible1
+    label: "Item 1 - Responsible Party"
+    type: text
+    max_length: 60
+
+  - name: DueDateTime1
+    label: "Item 1 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Status1
+    label: "Item 1 - Status"
+    type: text
+    choices:
+      - Open
+      - In Progress
+      - Closed
+    max_length: 15
+
+  - name: Notes1
+    label: "Item 1 - Notes/Completion Info"
+    type: textarea
+
+  - name: No2
+    label: "Item 2 - Item #"
+    type: text
+    max_length: 5
+
+  - name: Action2
+    label: "Item 2 - Action Required"
+    type: textarea
+
+  - name: Responsible2
+    label: "Item 2 - Responsible Party"
+    type: text
+    max_length: 60
+
+  - name: DueDateTime2
+    label: "Item 2 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Status2
+    label: "Item 2 - Status"
+    type: text
+    choices:
+      - Open
+      - In Progress
+      - Closed
+    max_length: 15
+
+  - name: Notes2
+    label: "Item 2 - Notes/Completion Info"
+    type: textarea
+
+  - name: No3
+    label: "Item 3 - Item #"
+    type: text
+    max_length: 5
+
+  - name: Action3
+    label: "Item 3 - Action Required"
+    type: textarea
+
+  - name: Responsible3
+    label: "Item 3 - Responsible Party"
+    type: text
+    max_length: 60
+
+  - name: DueDateTime3
+    label: "Item 3 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Status3
+    label: "Item 3 - Status"
+    type: text
+    choices:
+      - Open
+      - In Progress
+      - Closed
+    max_length: 15
+
+  - name: Notes3
+    label: "Item 3 - Notes/Completion Info"
+    type: textarea
+
+  - name: No4
+    label: "Item 4 - Item #"
+    type: text
+    max_length: 5
+
+  - name: Action4
+    label: "Item 4 - Action Required"
+    type: textarea
+
+  - name: Responsible4
+    label: "Item 4 - Responsible Party"
+    type: text
+    max_length: 60
+
+  - name: DueDateTime4
+    label: "Item 4 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Status4
+    label: "Item 4 - Status"
+    type: text
+    choices:
+      - Open
+      - In Progress
+      - Closed
+    max_length: 15
+
+  - name: Notes4
+    label: "Item 4 - Notes/Completion Info"
+    type: textarea
+
+  - name: No5
+    label: "Item 5 - Item #"
+    type: text
+    max_length: 5
+
+  - name: Action5
+    label: "Item 5 - Action Required"
+    type: textarea
+
+  - name: Responsible5
+    label: "Item 5 - Responsible Party"
+    type: text
+    max_length: 60
+
+  - name: DueDateTime5
+    label: "Item 5 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Status5
+    label: "Item 5 - Status"
+    type: text
+    choices:
+      - Open
+      - In Progress
+      - Closed
+    max_length: 15
+
+  - name: Notes5
+    label: "Item 5 - Notes/Completion Info"
+    type: textarea
+
+  - name: No6
+    label: "Item 6 - Item #"
+    type: text
+    max_length: 5
+
+  - name: Action6
+    label: "Item 6 - Action Required"
+    type: textarea
+
+  - name: Responsible6
+    label: "Item 6 - Responsible Party"
+    type: text
+    max_length: 60
+
+  - name: DueDateTime6
+    label: "Item 6 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Status6
+    label: "Item 6 - Status"
+    type: text
+    choices:
+      - Open
+      - In Progress
+      - Closed
+    max_length: 15
+
+  - name: Notes6
+    label: "Item 6 - Notes/Completion Info"
+    type: textarea
+
+  - name: No7
+    label: "Item 7 - Item #"
+    type: text
+    max_length: 5
+
+  - name: Action7
+    label: "Item 7 - Action Required"
+    type: textarea
+
+  - name: Responsible7
+    label: "Item 7 - Responsible Party"
+    type: text
+    max_length: 60
+
+  - name: DueDateTime7
+    label: "Item 7 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Status7
+    label: "Item 7 - Status"
+    type: text
+    choices:
+      - Open
+      - In Progress
+      - Closed
+    max_length: 15
+
+  - name: Notes7
+    label: "Item 7 - Notes/Completion Info"
+    type: textarea
+
+  - name: No8
+    label: "Item 8 - Item #"
+    type: text
+    max_length: 5
+
+  - name: Action8
+    label: "Item 8 - Action Required"
+    type: textarea
+
+  - name: Responsible8
+    label: "Item 8 - Responsible Party"
+    type: text
+    max_length: 60
+
+  - name: DueDateTime8
+    label: "Item 8 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Status8
+    label: "Item 8 - Status"
+    type: text
+    choices:
+      - Open
+      - In Progress
+      - Closed
+    max_length: 15
+
+  - name: Notes8
+    label: "Item 8 - Notes/Completion Info"
+    type: textarea
+
+  - name: PreparedName
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PreparedPosition
+    label: "Prepared by (Position/Title)"
+    type: text
+    max_length: 40
+
+  - name: PreparedDateTime
+    label: "Date/Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
