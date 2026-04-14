@@ -1,0 +1,394 @@
+name: ICS 233CG Incident Open Action Tracker
+category: ICS USA Forms
+subject_template: "ICS 233CG - {{ IncidentName }} - {{ DateFrom }}"
+body_template: |
+  INCIDENT OPEN ACTION TRACKER (ICS 233CG)
+
+  1. Incident Name: {{ IncidentName }}
+  2. Operational Period:
+     Date From: {{ DateFrom }}  Date To: {{ DateTo }}
+     Time From: {{ TimeFrom }}  Time To: {{ TimeTo }}
+
+  3. OPEN ACTION ITEMS:
+
+  Item  Date/Time Assigned   Action Description            Responsible Party      Due Date/Time        Status       Remarks
+  1     {{ Action1DateTime }}  {{ Action1Description }}  {{ Action1Responsible }}  {{ Action1Due }}  {{ Action1Status }}  {{ Action1Remarks }}
+  2     {{ Action2DateTime }}  {{ Action2Description }}  {{ Action2Responsible }}  {{ Action2Due }}  {{ Action2Status }}  {{ Action2Remarks }}
+  3     {{ Action3DateTime }}  {{ Action3Description }}  {{ Action3Responsible }}  {{ Action3Due }}  {{ Action3Status }}  {{ Action3Remarks }}
+  4     {{ Action4DateTime }}  {{ Action4Description }}  {{ Action4Responsible }}  {{ Action4Due }}  {{ Action4Status }}  {{ Action4Remarks }}
+  5     {{ Action5DateTime }}  {{ Action5Description }}  {{ Action5Responsible }}  {{ Action5Due }}  {{ Action5Status }}  {{ Action5Remarks }}
+  6     {{ Action6DateTime }}  {{ Action6Description }}  {{ Action6Responsible }}  {{ Action6Due }}  {{ Action6Status }}  {{ Action6Remarks }}
+  7     {{ Action7DateTime }}  {{ Action7Description }}  {{ Action7Responsible }}  {{ Action7Due }}  {{ Action7Status }}  {{ Action7Remarks }}
+  8     {{ Action8DateTime }}  {{ Action8Description }}  {{ Action8Responsible }}  {{ Action8Due }}  {{ Action8Status }}  {{ Action8Remarks }}
+  9     {{ Action9DateTime }}  {{ Action9Description }}  {{ Action9Responsible }}  {{ Action9Due }}  {{ Action9Status }}  {{ Action9Remarks }}
+  10    {{ Action10DateTime }}  {{ Action10Description }}  {{ Action10Responsible }}  {{ Action10Due }}  {{ Action10Status }}  {{ Action10Remarks }}
+
+  Prepared by: {{ PreparedBy }}
+  Position/Title: {{ PrepPosition }}
+  Date/Time: {{ PrepDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateFrom
+    label: "2. Operational Period - Date From"
+    description: "e.g. 2025-01-15"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: DateTo
+    label: "2. Operational Period - Date To"
+    description: "e.g. 2025-01-15"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "2. Operational Period - Time From"
+    description: "e.g. 0800"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: TimeTo
+    label: "2. Operational Period - Time To"
+    description: "e.g. 2000"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: Action1DateTime
+    label: "Action 1 - Date/Time Assigned"
+    description: "e.g. 2025-01-15 0830"
+    type: text
+    max_length: 20
+
+  - name: Action1Description
+    label: "Action 1 - Action Description"
+    type: text
+    max_length: 80
+
+  - name: Action1Responsible
+    label: "Action 1 - Responsible Party"
+    type: text
+    max_length: 40
+
+  - name: Action1Due
+    label: "Action 1 - Due Date/Time"
+    description: "e.g. 2025-01-15 1200"
+    type: text
+    max_length: 20
+
+  - name: Action1Status
+    label: "Action 1 - Status"
+    type: text
+    choices: ["Open", "In Progress", "Closed"]
+    max_length: 15
+
+  - name: Action1Remarks
+    label: "Action 1 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Action2DateTime
+    label: "Action 2 - Date/Time Assigned"
+    type: text
+    max_length: 20
+
+  - name: Action2Description
+    label: "Action 2 - Action Description"
+    type: text
+    max_length: 80
+
+  - name: Action2Responsible
+    label: "Action 2 - Responsible Party"
+    type: text
+    max_length: 40
+
+  - name: Action2Due
+    label: "Action 2 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Action2Status
+    label: "Action 2 - Status"
+    type: text
+    choices: ["Open", "In Progress", "Closed"]
+    max_length: 15
+
+  - name: Action2Remarks
+    label: "Action 2 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Action3DateTime
+    label: "Action 3 - Date/Time Assigned"
+    type: text
+    max_length: 20
+
+  - name: Action3Description
+    label: "Action 3 - Action Description"
+    type: text
+    max_length: 80
+
+  - name: Action3Responsible
+    label: "Action 3 - Responsible Party"
+    type: text
+    max_length: 40
+
+  - name: Action3Due
+    label: "Action 3 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Action3Status
+    label: "Action 3 - Status"
+    type: text
+    choices: ["Open", "In Progress", "Closed"]
+    max_length: 15
+
+  - name: Action3Remarks
+    label: "Action 3 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Action4DateTime
+    label: "Action 4 - Date/Time Assigned"
+    type: text
+    max_length: 20
+
+  - name: Action4Description
+    label: "Action 4 - Action Description"
+    type: text
+    max_length: 80
+
+  - name: Action4Responsible
+    label: "Action 4 - Responsible Party"
+    type: text
+    max_length: 40
+
+  - name: Action4Due
+    label: "Action 4 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Action4Status
+    label: "Action 4 - Status"
+    type: text
+    choices: ["Open", "In Progress", "Closed"]
+    max_length: 15
+
+  - name: Action4Remarks
+    label: "Action 4 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Action5DateTime
+    label: "Action 5 - Date/Time Assigned"
+    type: text
+    max_length: 20
+
+  - name: Action5Description
+    label: "Action 5 - Action Description"
+    type: text
+    max_length: 80
+
+  - name: Action5Responsible
+    label: "Action 5 - Responsible Party"
+    type: text
+    max_length: 40
+
+  - name: Action5Due
+    label: "Action 5 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Action5Status
+    label: "Action 5 - Status"
+    type: text
+    choices: ["Open", "In Progress", "Closed"]
+    max_length: 15
+
+  - name: Action5Remarks
+    label: "Action 5 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Action6DateTime
+    label: "Action 6 - Date/Time Assigned"
+    type: text
+    max_length: 20
+
+  - name: Action6Description
+    label: "Action 6 - Action Description"
+    type: text
+    max_length: 80
+
+  - name: Action6Responsible
+    label: "Action 6 - Responsible Party"
+    type: text
+    max_length: 40
+
+  - name: Action6Due
+    label: "Action 6 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Action6Status
+    label: "Action 6 - Status"
+    type: text
+    choices: ["Open", "In Progress", "Closed"]
+    max_length: 15
+
+  - name: Action6Remarks
+    label: "Action 6 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Action7DateTime
+    label: "Action 7 - Date/Time Assigned"
+    type: text
+    max_length: 20
+
+  - name: Action7Description
+    label: "Action 7 - Action Description"
+    type: text
+    max_length: 80
+
+  - name: Action7Responsible
+    label: "Action 7 - Responsible Party"
+    type: text
+    max_length: 40
+
+  - name: Action7Due
+    label: "Action 7 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Action7Status
+    label: "Action 7 - Status"
+    type: text
+    choices: ["Open", "In Progress", "Closed"]
+    max_length: 15
+
+  - name: Action7Remarks
+    label: "Action 7 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Action8DateTime
+    label: "Action 8 - Date/Time Assigned"
+    type: text
+    max_length: 20
+
+  - name: Action8Description
+    label: "Action 8 - Action Description"
+    type: text
+    max_length: 80
+
+  - name: Action8Responsible
+    label: "Action 8 - Responsible Party"
+    type: text
+    max_length: 40
+
+  - name: Action8Due
+    label: "Action 8 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Action8Status
+    label: "Action 8 - Status"
+    type: text
+    choices: ["Open", "In Progress", "Closed"]
+    max_length: 15
+
+  - name: Action8Remarks
+    label: "Action 8 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Action9DateTime
+    label: "Action 9 - Date/Time Assigned"
+    type: text
+    max_length: 20
+
+  - name: Action9Description
+    label: "Action 9 - Action Description"
+    type: text
+    max_length: 80
+
+  - name: Action9Responsible
+    label: "Action 9 - Responsible Party"
+    type: text
+    max_length: 40
+
+  - name: Action9Due
+    label: "Action 9 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Action9Status
+    label: "Action 9 - Status"
+    type: text
+    choices: ["Open", "In Progress", "Closed"]
+    max_length: 15
+
+  - name: Action9Remarks
+    label: "Action 9 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Action10DateTime
+    label: "Action 10 - Date/Time Assigned"
+    type: text
+    max_length: 20
+
+  - name: Action10Description
+    label: "Action 10 - Action Description"
+    type: text
+    max_length: 80
+
+  - name: Action10Responsible
+    label: "Action 10 - Responsible Party"
+    type: text
+    max_length: 40
+
+  - name: Action10Due
+    label: "Action 10 - Due Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Action10Status
+    label: "Action 10 - Status"
+    type: text
+    choices: ["Open", "In Progress", "Closed"]
+    max_length: 15
+
+  - name: Action10Remarks
+    label: "Action 10 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: PreparedBy
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepPosition
+    label: "Prepared by - Position/Title"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepDateTime
+    label: "Prepared by - Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
