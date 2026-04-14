@@ -1,0 +1,348 @@
+name: ICS 260 Resource Order
+category: ICS USA Forms
+subject_template: "ICS 260 - {{ IncidentName }} - {{ DateTimePrepared }}"
+body_template: |
+  RESOURCE ORDER (ICS 260)
+
+  1. Incident Name: {{ IncidentName }}
+  2. Incident Number: {{ IncidentNumber }}
+  3. Date/Time Prepared: {{ DateTimePrepared }}
+  4. Operational Period:
+     Date From: {{ DateFrom }}  Date To: {{ DateTo }}
+     Time From: {{ TimeFrom }}  Time To: {{ TimeTo }}
+  5. Ordering Manager: {{ OrderingManager }}
+
+  6. RESOURCE ORDERS:
+
+  Order#  Request#  Kind/Type                   Qty  Reporting Location       Report Date/Time     ETA                  Remarks
+  {{ Order1Number }}  {{ Order1RequestNumber }}  {{ Order1KindType }}  {{ Order1Quantity }}  {{ Order1ReportingLocation }}  {{ Order1ReportDateTime }}  {{ Order1ETA }}  {{ Order1Remarks }}
+  {{ Order2Number }}  {{ Order2RequestNumber }}  {{ Order2KindType }}  {{ Order2Quantity }}  {{ Order2ReportingLocation }}  {{ Order2ReportDateTime }}  {{ Order2ETA }}  {{ Order2Remarks }}
+  {{ Order3Number }}  {{ Order3RequestNumber }}  {{ Order3KindType }}  {{ Order3Quantity }}  {{ Order3ReportingLocation }}  {{ Order3ReportDateTime }}  {{ Order3ETA }}  {{ Order3Remarks }}
+  {{ Order4Number }}  {{ Order4RequestNumber }}  {{ Order4KindType }}  {{ Order4Quantity }}  {{ Order4ReportingLocation }}  {{ Order4ReportDateTime }}  {{ Order4ETA }}  {{ Order4Remarks }}
+  {{ Order5Number }}  {{ Order5RequestNumber }}  {{ Order5KindType }}  {{ Order5Quantity }}  {{ Order5ReportingLocation }}  {{ Order5ReportDateTime }}  {{ Order5ETA }}  {{ Order5Remarks }}
+  {{ Order6Number }}  {{ Order6RequestNumber }}  {{ Order6KindType }}  {{ Order6Quantity }}  {{ Order6ReportingLocation }}  {{ Order6ReportDateTime }}  {{ Order6ETA }}  {{ Order6Remarks }}
+
+  Finance/Admin Section Chief: {{ FinanceAdminChief }}
+
+  Prepared by: {{ PreparedBy }}
+  Position/Title: {{ PrepPosition }}
+  Date/Time: {{ PrepDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: IncidentNumber
+    label: "2. Incident Number"
+    type: text
+    max_length: 20
+
+  - name: DateTimePrepared
+    label: "3. Date/Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateFrom
+    label: "4. Operational Period - Date From"
+    description: "e.g. 2025-01-15"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: DateTo
+    label: "4. Operational Period - Date To"
+    description: "e.g. 2025-01-15"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "4. Operational Period - Time From"
+    description: "e.g. 0800"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: TimeTo
+    label: "4. Operational Period - Time To"
+    description: "e.g. 2000"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: OrderingManager
+    label: "5. Ordering Manager"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: Order1Number
+    label: "Order 1 - Order #"
+    type: text
+    max_length: 15
+
+  - name: Order1RequestNumber
+    label: "Order 1 - Request # (ICS 213RR)"
+    type: text
+    max_length: 15
+
+  - name: Order1KindType
+    label: "Order 1 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Order1Quantity
+    label: "Order 1 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: Order1ReportingLocation
+    label: "Order 1 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: Order1ReportDateTime
+    label: "Order 1 - Report Date/Time"
+    description: "e.g. 2025-01-15 0800"
+    type: text
+    max_length: 20
+
+  - name: Order1ETA
+    label: "Order 1 - ETA"
+    description: "e.g. 2025-01-15 1400"
+    type: text
+    max_length: 20
+
+  - name: Order1Remarks
+    label: "Order 1 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Order2Number
+    label: "Order 2 - Order #"
+    type: text
+    max_length: 15
+
+  - name: Order2RequestNumber
+    label: "Order 2 - Request # (ICS 213RR)"
+    type: text
+    max_length: 15
+
+  - name: Order2KindType
+    label: "Order 2 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Order2Quantity
+    label: "Order 2 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: Order2ReportingLocation
+    label: "Order 2 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: Order2ReportDateTime
+    label: "Order 2 - Report Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Order2ETA
+    label: "Order 2 - ETA"
+    type: text
+    max_length: 20
+
+  - name: Order2Remarks
+    label: "Order 2 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Order3Number
+    label: "Order 3 - Order #"
+    type: text
+    max_length: 15
+
+  - name: Order3RequestNumber
+    label: "Order 3 - Request # (ICS 213RR)"
+    type: text
+    max_length: 15
+
+  - name: Order3KindType
+    label: "Order 3 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Order3Quantity
+    label: "Order 3 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: Order3ReportingLocation
+    label: "Order 3 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: Order3ReportDateTime
+    label: "Order 3 - Report Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Order3ETA
+    label: "Order 3 - ETA"
+    type: text
+    max_length: 20
+
+  - name: Order3Remarks
+    label: "Order 3 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Order4Number
+    label: "Order 4 - Order #"
+    type: text
+    max_length: 15
+
+  - name: Order4RequestNumber
+    label: "Order 4 - Request # (ICS 213RR)"
+    type: text
+    max_length: 15
+
+  - name: Order4KindType
+    label: "Order 4 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Order4Quantity
+    label: "Order 4 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: Order4ReportingLocation
+    label: "Order 4 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: Order4ReportDateTime
+    label: "Order 4 - Report Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Order4ETA
+    label: "Order 4 - ETA"
+    type: text
+    max_length: 20
+
+  - name: Order4Remarks
+    label: "Order 4 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Order5Number
+    label: "Order 5 - Order #"
+    type: text
+    max_length: 15
+
+  - name: Order5RequestNumber
+    label: "Order 5 - Request # (ICS 213RR)"
+    type: text
+    max_length: 15
+
+  - name: Order5KindType
+    label: "Order 5 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Order5Quantity
+    label: "Order 5 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: Order5ReportingLocation
+    label: "Order 5 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: Order5ReportDateTime
+    label: "Order 5 - Report Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Order5ETA
+    label: "Order 5 - ETA"
+    type: text
+    max_length: 20
+
+  - name: Order5Remarks
+    label: "Order 5 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: Order6Number
+    label: "Order 6 - Order #"
+    type: text
+    max_length: 15
+
+  - name: Order6RequestNumber
+    label: "Order 6 - Request # (ICS 213RR)"
+    type: text
+    max_length: 15
+
+  - name: Order6KindType
+    label: "Order 6 - Kind/Type"
+    type: text
+    max_length: 40
+
+  - name: Order6Quantity
+    label: "Order 6 - Quantity"
+    type: text
+    max_length: 10
+
+  - name: Order6ReportingLocation
+    label: "Order 6 - Reporting Location"
+    type: text
+    max_length: 60
+
+  - name: Order6ReportDateTime
+    label: "Order 6 - Report Date/Time"
+    type: text
+    max_length: 20
+
+  - name: Order6ETA
+    label: "Order 6 - ETA"
+    type: text
+    max_length: 20
+
+  - name: Order6Remarks
+    label: "Order 6 - Remarks"
+    type: text
+    max_length: 60
+
+  - name: FinanceAdminChief
+    label: "Finance/Admin Section Chief"
+    type: text
+    max_length: 40
+
+  - name: PreparedBy
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepPosition
+    label: "Prepared by - Position/Title"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepDateTime
+    label: "Prepared by - Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
