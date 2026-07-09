@@ -59,6 +59,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0  # Fetch full history for git info in Hugo
 
       - name: Set up Go
         uses: actions/setup-go@v5
