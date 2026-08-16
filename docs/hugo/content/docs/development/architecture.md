@@ -6,33 +6,46 @@ weight: 1
 
 # Architecture
 
-open-packet is structured in layers, each communicating only with its immediate neighbours via well-defined interfaces.
+open-packet is structured in layers, each communicating only with its immediate neighbours via well-defined interfaces. The bottom three layers (transport, link, and AX.25 state machine) live in external packages; the node, engine, store, and UI layers remain in this repository.
 
 ```
-Transport (tcp.py / serial.py)   — raw byte I/O
-  └─ Link / KISSLink (kiss.py)   — KISS framing; implements ConnectionBase
-       └─ AX25Connection          — AX.25 v2.2 state machine; implements ConnectionBase
-            └─ BPQNode            — BBS protocol (L/R/S/K commands); implements NodeBase
-                 └─ Engine        — command/event loop running in a daemon thread
-                      ├─ Store    — SQLite message persistence
-                      └─ TUI      — Textual app, polls Engine event queue every 100ms
+[open-kiss]
+Transport (TCP/serial)           — raw byte I/O
+  └─ KISSLink                    — KISS framing; implements LinkLayer
+
+[open-ax25]
+  └─ AX25Connection              — AX.25 v2.2 state machine; consumes LinkLayer
+
+[open-packet]
+       └─ BPQNode                — BBS protocol (L/R/S/K commands); implements NodeBase
+            └─ Engine            — command/event loop running in a daemon thread
+                 ├─ Store        — SQLite message persistence
+                 └─ TUI          — Textual app, polls Engine event queue every 100ms
 ```
 
-## Transport Layer (`transport/`)
+## Transport, Link, and AX.25 Layers
 
-Provides raw byte I/O over TCP (`tcp.py`) or serial (`serial.py`). Each transport implements a simple interface for reading and writing bytes.
+The bottom three layers of the stack—raw byte I/O (TCP/serial), KISS framing, and the AX.25 v2.2 data-link state machine—have been extracted into two standalone packages:
 
-## Link Layer (`link/`)
+### `open-kiss` (https://github.com/loredous/open-kiss)
 
-`KISSLink` wraps a transport and implements KISS framing — the standard protocol for connecting a TNC to a host computer. It implements `ConnectionBase`, the common interface used by higher layers.
+Provides:
+- **Transport layer:** Raw byte I/O over TCP (`TCPTransport`) or serial (`SerialTransport`)
+- **Link layer:** KISS framing via `KISSLink`, implementing the standard protocol for connecting a TNC to a host computer
 
-## AX.25 Layer (`ax25/`)
+### `open-ax25` (https://github.com/loredous/open-ax25)
 
-`AX25Connection` implements the AX.25 v2.2 data-link state machine:
-- SABM/UA connect/disconnect handshake
-- I-frame data transfer with Go-Back-N windowing
-- T1 (retransmission) and T3 (keep-alive) timers
-- Automatic retransmission on timeout
+Provides:
+- **AX.25 state machine:** `AX25Connection` implementing AX.25 v2.2 data-link semantics
+  - SABM/UA connect/disconnect handshake
+  - I-frame data transfer with Go-Back-N windowing
+  - T1 (retransmission) and T3 (keep-alive) timers
+  - Automatic retransmission on timeout
+- **Link layer abstraction:** `LinkLayer` protocol that `AX25Connection` consumes, allowing it to work with any compliant link layer
+
+### Remaining Link Layer Classes
+
+`open_packet/link/base.py` (`ConnectionBase`) and `open_packet/link/telnet.py` (`TelnetLink`) remain in this repository, providing a telnet-based connection option for non-packet environments.
 
 ## Node Layer (`node/`)
 
