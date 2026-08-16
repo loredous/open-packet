@@ -606,3 +606,68 @@ def test_auto_forward_syncs_via_neighbors(tmp_path):
     os.unlink(f.name)
     # Should have connected at least twice: primary + auto-forward neighbor
     assert len(connect_calls) >= 2
+
+
+def _run_check_mail_with_digipeat(hop_path):
+    """Helper: run CheckMailCommand against a digipeat-strategy node and return
+    the (args, kwargs) recorded by TrackingConnection.connect()."""
+    f = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    f.close()
+    db = Database(f.name); db.initialize()
+    op = db.insert_operator(Operator(callsign="KD9ABC", ssid=0, label="me", is_default=True))
+    node_rec = db.insert_node(Node(
+        label="BBS", callsign="W0BPQ", ssid=1, node_type="bpq",
+        is_default=True, path_strategy="digipeat", hop_path=hop_path,
+    ))
+    store = Store(db)
+
+    connect_calls = []
+    class TrackingConnection:
+        def connect(self, *a, **kw): connect_calls.append((a, kw))
+        def disconnect(self): pass
+        def send_frame(self, d): pass
+        def receive_frame(self, timeout=5.0): return None
+
+    mock_node = MockNodeWithNeighbors([])
+    cmd_q, evt_q = queue.Queue(), queue.Queue()
+    engine = Engine(
+        command_queue=cmd_q, event_queue=evt_q, store=store,
+        operator=op, node_record=node_rec,
+        connection=TrackingConnection(), node=mock_node, auto_discover=False,
+    )
+    engine.start()
+    cmd_q.put(CheckMailCommand())
+    deadline = time.monotonic() + 3.0
+    while time.monotonic() < deadline and len(connect_calls) < 1:
+        time.sleep(0.05)
+    engine.stop()
+    db.close()
+    os.unlink(f.name)
+    assert len(connect_calls) >= 1
+    return connect_calls[0]
+
+
+def test_check_mail_digipeat_converts_node_hops_to_hop_instances():
+    """The NodeHop -> Hop conversion boundary (_to_hops) is exercised for the
+    digipeat path_strategy branch in _do_check_mail()."""
+    from open_ax25.connection import Hop
+
+    hops = [
+        NodeHop(callsign="W0HOP1", port=2),
+        NodeHop(callsign="W0HOP2", port=1),
+    ]
+    _, kwargs = _run_check_mail_with_digipeat(hops)
+    recorded_via = kwargs.get("via_path")
+    assert isinstance(recorded_via, list)
+    assert len(recorded_via) == len(hops)
+    for recorded, original in zip(recorded_via, hops):
+        assert isinstance(recorded, Hop)
+        assert recorded.callsign == original.callsign
+        assert recorded.port == original.port
+
+
+def test_check_mail_digipeat_empty_hop_path_yields_none_via_path():
+    """An empty hop_path on a digipeat-strategy node collapses to via_path=None,
+    not via_path=[]."""
+    _, kwargs = _run_check_mail_with_digipeat([])
+    assert kwargs.get("via_path") is None

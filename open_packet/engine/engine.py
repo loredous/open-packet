@@ -17,6 +17,7 @@ from open_packet.engine.events import (
     SyncCompleteEvent, ErrorEvent, MessageQueuedEvent, ConsoleEvent,
     NeighborsDiscoveredEvent, GroupSyncCompleteEvent, GroupSyncNodeResult,
 )
+from open_ax25.connection import Hop
 from open_packet.link.base import ConnectionBase
 from open_packet.node.base import NodeBase
 from open_packet.store.models import Operator, Node, Message, Bulletin, BBSFile
@@ -26,6 +27,10 @@ logger = logging.getLogger(__name__)
 
 _BBS_DATE_FORMATS_WITH_YEAR = ["%d-%b-%y", "%m/%d/%y", "%d/%m/%y"]
 _BBS_DATE_FORMATS_NO_YEAR   = ["%d-%b", "%m/%d"]
+
+
+def _to_hops(hop_path) -> "list[Hop] | None":
+    return [Hop(callsign=h.callsign, port=h.port) for h in hop_path] or None
 
 
 def _parse_bbs_date(date_str: str, now: datetime) -> datetime:
@@ -321,10 +326,10 @@ class Engine:
         for hop in neighbors:
             derived_path = self._node_record.hop_path + [hop]
             try:
-                from open_packet.ax25.connection import _split_callsign
+                from open_ax25.connection import split_callsign
                 from open_packet.node.bpq import BPQNode
                 if self._node_record.path_strategy == "path_route":
-                    call, ax25_ssid = _split_callsign(derived_path[0].callsign)
+                    call, ax25_ssid = split_callsign(derived_path[0].callsign)
                     self._connection.connect(call, ax25_ssid)
                     temp_node = BPQNode(
                         connection=self._connection,
@@ -336,8 +341,8 @@ class Engine:
                         path_strategy="path_route",
                     )
                 else:  # digipeat
-                    call, ax25_ssid = _split_callsign(hop.callsign)
-                    via = self._node_record.hop_path or None
+                    call, ax25_ssid = split_callsign(hop.callsign)
+                    via = _to_hops(self._node_record.hop_path)
                     self._connection.connect(call, ax25_ssid, via_path=via)
                     temp_node = BPQNode(
                         connection=self._connection,
@@ -370,8 +375,8 @@ class Engine:
             if (self._node_record.path_strategy == "path_route"
                     and self._node_record.hop_path):
                 first = self._node_record.hop_path[0]
-                from open_packet.ax25.connection import _split_callsign
-                call, ssid = _split_callsign(first.callsign)
+                from open_ax25.connection import split_callsign
+                call, ssid = split_callsign(first.callsign)
                 self._connection.connect(call, ssid)
             else:
                 via = self._node_record.hop_path if self._node_record.path_strategy == "digipeat" else None
@@ -379,7 +384,7 @@ class Engine:
                     self._connection.connect(
                         self._node_record.callsign,
                         self._node_record.ssid,
-                        via_path=via,
+                        via_path=_to_hops(via),
                     )
                 else:
                     self._connection.connect(
@@ -440,13 +445,13 @@ class Engine:
 
                 if node_record.path_strategy == "path_route" and node_record.hop_path:
                     first = node_record.hop_path[0]
-                    from open_packet.ax25.connection import _split_callsign
-                    call, ssid = _split_callsign(first.callsign)
+                    from open_ax25.connection import split_callsign
+                    call, ssid = split_callsign(first.callsign)
                     connection.connect(call, ssid)
                 else:
                     via = node_record.hop_path if node_record.path_strategy == "digipeat" else None
                     if via:
-                        connection.connect(node_record.callsign, node_record.ssid, via_path=via)
+                        connection.connect(node_record.callsign, node_record.ssid, via_path=_to_hops(via))
                     else:
                         connection.connect(node_record.callsign, node_record.ssid)
 

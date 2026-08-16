@@ -599,12 +599,34 @@ wheels = [
 ]
 
 [[package]]
-name = "open-packet"
+name = "open-ax25"
 version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/b0/0f9386ba9920415e11fcc9ce170a178787c9942ba979877548630733a734/open_ax25-0.1.0.tar.gz", hash = "sha256:334eab582fbe528c21a211efa3cbcda3264ae710e959470cdc2d89b55e2ca782", size = 11861, upload-time = "2026-08-16T16:36:53.744Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4b/77/8d789c298921cdc88c87913e80e09bf1f3ff726495b2fb5e241225fa8f6b/open_ax25-0.1.0-py3-none-any.whl", hash = "sha256:b192143a75dc605e50b51f5e999cc7793a1bd2c60db232e919debc41747d3d85", size = 9362, upload-time = "2026-08-16T16:36:52.807Z" },
+]
+
+[[package]]
+name = "open-kiss"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyserial" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8c/b6/4077d7e4ee7be5929c0c244861a3bfe59d754dd86342fdb5b94c6da94847/open_kiss-0.1.0.tar.gz", hash = "sha256:07cd5ebebc1be552af7e6b8be5de87019d1776a40f44454ea360fdf6d06d4b51", size = 5188, upload-time = "2026-08-16T16:36:48.914Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/66/1ca1e8c50455c8bff2b5c53132bfaab5a9fa90f68208f9dee650cd4b0711/open_kiss-0.1.0-py3-none-any.whl", hash = "sha256:d4263ecef8bdaebbf3fc10d2a41879087c4153d1f78565fffcf50632d68a2b87", size = 5021, upload-time = "2026-08-16T16:36:47.505Z" },
+]
+
+[[package]]
+name = "open-packet"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "jinja2" },
-    { name = "pyserial" },
+    { name = "open-ax25" },
+    { name = "open-kiss" },
     { name = "pyyaml" },
     { name = "textual" },
     { name = "textual-serve" },
@@ -620,7 +642,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "jinja2", specifier = ">=3.1" },
-    { name = "pyserial", specifier = ">=3.5" },
+    { name = "open-ax25", specifier = ">=0.1.0,<0.2.0" },
+    { name = "open-kiss", specifier = ">=0.1.0,<0.2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "textual", specifier = ">=0.60.0" },
     { name = "textual-serve", specifier = ">=1.1.3" },

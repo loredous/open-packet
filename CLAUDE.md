@@ -18,16 +18,16 @@ uv run textual run --dev open_packet/ui/tui/app.py  # run with Textual live-relo
 
 ## Architecture
 
-The codebase is layered: **Transport → Link → AX.25 → Node → Engine → Store / TUI**. Each layer communicates only with its immediate neighbors via well-defined interfaces.
+The codebase is layered: **Transport → Link → AX.25 → Node → Engine → Store / TUI**. Transport/Link (KISS) live in the external `open-kiss` package and the AX.25 state machine lives in the external `open-ax25` package; `AX25Connection` consumes `open-ax25`'s `LinkLayer` protocol rather than inheriting `ConnectionBase`. Node/Engine/Store/TUI remain in this repo. Each layer communicates only with its immediate neighbors via well-defined interfaces.
 
 ```
-Transport (tcp.py / serial.py)   — raw byte I/O
-  └─ Link / KISSLink (kiss.py)   — KISS framing; implements ConnectionBase
-       └─ AX25Connection          — AX.25 v2.2 state machine; implements ConnectionBase
-            └─ BPQNode            — BBS protocol (L/R/S/K commands); implements NodeBase
-                 └─ Engine        — command/event loop running in a daemon thread
-                      ├─ Store    — SQLite message persistence
-                      └─ TUI      — Textual app, polls Engine event queue every 100ms
+[open-kiss]   Transport (TCP/serial) — raw byte I/O
+                └─ KISSLink          — KISS framing; implements LinkLayer
+[open-ax25]        └─ AX25Connection — AX.25 v2.2 state machine; consumes LinkLayer
+[open-packet]           └─ BPQNode   — BBS protocol (L/R/S/K commands); implements NodeBase
+                              └─ Engine  — command/event loop running in a daemon thread
+                                   ├─ Store — SQLite message persistence
+                                   └─ TUI   — Textual app, polls Engine event queue every 100ms
 ```
 
 ### Engine (`engine/`)
@@ -62,9 +62,9 @@ The TUI calls `self._store` directly for lightweight operations that don't need 
 
 Operator identity and node configuration are stored in SQLite and managed via TUI screens, not the config file. The config file (`~/.config/open-packet/config.yaml`) covers connection and storage settings only.
 
-### AX.25 / Node (`ax25/`, `node/`)
+### AX.25 / Node (`node/`)
 
-`AX25Connection` implements the AX.25 v2.2 data-link state machine (SABM/UA/DISC/I-frames, T1/T3 timers, Go-Back-N windowing). `BPQNode` sits on top and speaks the BPQ32 BBS text protocol. `connect_node()` sends `BBS\r`, waits for a prompt ending in `>`, and handles name prompts by replying with the operator callsign.
+`AX25Connection` (from the published `open-ax25` package) implements the AX.25 v2.2 data-link state machine (SABM/UA/DISC/I-frames, T1/T3 timers, Go-Back-N windowing). `BPQNode` (`node/bpq.py`, still in this repo) sits on top and speaks the BPQ32 BBS text protocol. `connect_node()` sends `BBS\r`, waits for a prompt ending in `>`, and handles name prompts by replying with the operator callsign.
 
 ## Documentation
 
