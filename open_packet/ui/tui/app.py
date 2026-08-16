@@ -21,16 +21,16 @@ from open_packet.engine.events import (
     NeighborsDiscoveredEvent, GroupSyncCompleteEvent,
 )
 from open_packet.ui.tui.screens.shorter_path_confirm import ShorterPathConfirmScreen
-from open_packet.ax25.connection import AX25Connection
-from open_packet.link.kiss import KISSLink
+from open_ax25.connection import AX25Connection
+from open_kiss.kiss import KISSLink
 from open_packet.link.telnet import TelnetLink
 from open_packet.node.bpq import BPQNode
 from open_packet.store.database import Database
 from open_packet.store.models import Operator, Node, Interface, Message, Bulletin, BBSFile
 from open_packet.store.settings import Settings
 from open_packet.store.store import Store
-from open_packet.transport.tcp import TCPTransport
-from open_packet.transport.serial import SerialTransport
+from open_kiss.transport.tcp import TCPTransport
+from open_kiss.transport.serial import SerialTransport
 from open_packet.terminal.session import TerminalSession, TerminalConnectResult
 from open_packet.ui.tui.screens.compose import ComposeScreen
 from open_packet.ui.tui.screens.compose_bulletin import ComposeBulletinScreen
