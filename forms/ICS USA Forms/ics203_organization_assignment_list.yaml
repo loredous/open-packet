@@ -1,0 +1,302 @@
+name: ICS 203 Organization Assignment List
+category: ICS USA Forms
+subject_template: "ICS 203 - {{ IncidentName }} - {{ DateFrom }} {{ TimeFrom }}"
+body_template: |
+  ORGANIZATION ASSIGNMENT LIST (ICS 203)
+
+  1. Incident Name: {{ IncidentName }}
+  2. Operational Period:
+     Date From: {{ DateFrom }}  Date To: {{ DateTo }}
+     Time From: {{ TimeFrom }}  Time To: {{ TimeTo }}
+
+  3. INCIDENT COMMAND AND STAFF:
+  Incident Commander(s): {{ IC }}
+  Deputy: {{ ICDeputy }}
+  Safety Officer: {{ SafetyOfficer }}
+  Public Information Officer: {{ PIO }}
+  Liaison Officer: {{ LiaisonOfficer }}
+
+  4. AGENCY/ORGANIZATION REPRESENTATIVES:
+  Agency/Organization: {{ Agency1 }}  Name: {{ AgencyRep1 }}
+  Agency/Organization: {{ Agency2 }}  Name: {{ AgencyRep2 }}
+  Agency/Organization: {{ Agency3 }}  Name: {{ AgencyRep3 }}
+
+  5. PLANNING SECTION:
+  Chief: {{ PlanningChief }}
+  Deputy: {{ PlanningDeputy }}
+  Resources Unit: {{ ResourcesUnit }}
+  Situation Unit: {{ SituationUnit }}
+  Documentation Unit: {{ DocumentationUnit }}
+  Demobilization Unit: {{ DemobUnit }}
+
+  6. LOGISTICS SECTION:
+  Chief: {{ LogisticsChief }}
+  Deputy: {{ LogisticsDeputy }}
+  Support Branch Director: {{ SupportBranchDir }}
+  Supply Unit: {{ SupplyUnit }}
+  Facilities Unit: {{ FacilitiesUnit }}
+  Ground Support Unit: {{ GroundSupportUnit }}
+  Service Branch Director: {{ ServiceBranchDir }}
+  Communications Unit: {{ CommsUnit }}
+  Medical Unit: {{ MedicalUnit }}
+  Food Unit: {{ FoodUnit }}
+
+  7. OPERATIONS SECTION:
+  Chief: {{ OpsChief }}
+  Deputy: {{ OpsDeputy }}
+  Branch I Director: {{ Branch1Dir }}
+  Branch II Director: {{ Branch2Dir }}
+  Branch III Director: {{ Branch3Dir }}
+
+  8. FINANCE/ADMINISTRATION SECTION:
+  Chief: {{ FinanceChief }}
+  Deputy: {{ FinanceDeputy }}
+  Time Unit: {{ TimeUnit }}
+  Procurement Unit: {{ ProcurementUnit }}
+  Compensation/Claims Unit: {{ CompClaimsUnit }}
+  Cost Unit: {{ CostUnit }}
+
+  9. Prepared by: {{ PreparedBy }}
+  Position/Title: {{ PrepPosition }}
+  Date/Time: {{ PrepDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateFrom
+    label: "2. Operational Period - Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: DateTo
+    label: "2. Operational Period - Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "2. Operational Period - Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: TimeTo
+    label: "2. Operational Period - Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: IC
+    label: "3. Incident Commander(s)"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: ICDeputy
+    label: "3. Deputy IC"
+    type: text
+    max_length: 40
+
+  - name: SafetyOfficer
+    label: "3. Safety Officer"
+    type: text
+    max_length: 40
+
+  - name: PIO
+    label: "3. Public Information Officer"
+    type: text
+    max_length: 40
+
+  - name: LiaisonOfficer
+    label: "3. Liaison Officer"
+    type: text
+    max_length: 40
+
+  - name: Agency1
+    label: "4. Agency/Organization Rep 1 - Agency"
+    type: text
+    max_length: 40
+
+  - name: AgencyRep1
+    label: "4. Agency/Organization Rep 1 - Name"
+    type: text
+    max_length: 40
+
+  - name: Agency2
+    label: "4. Agency/Organization Rep 2 - Agency"
+    type: text
+    max_length: 40
+
+  - name: AgencyRep2
+    label: "4. Agency/Organization Rep 2 - Name"
+    type: text
+    max_length: 40
+
+  - name: Agency3
+    label: "4. Agency/Organization Rep 3 - Agency"
+    type: text
+    max_length: 40
+
+  - name: AgencyRep3
+    label: "4. Agency/Organization Rep 3 - Name"
+    type: text
+    max_length: 40
+
+  - name: PlanningChief
+    label: "5. Planning Section Chief"
+    type: text
+    max_length: 40
+
+  - name: PlanningDeputy
+    label: "5. Planning Section Deputy"
+    type: text
+    max_length: 40
+
+  - name: ResourcesUnit
+    label: "5. Resources Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: SituationUnit
+    label: "5. Situation Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: DocumentationUnit
+    label: "5. Documentation Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: DemobUnit
+    label: "5. Demobilization Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: LogisticsChief
+    label: "6. Logistics Section Chief"
+    type: text
+    max_length: 40
+
+  - name: LogisticsDeputy
+    label: "6. Logistics Section Deputy"
+    type: text
+    max_length: 40
+
+  - name: SupportBranchDir
+    label: "6. Support Branch Director"
+    type: text
+    max_length: 40
+
+  - name: SupplyUnit
+    label: "6. Supply Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: FacilitiesUnit
+    label: "6. Facilities Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: GroundSupportUnit
+    label: "6. Ground Support Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: ServiceBranchDir
+    label: "6. Service Branch Director"
+    type: text
+    max_length: 40
+
+  - name: CommsUnit
+    label: "6. Communications Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: MedicalUnit
+    label: "6. Medical Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: FoodUnit
+    label: "6. Food Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: OpsChief
+    label: "7. Operations Section Chief"
+    type: text
+    max_length: 40
+
+  - name: OpsDeputy
+    label: "7. Operations Section Deputy"
+    type: text
+    max_length: 40
+
+  - name: Branch1Dir
+    label: "7. Branch I Director"
+    type: text
+    max_length: 40
+
+  - name: Branch2Dir
+    label: "7. Branch II Director"
+    type: text
+    max_length: 40
+
+  - name: Branch3Dir
+    label: "7. Branch III Director"
+    type: text
+    max_length: 40
+
+  - name: FinanceChief
+    label: "8. Finance/Admin Section Chief"
+    type: text
+    max_length: 40
+
+  - name: FinanceDeputy
+    label: "8. Finance/Admin Section Deputy"
+    type: text
+    max_length: 40
+
+  - name: TimeUnit
+    label: "8. Time Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: ProcurementUnit
+    label: "8. Procurement Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: CompClaimsUnit
+    label: "8. Compensation/Claims Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: CostUnit
+    label: "8. Cost Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: PreparedBy
+    label: "9. Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepPosition
+    label: "9. Position/Title"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepDateTime
+    label: "9. Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
