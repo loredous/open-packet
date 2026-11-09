@@ -1,0 +1,314 @@
+name: ICS 206 Medical Plan
+category: ICS USA Forms
+subject_template: "ICS 206 - {{ Incident_Name }} - {{ DateTimePrepared }}"
+body_template: |
+  ICS 206 MEDICAL PLAN
+
+  1. Incident Name: {{ Incident_Name }}
+  2. Date/Time Prepared: {{ DateTimePrepared }}
+
+  3. Operational Period:
+  From: {{ DateFrom }} {{ TimeFrom }}
+  To:   {{ DateTo }} {{ TimeTo }}
+
+  4. MEDICAL AID STATIONS:
+
+  NAME: {{ AidStation1 }}  LOCATION: {{ AidLocation1 }}
+  PARAMEDICS ON SITE: {{ AidParamedics1 }}  RADIO CHANNEL: {{ AidRadio1 }}  PHONE: {{ AidPhone1 }}
+
+  NAME: {{ AidStation2 }}  LOCATION: {{ AidLocation2 }}
+  PARAMEDICS ON SITE: {{ AidParamedics2 }}  RADIO CHANNEL: {{ AidRadio2 }}  PHONE: {{ AidPhone2 }}
+
+  NAME: {{ AidStation3 }}  LOCATION: {{ AidLocation3 }}
+  PARAMEDICS ON SITE: {{ AidParamedics3 }}  RADIO CHANNEL: {{ AidRadio3 }}  PHONE: {{ AidPhone3 }}
+
+  --------------------------------------------------
+  5. TRANSPORTATION:
+
+  A. AMBULANCE SERVICES:
+
+  NAME: {{ Ambulance1 }}  LOCATION: {{ AmbulanceLocation1 }}
+  LEVEL: {{ AmbulanceLevel1 }}  PHONE: {{ AmbulancePhone1 }}
+
+  NAME: {{ Ambulance2 }}  LOCATION: {{ AmbulanceLocation2 }}
+  LEVEL: {{ AmbulanceLevel2 }}  PHONE: {{ AmbulancePhone2 }}
+
+  --------------------------------------------------
+  6. HOSPITALS:
+
+  NAME: {{ Hospital1 }}
+  ADDRESS: {{ HospitalAddress1 }}
+  TRAUMA CENTER: {{ HospitalTrauma1 }}  BURN CENTER: {{ HospitalBurn1 }}  HELIPAD: {{ HospitalHelipad1 }}
+  TRAVEL TIME: {{ HospitalTravelTime1 }}  PHONE: {{ HospitalPhone1 }}
+
+  NAME: {{ Hospital2 }}
+  ADDRESS: {{ HospitalAddress2 }}
+  TRAUMA CENTER: {{ HospitalTrauma2 }}  BURN CENTER: {{ HospitalBurn2 }}  HELIPAD: {{ HospitalHelipad2 }}
+  TRAVEL TIME: {{ HospitalTravelTime2 }}  PHONE: {{ HospitalPhone2 }}
+
+  --------------------------------------------------
+  7. Special Medical Procedures/Notes:
+  {{ SpecialProcedures }}
+
+  --------------------------------------------------
+  Prepared by (Medical Unit Leader): {{ PreparedName }}
+  Date/Time: {{ PreparedDateTime }}
+
+  Approved by (Safety Officer): {{ ApprovedName }}
+  Date/Time: {{ ApprovedDateTime }}
+
+  IAP Page: {{ IAP_Page }}
+
+fields:
+  - name: Incident_Name
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTimePrepared
+    label: "2. Date/Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateFrom
+    label: "3. Op Period - Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "3. Op Period - Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: DateTo
+    label: "3. Op Period - Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeTo
+    label: "3. Op Period - Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: AidStation1
+    label: "Aid Station 1 - Name"
+    type: text
+    max_length: 40
+
+  - name: AidLocation1
+    label: "Aid Station 1 - Location"
+    type: text
+    max_length: 60
+
+  - name: AidParamedics1
+    label: "Aid Station 1 - Paramedics on Site?"
+    type: text
+    max_length: 5
+
+  - name: AidRadio1
+    label: "Aid Station 1 - Radio Channel"
+    type: text
+    max_length: 20
+
+  - name: AidPhone1
+    label: "Aid Station 1 - Phone"
+    type: text
+    max_length: 20
+
+  - name: AidStation2
+    label: "Aid Station 2 - Name"
+    type: text
+    max_length: 40
+
+  - name: AidLocation2
+    label: "Aid Station 2 - Location"
+    type: text
+    max_length: 60
+
+  - name: AidParamedics2
+    label: "Aid Station 2 - Paramedics on Site?"
+    type: text
+    max_length: 5
+
+  - name: AidRadio2
+    label: "Aid Station 2 - Radio Channel"
+    type: text
+    max_length: 20
+
+  - name: AidPhone2
+    label: "Aid Station 2 - Phone"
+    type: text
+    max_length: 20
+
+  - name: AidStation3
+    label: "Aid Station 3 - Name"
+    type: text
+    max_length: 40
+
+  - name: AidLocation3
+    label: "Aid Station 3 - Location"
+    type: text
+    max_length: 60
+
+  - name: AidParamedics3
+    label: "Aid Station 3 - Paramedics on Site?"
+    type: text
+    max_length: 5
+
+  - name: AidRadio3
+    label: "Aid Station 3 - Radio Channel"
+    type: text
+    max_length: 20
+
+  - name: AidPhone3
+    label: "Aid Station 3 - Phone"
+    type: text
+    max_length: 20
+
+  - name: Ambulance1
+    label: "Ambulance 1 - Name/Service"
+    type: text
+    max_length: 50
+
+  - name: AmbulanceLocation1
+    label: "Ambulance 1 - Location"
+    type: text
+    max_length: 60
+
+  - name: AmbulanceLevel1
+    label: "Ambulance 1 - Level (ALS/BLS)"
+    type: text
+    max_length: 10
+
+  - name: AmbulancePhone1
+    label: "Ambulance 1 - Phone"
+    type: text
+    max_length: 20
+
+  - name: Ambulance2
+    label: "Ambulance 2 - Name/Service"
+    type: text
+    max_length: 50
+
+  - name: AmbulanceLocation2
+    label: "Ambulance 2 - Location"
+    type: text
+    max_length: 60
+
+  - name: AmbulanceLevel2
+    label: "Ambulance 2 - Level (ALS/BLS)"
+    type: text
+    max_length: 10
+
+  - name: AmbulancePhone2
+    label: "Ambulance 2 - Phone"
+    type: text
+    max_length: 20
+
+  - name: Hospital1
+    label: "Hospital 1 - Name"
+    type: text
+    max_length: 60
+
+  - name: HospitalAddress1
+    label: "Hospital 1 - Address"
+    type: text
+    max_length: 80
+
+  - name: HospitalTrauma1
+    label: "Hospital 1 - Trauma Center? (Y/N)"
+    type: text
+    max_length: 5
+
+  - name: HospitalBurn1
+    label: "Hospital 1 - Burn Center? (Y/N)"
+    type: text
+    max_length: 5
+
+  - name: HospitalHelipad1
+    label: "Hospital 1 - Helipad? (Y/N)"
+    type: text
+    max_length: 5
+
+  - name: HospitalTravelTime1
+    label: "Hospital 1 - Travel Time"
+    type: text
+    max_length: 20
+
+  - name: HospitalPhone1
+    label: "Hospital 1 - Phone"
+    type: text
+    max_length: 20
+
+  - name: Hospital2
+    label: "Hospital 2 - Name"
+    type: text
+    max_length: 60
+
+  - name: HospitalAddress2
+    label: "Hospital 2 - Address"
+    type: text
+    max_length: 80
+
+  - name: HospitalTrauma2
+    label: "Hospital 2 - Trauma Center? (Y/N)"
+    type: text
+    max_length: 5
+
+  - name: HospitalBurn2
+    label: "Hospital 2 - Burn Center? (Y/N)"
+    type: text
+    max_length: 5
+
+  - name: HospitalHelipad2
+    label: "Hospital 2 - Helipad? (Y/N)"
+    type: text
+    max_length: 5
+
+  - name: HospitalTravelTime2
+    label: "Hospital 2 - Travel Time"
+    type: text
+    max_length: 20
+
+  - name: HospitalPhone2
+    label: "Hospital 2 - Phone"
+    type: text
+    max_length: 20
+
+  - name: SpecialProcedures
+    label: "7. Special Medical Procedures/Notes"
+    type: textarea
+
+  - name: PreparedName
+    label: "Prepared by - Medical Unit Leader (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PreparedDateTime
+    label: "Prepared by - Date/Time"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: ApprovedName
+    label: "Approved by - Safety Officer (Name)"
+    type: text
+    max_length: 40
+
+  - name: ApprovedDateTime
+    label: "Approved by - Date/Time"
+    type: text
+    max_length: 20
+
+  - name: IAP_Page
+    label: "IAP Page #"
+    type: text
+    max_length: 5
