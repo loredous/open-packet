@@ -1,12 +1,10 @@
 # open_packet/engine/commands.py
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from open_packet.link.base import ConnectionBase
-    from open_packet.node.base import NodeBase
-    from open_packet.store.models import Node, Interface
+from open_packet.link.base import ConnectionBase
+from open_packet.node.base import NodeBase
+from open_packet.store.models import Interface, Node
 
 
 @dataclass
@@ -30,6 +28,7 @@ class SendMessageCommand:
     subject: str
     body: str
     message_type: str = "bbs"  # "bbs" or "winlink"
+    node_ids: list[int] = field(default_factory=list)
 
 
 @dataclass
@@ -43,6 +42,7 @@ class PostBulletinCommand:
     category: str
     subject: str
     body: str
+    node_ids: list[int] = field(default_factory=list)
 
 
 @dataclass

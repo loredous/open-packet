@@ -178,13 +178,15 @@ class Engine:
         self._connection.disconnect()
         self._set_status(ConnectionStatus.DISCONNECTED)
 
-    def _run_sync_phases(self, node, message_type: str = "bbs") -> tuple[int, int, int, int]:
+    def _run_sync_phases(
+        self, node, node_id: Optional[int] = None, message_type: str = "bbs"
+    ) -> tuple[int, int, int, int]:
         """Run the sync phases. Returns (retrieved, sent, bulletins_retrieved, files_retrieved).
         Does NOT emit SyncCompleteEvent — caller is responsible for that.
+        node_id filters outbound messages/bulletins to those targeted at this node.
+        message_type ("bbs" or "winlink") controls which outbox messages are sent."""
+        sync_node_id = node_id if node_id is not None else self._node_record.id
 
-        :param message_type: "bbs" for BBS sync, "winlink" for Winlink sync.
-            Controls which outbox messages are sent during this sync.
-        """
         # Phase 1: Retrieve new messages
         retrieved = 0
         self._set_status(ConnectionStatus.SYNCING, "Listing messages…")
@@ -199,7 +201,7 @@ class Engine:
             now = datetime.now(timezone.utc)
             saved = self._store.save_message(Message(
                 operator_id=self._operator.id,
-                node_id=self._node_record.id,
+                node_id=sync_node_id,
                 bbs_id=header.bbs_id,
                 from_call=header.from_call,
                 to_call=header.to_call,
@@ -217,22 +219,28 @@ class Engine:
                     subject=header.subject,
                 ))
 
-        # Phase 2: Send queued outbound messages (only matching message_type)
+        # Phase 2: Send queued outbound messages targeted at this node (matching message_type)
         sent = 0
-        if message_type == "bbs":
-            outbound = self._store.list_outbox_bbs_messages(self._operator.id)
-        else:
-            outbound = self._store.list_outbox_winlink_messages(self._operator.id)
+        outbound = self._store.list_outbox_messages(
+            self._operator.id, node_id=sync_node_id, message_type=message_type
+        )
         for i, m in enumerate(outbound, 1):
             self._set_status(ConnectionStatus.SYNCING, f"Sending message {i} of {len(outbound)}")
             self._emit(ConsoleEvent("!", f"Sending message {i} of {len(outbound)}", level="basic"))
             self._emit(ConsoleEvent(">", f"Sending to {m.to_call}: {m.subject}"))
-            node.send_message(m.to_call, m.subject, m.body)
-            self._store.mark_message_sent(m.id)
-            sent += 1
+            try:
+                node.send_message(m.to_call, m.subject, m.body)
+                self._store.mark_message_sent(m.id)
+                sent += 1
+            except Exception as e:
+                logger.exception("Failed to send message %s via node %s", m.id, sync_node_id)
+                self._emit(ConsoleEvent("!", f"Failed to send to {m.to_call}: {e}"))
 
-        # Phase 3: Send queued bulletins (BBS only)
-        pending_bulletins = self._store.list_outbox_bulletins(self._operator.id) if message_type == "bbs" else []
+        # Phase 3: Send queued bulletins targeted at this node (BBS only)
+        pending_bulletins = (
+            self._store.list_outbox_bulletins(self._operator.id, node_id=sync_node_id)
+            if message_type == "bbs" else []
+        )
         for i, bul in enumerate(pending_bulletins, 1):
             self._set_status(ConnectionStatus.SYNCING, f"Posting bulletin {i} of {len(pending_bulletins)}")
             self._emit(ConsoleEvent("!", f"Posting bulletin {i} of {len(pending_bulletins)}", level="basic"))
@@ -351,7 +359,7 @@ class Engine:
                     )
                 self._emit(ConsoleEvent(">", f"Auto-forwarding via {hop.callsign}"))
                 temp_node.connect_node()
-                self._run_sync_phases(temp_node)
+                self._run_sync_phases(temp_node, node_id=self._node_record.id)
             except Exception as e:
                 logger.exception("Auto-forward to %s failed", hop.callsign)
                 self._emit(ConsoleEvent("!", f"Auto-forward to {hop.callsign} failed: {e}"))
@@ -419,7 +427,9 @@ class Engine:
         try:
             winlink_node.connect_node()
             self._emit(ConsoleEvent("<", f"Winlink B2F session started with {node_addr}"))
-            retrieved, sent, _, _ = self._run_sync_phases(winlink_node, message_type="winlink")
+            retrieved, sent, _, _ = self._run_sync_phases(
+                winlink_node, node_id=self._node_record.id, message_type="winlink"
+            )
         finally:
             winlink_node.finish_session()
             self._connection.disconnect()
@@ -450,7 +460,7 @@ class Engine:
                 self._set_status(ConnectionStatus.SYNCING)
 
                 retrieved, sent, bulletins_retrieved, files_retrieved = self._run_sync_phases(
-                    self._node, message_type="bbs"
+                    self._node, node_id=self._node_record.id, message_type="bbs"
                 )
                 total_retrieved += retrieved
                 total_sent += sent
@@ -574,9 +584,10 @@ class Engine:
     def _do_send_message(self, cmd: SendMessageCommand) -> None:
         now = datetime.now(timezone.utc)
         message_type = getattr(cmd, "message_type", "bbs")
-        self._store.save_message(Message(
+        node_ids = cmd.node_ids if cmd.node_ids else [self._node_record.id]
+        saved = self._store.save_message(Message(
             operator_id=self._operator.id,
-            node_id=self._node_record.id,
+            node_id=node_ids[0],
             bbs_id="",
             from_call=f"{self._operator.callsign}-{self._operator.ssid}",
             to_call=cmd.to_call,
@@ -586,6 +597,8 @@ class Engine:
             queued=True,
             message_type=message_type,
         ))
+        if saved and saved.id is not None:
+            self._store.add_message_target_nodes(saved.id, node_ids)
         self._emit(MessageQueuedEvent())
 
     def _do_delete_message(self, cmd: DeleteMessageCommand) -> None:
@@ -594,17 +607,20 @@ class Engine:
 
     def _do_post_bulletin(self, cmd: PostBulletinCommand) -> None:
         from uuid import uuid4
-        bulletin = Bulletin(
-            operator_id=self._operator.id,
-            node_id=self._node_record.id,
-            bbs_id=f"OUT-{uuid4().hex[:8]}",
-            category=cmd.category,
-            from_call=self._operator.callsign,
-            subject=cmd.subject,
-            body=cmd.body,
-            timestamp=datetime.now(timezone.utc),
-            queued=True,
-            sent=False,
-        )
-        self._store.save_bulletin(bulletin)
+        node_ids = cmd.node_ids if cmd.node_ids else [self._node_record.id]
+        now = datetime.now(timezone.utc)
+        for node_id in node_ids:
+            bulletin = Bulletin(
+                operator_id=self._operator.id,
+                node_id=node_id,
+                bbs_id=f"OUT-{uuid4().hex[:8]}",
+                category=cmd.category,
+                from_call=self._operator.callsign,
+                subject=cmd.subject,
+                body=cmd.body,
+                timestamp=now,
+                queued=True,
+                sent=False,
+            )
+            self._store.save_bulletin(bulletin)
         self._emit(MessageQueuedEvent())

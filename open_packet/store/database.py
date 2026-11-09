@@ -1,6 +1,9 @@
 from __future__ import annotations
+import functools
+import inspect
 import json as _json
 import sqlite3
+import threading
 from datetime import datetime
 from typing import Optional
 
@@ -31,10 +34,51 @@ def _json_to_hops(s: str):
         return []
 
 
+def _atomic(method):
+    """Run ``method`` as one atomic store operation.
+
+    The Engine thread and the TUI thread share a single Database (and one
+    sqlite3 connection). Every public operation holds the database's RLock,
+    so no other thread can interleave statements with it, and if the
+    outermost operation raises, its uncommitted changes are rolled back so a
+    later, unrelated commit cannot persist them.
+    """
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        db = self._atomic_db
+        with db._lock:
+            db._op_depth += 1
+            try:
+                return method(self, *args, **kwargs)
+            except BaseException:
+                if db._op_depth == 1 and db._conn is not None:
+                    db._conn.rollback()
+                raise
+            finally:
+                db._op_depth -= 1
+    return wrapper
+
+
+def atomic_operations(cls):
+    """Class decorator: make every public method of ``cls`` an atomic store
+    operation (see ``_atomic``). The class must provide ``_atomic_db``."""
+    for name, attr in list(vars(cls).items()):
+        if not name.startswith("_") and inspect.isfunction(attr):
+            setattr(cls, name, _atomic(attr))
+    return cls
+
+
+@atomic_operations
 class Database:
     def __init__(self, path: str):
         self._path = path
         self._conn: sqlite3.Connection | None = None
+        self._lock = threading.RLock()
+        self._op_depth = 0
+
+    @property
+    def _atomic_db(self) -> "Database":
+        return self
 
     def initialize(self) -> None:
         self._conn = sqlite3.connect(self._path, check_same_thread=False)
@@ -132,20 +176,14 @@ class Database:
             "ALTER TABLE nodes ADD COLUMN has_bbs INTEGER NOT NULL DEFAULT 1",
             "ALTER TABLE nodes ADD COLUMN has_winlink INTEGER NOT NULL DEFAULT 0",
             "ALTER TABLE nodes ADD COLUMN has_files INTEGER NOT NULL DEFAULT 1",
+            "ALTER TABLE messages ADD COLUMN message_type TEXT NOT NULL DEFAULT 'bbs'",
+            "ALTER TABLE operators ADD COLUMN nts_msg_number INTEGER NOT NULL DEFAULT 1",
         ]:
             try:
                 self._conn.execute(sql)
                 self._conn.commit()
             except sqlite3.OperationalError:
                 pass  # column already exists
-
-        try:
-            self._conn.execute(
-                "ALTER TABLE messages ADD COLUMN message_type TEXT NOT NULL DEFAULT 'bbs'"
-            )
-            self._conn.commit()
-        except sqlite3.OperationalError:
-            pass  # column already exists
 
     def close(self) -> None:
         if self._conn:
@@ -276,6 +314,12 @@ class Database:
                 UNIQUE(node_id, filename)
             );
 
+            CREATE TABLE IF NOT EXISTS message_target_nodes (
+                message_id INTEGER NOT NULL REFERENCES messages(id),
+                node_id    INTEGER NOT NULL REFERENCES nodes(id),
+                PRIMARY KEY (message_id, node_id)
+            );
+
             CREATE TABLE IF NOT EXISTS node_groups (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
@@ -380,6 +424,25 @@ class Database:
         assert self._conn
         rows = self._conn.execute("SELECT * FROM nodes WHERE deleted=0 ORDER BY id").fetchall()
         return [self._row_to_node(r) for r in rows]
+
+    def get_nts_msg_number(self, operator_id: int) -> int:
+        """Return the next NTS message number for *operator_id* (default 1 if not set)."""
+        assert self._conn
+        row = self._conn.execute(
+            "SELECT nts_msg_number FROM operators WHERE id=?", (operator_id,)
+        ).fetchone()
+        if row is None:
+            return 1
+        val = row["nts_msg_number"]
+        return val if val is not None else 1
+
+    def set_nts_msg_number(self, operator_id: int, number: int) -> None:
+        """Persist the NTS message number for *operator_id*."""
+        assert self._conn
+        self._conn.execute(
+            "UPDATE operators SET nts_msg_number=? WHERE id=?", (number, operator_id)
+        )
+        self._conn.commit()
 
     def update_operator(self, op: Operator) -> None:
         assert self._conn
@@ -510,6 +573,22 @@ class Database:
             "SELECT COUNT(*) FROM bulletins WHERE operator_id=?", (op_id,)
         ).fetchone()[0]
         return (msg_count, bul_count)
+
+    def add_message_target_nodes(self, message_id: int, node_ids: list[int]) -> None:
+        assert self._conn
+        for node_id in node_ids:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO message_target_nodes (message_id, node_id) VALUES (?, ?)",
+                (message_id, node_id),
+            )
+        self._conn.commit()
+
+    def get_message_target_nodes(self, message_id: int) -> list[int]:
+        assert self._conn
+        rows = self._conn.execute(
+            "SELECT node_id FROM message_target_nodes WHERE message_id=?", (message_id,)
+        ).fetchall()
+        return [r["node_id"] for r in rows]
 
     def count_node_dependents(self, node_id: int) -> tuple[int, int]:
         assert self._conn

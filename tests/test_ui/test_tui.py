@@ -568,10 +568,10 @@ async def test_message_list_shows_retrieved_date_and_dash_for_none(app_db_path, 
         msg_list = app.query_one("MessageList")
         assert msg_list.row_count == 1
 
-        sent_val = msg_list.get_cell_at(Coordinate(0, 3))
+        sent_val = msg_list.get_cell_at(Coordinate(0, 4))
         assert sent_val == "06/01 12:00"
 
-        retrieved_val = msg_list.get_cell_at(Coordinate(0, 4))
+        retrieved_val = msg_list.get_cell_at(Coordinate(0, 5))
         assert retrieved_val != "—", "non-queued message must show a retrieved date"
 
     queued_msg = store.save_message(Message(
@@ -594,7 +594,7 @@ async def test_message_list_shows_retrieved_date_and_dash_for_none(app_db_path, 
         await pilot2.pause()
         msg_list2 = app2.query_one("MessageList")
         assert msg_list2.row_count == 1
-        retrieved_val2 = msg_list2.get_cell_at(Coordinate(0, 4))
+        retrieved_val2 = msg_list2.get_cell_at(Coordinate(0, 5))
         assert retrieved_val2 == "—"
 
 

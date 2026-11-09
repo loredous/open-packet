@@ -21,12 +21,15 @@ class MessageList(DataTable):
             super().__init__()
 
     def on_mount(self) -> None:
-        self.add_columns("  ", "Subject", "From", "Sent", "Retrieved")
+        self.add_columns("  ", "Subject", "From", "Node", "Sent", "Retrieved")
         self.cursor_type = "row"
         self._loading = False
+        self._node_labels: dict[int, str] = {}
 
-    def load_messages(self, messages: list[Message | Bulletin]) -> None:
+    def load_messages(self, messages: list[Message | Bulletin],
+                      node_labels: dict[int, str] | None = None) -> None:
         self._loading = True
+        self._node_labels = node_labels or {}
         self.clear()
         self._messages = messages
         for msg in messages:
@@ -39,16 +42,19 @@ class MessageList(DataTable):
                 read_marker = "●"
             sent_str = msg.timestamp.strftime("%m/%d %H:%M") if msg.timestamp else "—"
             retrieved_str = msg.synced_at.strftime("%m/%d %H:%M") if msg.synced_at else "—"
+            node_label = self._node_labels.get(msg.node_id, "")
             if is_pending:
                 self.add_row(
                     read_marker,
                     Text(msg.subject[:40], style="dim"),
                     Text(msg.from_call, style="dim"),
+                    Text(node_label, style="dim"),
                     sent_str,
                     retrieved_str,
                 )
             else:
-                self.add_row(read_marker, msg.subject[:40], msg.from_call, sent_str, retrieved_str)
+                self.add_row(read_marker, msg.subject[:40], msg.from_call, node_label,
+                             sent_str, retrieved_str)
         self.call_after_refresh(self._finish_loading)
 
     def _finish_loading(self) -> None:

@@ -1,0 +1,241 @@
+name: ICS 230CG Daily Meeting Schedule
+category: ICS USA Forms
+subject_template: "ICS 230CG - {{ IncidentName }} - {{ DateFrom }}"
+body_template: |
+  DAILY MEETING SCHEDULE (ICS 230CG)
+
+  1. Incident Name: {{ IncidentName }}
+  2. Operational Period:
+     Date From: {{ DateFrom }}  Date To: {{ DateTo }}
+     Time From: {{ TimeFrom }}  Time To: {{ TimeTo }}
+
+  3. MEETING SCHEDULE:
+
+  Time          Meeting                              Location                 Attendees
+  {{ Meeting1Time }}  {{ Meeting1Name }}  {{ Meeting1Location }}  {{ Meeting1Attendees }}
+  {{ Meeting2Time }}  {{ Meeting2Name }}  {{ Meeting2Location }}  {{ Meeting2Attendees }}
+  {{ Meeting3Time }}  {{ Meeting3Name }}  {{ Meeting3Location }}  {{ Meeting3Attendees }}
+  {{ Meeting4Time }}  {{ Meeting4Name }}  {{ Meeting4Location }}  {{ Meeting4Attendees }}
+  {{ Meeting5Time }}  {{ Meeting5Name }}  {{ Meeting5Location }}  {{ Meeting5Attendees }}
+  {{ Meeting6Time }}  {{ Meeting6Name }}  {{ Meeting6Location }}  {{ Meeting6Attendees }}
+  {{ Meeting7Time }}  {{ Meeting7Name }}  {{ Meeting7Location }}  {{ Meeting7Attendees }}
+  {{ Meeting8Time }}  {{ Meeting8Name }}  {{ Meeting8Location }}  {{ Meeting8Attendees }}
+
+  Prepared by: {{ PreparedBy }}
+  Position/Title: {{ PrepPosition }}
+  Date/Time: {{ PrepDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateFrom
+    label: "2. Operational Period - Date From"
+    description: "e.g. 2025-01-15"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: DateTo
+    label: "2. Operational Period - Date To"
+    description: "e.g. 2025-01-15"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "2. Operational Period - Time From"
+    description: "e.g. 0800"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: TimeTo
+    label: "2. Operational Period - Time To"
+    description: "e.g. 2000"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: Meeting1Time
+    label: "Meeting 1 - Time"
+    description: "e.g. 0700"
+    type: text
+    max_length: 9
+
+  - name: Meeting1Name
+    label: "Meeting 1 - Meeting Name/Topic"
+    type: text
+    max_length: 60
+
+  - name: Meeting1Location
+    label: "Meeting 1 - Location"
+    type: text
+    max_length: 40
+
+  - name: Meeting1Attendees
+    label: "Meeting 1 - Attendees"
+    type: text
+    max_length: 80
+
+  - name: Meeting2Time
+    label: "Meeting 2 - Time"
+    type: text
+    max_length: 9
+
+  - name: Meeting2Name
+    label: "Meeting 2 - Meeting Name/Topic"
+    type: text
+    max_length: 60
+
+  - name: Meeting2Location
+    label: "Meeting 2 - Location"
+    type: text
+    max_length: 40
+
+  - name: Meeting2Attendees
+    label: "Meeting 2 - Attendees"
+    type: text
+    max_length: 80
+
+  - name: Meeting3Time
+    label: "Meeting 3 - Time"
+    type: text
+    max_length: 9
+
+  - name: Meeting3Name
+    label: "Meeting 3 - Meeting Name/Topic"
+    type: text
+    max_length: 60
+
+  - name: Meeting3Location
+    label: "Meeting 3 - Location"
+    type: text
+    max_length: 40
+
+  - name: Meeting3Attendees
+    label: "Meeting 3 - Attendees"
+    type: text
+    max_length: 80
+
+  - name: Meeting4Time
+    label: "Meeting 4 - Time"
+    type: text
+    max_length: 9
+
+  - name: Meeting4Name
+    label: "Meeting 4 - Meeting Name/Topic"
+    type: text
+    max_length: 60
+
+  - name: Meeting4Location
+    label: "Meeting 4 - Location"
+    type: text
+    max_length: 40
+
+  - name: Meeting4Attendees
+    label: "Meeting 4 - Attendees"
+    type: text
+    max_length: 80
+
+  - name: Meeting5Time
+    label: "Meeting 5 - Time"
+    type: text
+    max_length: 9
+
+  - name: Meeting5Name
+    label: "Meeting 5 - Meeting Name/Topic"
+    type: text
+    max_length: 60
+
+  - name: Meeting5Location
+    label: "Meeting 5 - Location"
+    type: text
+    max_length: 40
+
+  - name: Meeting5Attendees
+    label: "Meeting 5 - Attendees"
+    type: text
+    max_length: 80
+
+  - name: Meeting6Time
+    label: "Meeting 6 - Time"
+    type: text
+    max_length: 9
+
+  - name: Meeting6Name
+    label: "Meeting 6 - Meeting Name/Topic"
+    type: text
+    max_length: 60
+
+  - name: Meeting6Location
+    label: "Meeting 6 - Location"
+    type: text
+    max_length: 40
+
+  - name: Meeting6Attendees
+    label: "Meeting 6 - Attendees"
+    type: text
+    max_length: 80
+
+  - name: Meeting7Time
+    label: "Meeting 7 - Time"
+    type: text
+    max_length: 9
+
+  - name: Meeting7Name
+    label: "Meeting 7 - Meeting Name/Topic"
+    type: text
+    max_length: 60
+
+  - name: Meeting7Location
+    label: "Meeting 7 - Location"
+    type: text
+    max_length: 40
+
+  - name: Meeting7Attendees
+    label: "Meeting 7 - Attendees"
+    type: text
+    max_length: 80
+
+  - name: Meeting8Time
+    label: "Meeting 8 - Time"
+    type: text
+    max_length: 9
+
+  - name: Meeting8Name
+    label: "Meeting 8 - Meeting Name/Topic"
+    type: text
+    max_length: 60
+
+  - name: Meeting8Location
+    label: "Meeting 8 - Location"
+    type: text
+    max_length: 40
+
+  - name: Meeting8Attendees
+    label: "Meeting 8 - Attendees"
+    type: text
+    max_length: 80
+
+  - name: PreparedBy
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepPosition
+    label: "Prepared by - Position/Title"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepDateTime
+    label: "Prepared by - Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20

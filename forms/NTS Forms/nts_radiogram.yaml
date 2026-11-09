@@ -1,0 +1,101 @@
+name: NTS Radiogram
+category: NTS Forms
+subject_template: "NTS: {{ precedence }} {{ message_number }} {{ place_of_origin }}"
+body_template: |
+  NR {{ message_number }} {{ precedence }}{% if handling_instructions %} {{ handling_instructions }}{% endif %} {{ station_of_origin }} {{ check }} {{ place_of_origin }} {{ datetime_filed }}
+  TO: {{ to_name }}
+     {{ to_address }}
+  {% if to_phone %}   {{ to_phone }}
+  {% endif %}
+  {{ message_text }}
+
+  {{ signature }}
+
+fields:
+  - name: message_number
+    label: "Message Number"
+    description: "Auto-incremented per operator; you may override"
+    type: text
+    required: true
+    pattern: "\\d+"
+    max_length: 6
+
+  - name: precedence
+    label: "Precedence"
+    description: "R=Routine, W=Welfare, P=Priority, E=Emergency"
+    type: text
+    required: true
+    choices:
+      - "R"
+      - "W"
+      - "P"
+      - "E"
+
+  - name: handling_instructions
+    label: "Handling Instructions (optional)"
+    description: |
+      One or more HX codes separated by spaces:
+      HXA=Hold for arrival, HXB=Cancel after N days, HXC=Report delivery to addressee,
+      HXD=Report delivery to origin, HXE=Consult sender before delivery,
+      HXF=Hold for pickup, HXG=Delivery by mail/phone not required
+    type: text
+    required: false
+    pattern: "(?:HX[A-G](?:\\s+HX[A-G])*)?"
+
+  - name: station_of_origin
+    label: "Station of Origin"
+    description: "Callsign of the originating station"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: check
+    label: "Check (Word Count)"
+    description: "Auto-calculated word count of the message text"
+    type: text
+    required: true
+    computed_from: message_text
+    compute: word_count
+
+  - name: place_of_origin
+    label: "Place of Origin"
+    description: "City and state where the message was filed"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: datetime_filed
+    label: "Date/Time Filed"
+    description: "e.g. 01/15 1430"
+    type: text
+    required: true
+    max_length: 15
+
+  - name: to_name
+    label: "To (Name)"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: to_address
+    label: "To (Address)"
+    type: text
+    required: true
+    max_length: 80
+
+  - name: to_phone
+    label: "To (Phone, optional)"
+    type: text
+    required: false
+    max_length: 20
+
+  - name: message_text
+    label: "Message Text"
+    type: textarea
+    required: true
+
+  - name: signature
+    label: "Signature"
+    type: text
+    required: true
+    max_length: 40

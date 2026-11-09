@@ -67,6 +67,14 @@ class NeighborsDiscoveredEvent:
 
 
 @dataclass
+class FrameReceivedEvent:
+    """Emitted when a frame is received from the interface/TNC."""
+    interface_id: Optional[int] = None
+    interface_label: Optional[str] = None
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+@dataclass
 class GroupSyncNodeResult:
     """Result for a single node's sync within a group sync operation."""
     node_label: str
@@ -86,4 +94,4 @@ class GroupSyncCompleteEvent:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent | NeighborsDiscoveredEvent | GroupSyncCompleteEvent
+Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent | NeighborsDiscoveredEvent | FrameReceivedEvent | GroupSyncCompleteEvent
