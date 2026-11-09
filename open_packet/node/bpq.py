@@ -8,6 +8,9 @@ from open_packet.node.base import NodeBase, NodeError, MessageHeader, Message, F
 TIMEOUT = 30.0        # max wait for the first data after a command (RF links can be slow)
 IDLE_TIMEOUT = 30.0   # max silence between ANY remote frames (RR counts); slow RF can gap 15-20s
 
+# LinBPQ/BPQ32 default maximum file size (bytes).
+MAX_FILE_SIZE = 65535
+
 # Matches a BPQ32 prompt: CALLSIGN> at the start of a line (bare CR or LF counts as
 # a line start).  Node prompts look like "W0IA> BBS CHAT NODES..." and BBS prompts
 # look like "de k0ark>" (BPQ32 uses the ham "de" prefix), so > is NOT the last
@@ -269,6 +272,25 @@ class BPQNode(NodeBase):
         self._send_text(subject)
         self._recv_until_prompt(timeout=5.0)
         for line in body.splitlines():
+            self._send_text(line)
+        self._send_text("/EX")
+        self._recv_until_prompt()
+
+    def upload_file(self, filename: str, description: str, content: str) -> None:
+        """Upload a file to the BBS using the U command.
+
+        Raises NodeError if the encoded content exceeds MAX_FILE_SIZE bytes.
+        """
+        if len(content.encode()) > MAX_FILE_SIZE:
+            raise NodeError(
+                f"File too large: {len(content.encode())} bytes "
+                f"(max {MAX_FILE_SIZE} bytes)"
+            )
+        self._send_text(f"U {filename}")
+        self._recv_until_prompt(timeout=5.0)  # wait for description prompt
+        self._send_text(description)
+        self._recv_until_prompt(timeout=5.0)  # wait for content prompt
+        for line in content.splitlines():
             self._send_text(line)
         self._send_text("/EX")
         self._recv_until_prompt()

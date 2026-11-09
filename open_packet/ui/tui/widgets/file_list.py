@@ -24,6 +24,9 @@ class FileList(Vertical):
             self.file = file
             super().__init__()
 
+    class UploadRequested(TMessage):
+        """Fired when the user presses 'u' to upload a file."""
+
     def compose(self) -> ComposeResult:
         yield DataTable(id="file_table", cursor_type="row")
 
@@ -55,7 +58,13 @@ class FileList(Vertical):
             return  # already retrieved, nothing to do
         self.post_message(self.RetrievalToggled(f))
 
+    def action_upload_file(self) -> None:
+        self.post_message(self.UploadRequested())
+
     def on_key(self, event) -> None:
         if event.key == "r":
             self.action_toggle_retrieval()
+            event.stop()
+        elif event.key == "u":
+            self.action_upload_file()
             event.stop()

@@ -67,6 +67,12 @@ class NeighborsDiscoveredEvent:
 
 
 @dataclass
+class FileUploadedEvent:
+    filename: str
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+@dataclass
 class FrameReceivedEvent:
     """Emitted when a frame is received from the interface/TNC."""
     interface_id: Optional[int] = None
@@ -94,4 +100,4 @@ class GroupSyncCompleteEvent:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent | NeighborsDiscoveredEvent | FrameReceivedEvent | GroupSyncCompleteEvent
+Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent | NeighborsDiscoveredEvent | FrameReceivedEvent | GroupSyncCompleteEvent | FileUploadedEvent

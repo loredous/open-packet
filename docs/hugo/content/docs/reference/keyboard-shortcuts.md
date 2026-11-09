@@ -47,6 +47,7 @@ Opened with **Ctrl+N** from the main screen.
 | Shortcut | Action |
 |----------|--------|
 | **R** | Mark the selected file for download on the next sync |
+| **U** | Open the upload dialog to send a local file to the BBS |
 
 ## Compose Screens (Message and Bulletin)
 
