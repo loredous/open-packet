@@ -181,6 +181,10 @@ class WinlinkNode(NodeBase):
         """Not supported on Winlink."""
         raise NodeError("File downloads are not supported by Winlink gateways")
 
+    def upload_file(self, filename: str, description: str, content: str) -> None:
+        """Not supported on Winlink."""
+        raise NodeError("File uploads are not supported by Winlink gateways")
+
     def finish_session(self) -> None:
         """Cleanly terminate the B2F session.
 

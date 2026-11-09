@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, Optional
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, TextArea, Select
 from textual.containers import Vertical, Horizontal
@@ -33,6 +34,11 @@ class ComposeScreen(ModalScreen):
         height: 1;
     }
     """
+
+    BINDINGS = [
+        Binding("ctrl+s", "submit", "Send", priority=True),
+        Binding("escape", "cancel", "Cancel"),
+    ]
 
     def __init__(self, to_call: str = "", subject: str = "", body: str = "",
                  default_type: str = "bbs", **kwargs):
@@ -74,32 +80,38 @@ class ComposeScreen(ModalScreen):
                 return "Invalid Winlink address (use CALLSIGN or CALLSIGN@domain)"
         return None
 
+    def action_submit(self) -> None:
+        to_call = self.query_one("#to_field", Input).value.strip()
+        subject = self.query_one("#subject_field", Input).value.strip()
+        body = self.query_one("#body_field", TextArea).text.strip()
+        msg_type = self._msg_type()
+
+        err = self._validate_to(to_call)
+        if err:
+            self.query_one("#to_error", Label).update(err)
+            return
+        self.query_one("#to_error", Label).update("")
+
+        if not subject:
+            return
+
+        # Normalize Winlink addresses (append @winlink.org if no domain)
+        if msg_type == "winlink":
+            to_call = normalize_winlink_address(to_call)
+
+        self.dismiss(SendMessageCommand(
+            to_call=to_call, subject=subject, body=body,
+            message_type=msg_type,
+        ))
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "cancel_btn":
-            self.dismiss(None)
+            self.action_cancel()
         elif event.button.id == "send_btn":
-            to_call = self.query_one("#to_field", Input).value.strip()
-            subject = self.query_one("#subject_field", Input).value.strip()
-            body = self.query_one("#body_field", TextArea).text.strip()
-            msg_type = self._msg_type()
-
-            err = self._validate_to(to_call)
-            if err:
-                self.query_one("#to_error", Label).update(err)
-                return
-            self.query_one("#to_error", Label).update("")
-
-            if not subject:
-                return
-
-            # Normalize Winlink addresses (append @winlink.org if no domain)
-            if msg_type == "winlink":
-                to_call = normalize_winlink_address(to_call)
-
-            self.dismiss(SendMessageCommand(
-                to_call=to_call, subject=subject, body=body,
-                message_type=msg_type,
-            ))
+            self.action_submit()
         elif event.button.id == "use_form_btn":
             from open_packet.forms.loader import discover_forms
             from open_packet.ui.tui.screens.form_picker import FormPickerScreen

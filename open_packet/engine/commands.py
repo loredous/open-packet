@@ -46,6 +46,13 @@ class PostBulletinCommand:
 
 
 @dataclass
+class UploadFileCommand:
+    local_path: str       # absolute path on the local filesystem
+    bbs_filename: str     # filename as it will appear on the BBS
+    description: str      # one-line description shown in DIR listing
+
+
+@dataclass
 class NodeSyncTarget:
     """A single node to sync as part of a group operation."""
     node_record: "Node"
@@ -61,4 +68,4 @@ class GroupSyncCommand:
     targets: list[NodeSyncTarget] = field(default_factory=list)
 
 
-Command = ConnectCommand | DisconnectCommand | CheckMailCommand | SendMessageCommand | DeleteMessageCommand | PostBulletinCommand | GroupSyncCommand
+Command = ConnectCommand | DisconnectCommand | CheckMailCommand | SendMessageCommand | DeleteMessageCommand | PostBulletinCommand | UploadFileCommand | GroupSyncCommand

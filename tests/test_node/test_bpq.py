@@ -403,3 +403,72 @@ def test_parse_nodes_list_node_header_line_ignored():
     hops = parse_nodes_list(text)
     assert len(hops) == 1
     assert hops[0].callsign == "K0RELAY"
+
+
+# --- upload_file tests ---
+
+def test_upload_file_sends_correct_frames():
+    """upload_file sends U {filename}, description, content lines, then /EX."""
+    conn = MockConn(responses=[
+        b"Enter description:\r\nBPQ>",
+        b"Enter file (end with /EX):\r\nBPQ>",
+        b"File stored.\r\nBPQ>",
+    ])
+    node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
+                   my_callsign="KD9ABC", my_ssid=0)
+    node.upload_file("report.txt", "Weekly ARES report", "Line one\nLine two")
+    assert conn.sent[0] == b"U report.txt\r"
+    assert conn.sent[1] == b"Weekly ARES report\r"
+    assert conn.sent[2] == b"Line one\r"
+    assert conn.sent[3] == b"Line two\r"
+    assert conn.sent[4] == b"/EX\r"
+
+
+def test_upload_file_single_line_content():
+    """Single-line file content is sent as one frame before /EX."""
+    conn = MockConn(responses=[
+        b"Enter description:\r\nBPQ>",
+        b"BPQ>",
+        b"BPQ>",
+    ])
+    node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
+                   my_callsign="KD9ABC", my_ssid=0)
+    node.upload_file("note.txt", "A note", "Hello world")
+    assert conn.sent[0] == b"U note.txt\r"
+    assert conn.sent[1] == b"A note\r"
+    assert conn.sent[2] == b"Hello world\r"
+    assert conn.sent[3] == b"/EX\r"
+
+
+def test_upload_file_raises_for_oversized_content():
+    """upload_file raises NodeError when encoded content exceeds MAX_FILE_SIZE."""
+    from open_packet.node.bpq import MAX_FILE_SIZE
+    conn = MockConn(responses=[])
+    node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
+                   my_callsign="KD9ABC", my_ssid=0)
+    oversized = "x" * (MAX_FILE_SIZE + 1)
+    with pytest.raises(NodeError, match="too large"):
+        node.upload_file("big.txt", "Big file", oversized)
+    # No frames should have been sent
+    assert conn.sent == []
+
+
+def test_upload_file_empty_content():
+    """Uploading an empty file sends no content lines, just /EX."""
+    conn = MockConn(responses=[
+        b"Enter description:\r\nBPQ>",
+        b"BPQ>",
+        b"BPQ>",
+    ])
+    node = BPQNode(connection=conn, node_callsign="W0BPQ", node_ssid=1,
+                   my_callsign="KD9ABC", my_ssid=0)
+    node.upload_file("empty.txt", "Empty file", "")
+    assert conn.sent[0] == b"U empty.txt\r"
+    assert conn.sent[1] == b"Empty file\r"
+    assert conn.sent[2] == b"/EX\r"
+
+
+def test_node_base_has_upload_file():
+    """NodeBase declares upload_file as abstract."""
+    abstract_methods = getattr(NodeBase, '__abstractmethods__', set())
+    assert 'upload_file' in abstract_methods

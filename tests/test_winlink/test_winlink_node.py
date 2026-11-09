@@ -102,6 +102,12 @@ class TestWinlinkNodeInterface:
         with pytest.raises(NodeError):
             node.read_file("test.txt")
 
+    def test_upload_file_raises(self):
+        conn = FakeConnection([])
+        node = WinlinkNode(conn, "W1AW", 0)
+        with pytest.raises(NodeError):
+            node.upload_file("test.txt", "desc", "content")
+
     def test_list_messages_without_connect_raises(self):
         conn = FakeConnection([])
         node = WinlinkNode(conn, "W1AW", 0)

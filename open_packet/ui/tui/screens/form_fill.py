@@ -2,6 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Callable, Optional
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, TextArea
 from textual.containers import Horizontal, Vertical
@@ -78,6 +79,8 @@ class FormFillScreen(ModalScreen):
         opacity: 0.7;
     }
     """
+
+    BINDINGS = [Binding("ctrl+s", "submit", "Submit", priority=True)]
 
     def __init__(
         self,
@@ -213,12 +216,15 @@ class FormFillScreen(ModalScreen):
             self._on_field_values(values)
         self.dismiss((subject, body))
 
+    def action_submit(self) -> None:
+        if self._run_validation():
+            self._do_submit()
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "cancel_btn":
             self.dismiss(None)
         elif event.button.id == "submit_btn":
-            if self._run_validation():
-                self._do_submit()
+            self.action_submit()
         elif event.button.id == "bypass_btn":
             self.app.push_screen(_BypassConfirmScreen(), callback=self._on_bypass_confirmed)
 

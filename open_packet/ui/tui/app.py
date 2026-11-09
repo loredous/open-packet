@@ -13,12 +13,14 @@ from textual.css.query import NoMatches
 
 from open_packet.engine.commands import (
     CheckMailCommand, DeleteMessageCommand, SendMessageCommand, PostBulletinCommand,
+    UploadFileCommand,
     GroupSyncCommand, NodeSyncTarget,
 )
 from open_packet.engine.engine import Engine
 from open_packet.engine.events import (
     ConnectionStatusEvent, MessageReceivedEvent, SyncCompleteEvent,
     ErrorEvent, ConnectionStatus, MessageQueuedEvent, ConsoleEvent,
+    NeighborsDiscoveredEvent, FileUploadedEvent,
     NeighborsDiscoveredEvent, FrameReceivedEvent, GroupSyncCompleteEvent,
 )
 from open_packet.ui.tui.screens.shorter_path_confirm import ShorterPathConfirmScreen
@@ -472,6 +474,8 @@ class OpenPacketApp(App):
             self.notify(f"Error: {event.message}", severity="error")
         elif isinstance(event, NeighborsDiscoveredEvent):
             self._queue_neighbor_prompts(event)
+        elif isinstance(event, FileUploadedEvent):
+            self.notify(f"File uploaded: {event.filename}")
         elif isinstance(event, GroupSyncCompleteEvent):
             self._handle_group_sync_complete(event)
 
@@ -1023,6 +1027,20 @@ class OpenPacketApp(App):
         if self._store:
             self._store.mark_file_wants_retrieval(event.file.id)
             self._refresh_message_list()
+
+    def on_file_list_upload_requested(self, event) -> None:
+        self.open_upload_file()
+
+    def open_upload_file(self) -> None:
+        from open_packet.ui.tui.screens.upload_file import UploadFileScreen
+        self.push_screen(UploadFileScreen(), callback=self._on_upload_file_result)
+
+    def _on_upload_file_result(self, result) -> None:
+        if result and isinstance(result, UploadFileCommand):
+            if self._engine:
+                self._cmd_queue.put(result)
+            else:
+                self.notify("No active connection configured.", severity="warning")
 
     def on_folder_tree_session_selected(self, event) -> None:
         idx = event.session_idx

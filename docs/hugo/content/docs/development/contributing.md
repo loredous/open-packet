@@ -40,6 +40,7 @@ uv run textual run --dev open_packet/ui/tui/app.py
 - **Tests for new code** — all new functionality should have test coverage in `tests/`
 - **Migration pattern** — SQLite schema migrations use `ALTER TABLE ... ADD COLUMN` with `except sqlite3.OperationalError: pass`; never use `executescript()`
 - **Async tests** — `asyncio_mode = "auto"` is set in `pyproject.toml`; async tests do not need `@pytest.mark.asyncio`
+- **Parallel tests** — tests run in parallel via pytest-xdist (`addopts = "-n auto"`). Don't share fixed ports, files, or global state between tests; use `tmp_path` and port `0`. Run `uv run pytest -n0` to run serially (e.g. with `--pdb`)
 
 ## Submitting Changes
 
