@@ -867,11 +867,24 @@ class OpenPacketApp(App):
             self._pick_nodes_then(result)
 
     def _pick_nodes_then(self, cmd) -> None:
-        """Show node picker if multiple nodes are configured, then queue the command."""
+        """Show node picker if multiple capable nodes are configured, then queue the command.
+
+        Only nodes that support the command's message type are offered: a
+        Winlink message needs ``has_winlink``; BBS messages and bulletins need
+        ``has_bbs``. A message queued to an incapable node would never be sent.
+        """
         if self._db is None:
             return
-        nodes = self._db.list_nodes()
+        if getattr(cmd, "message_type", "bbs") == "winlink":
+            kind, capable = "Winlink", (lambda n: n.has_winlink)
+        else:
+            kind, capable = "BBS", (lambda n: n.has_bbs)
+        nodes = [n for n in self._db.list_nodes() if capable(n)]
         if not nodes:
+            self.notify(
+                f"No nodes have {kind} enabled; enable it on a node in Settings to send this.",
+                severity="error",
+            )
             return
         if len(nodes) == 1:
             cmd.node_ids = [nodes[0].id]

@@ -403,18 +403,10 @@ class Engine:
         # Determine if this is a direct telnet CMS connection
         is_telnet_cms = getattr(self._connection, "_is_winlink_cms", False)
 
-        try:
-            self._connect_ax25()
-        except Exception:
-            # For winlink_telnet interface type, connection is already established
-            # by the TelnetLink-equivalent; try connecting without AX.25
-            try:
-                self._connection.connect(
-                    self._node_record.callsign,
-                    self._node_record.ssid,
-                )
-            except Exception as exc:
-                raise
+        # Every link type (KISS/AX.25, Telnet, Winlink Telnet CMS) implements
+        # connect(callsign, ssid, via_path=None), so no fallback is needed. In
+        # particular, never retry a failed path connection as a direct one.
+        self._connect_ax25()
 
         winlink_node = WinlinkNode(
             connection=self._connection,
