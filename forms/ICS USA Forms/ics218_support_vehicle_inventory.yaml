@@ -1,0 +1,286 @@
+name: ICS 218 Support Vehicle/Equipment Inventory
+category: ICS USA Forms
+subject_template: "ICS 218 - {{ IncidentName }} - {{ DateTimePrepared }}"
+body_template: |
+  ICS 218 SUPPORT VEHICLE/EQUIPMENT INVENTORY
+
+  1. Incident Name: {{ IncidentName }}
+  2. Date/Time Prepared: {{ DateTimePrepared }}
+
+  3. Operational Period:
+  From: {{ DateFrom }} {{ TimeFrom }}
+  To:   {{ DateTo }} {{ TimeTo }}
+
+  -------------------------------------------------------------------
+  4. VEHICLE/EQUIPMENT INVENTORY:
+
+  VEHICLE 1:
+  Type: {{ VehicleType1 }}  Make/Model: {{ VehicleMakeModel1 }}  Year: {{ VehicleYear1 }}
+  License/Plate: {{ VehicleLicense1 }}  Agency: {{ VehicleAgency1 }}
+  Home Base: {{ VehicleHomeBase1 }}
+
+  VEHICLE 2:
+  Type: {{ VehicleType2 }}  Make/Model: {{ VehicleMakeModel2 }}  Year: {{ VehicleYear2 }}
+  License/Plate: {{ VehicleLicense2 }}  Agency: {{ VehicleAgency2 }}
+  Home Base: {{ VehicleHomeBase2 }}
+
+  VEHICLE 3:
+  Type: {{ VehicleType3 }}  Make/Model: {{ VehicleMakeModel3 }}  Year: {{ VehicleYear3 }}
+  License/Plate: {{ VehicleLicense3 }}  Agency: {{ VehicleAgency3 }}
+  Home Base: {{ VehicleHomeBase3 }}
+
+  VEHICLE 4:
+  Type: {{ VehicleType4 }}  Make/Model: {{ VehicleMakeModel4 }}  Year: {{ VehicleYear4 }}
+  License/Plate: {{ VehicleLicense4 }}  Agency: {{ VehicleAgency4 }}
+  Home Base: {{ VehicleHomeBase4 }}
+
+  VEHICLE 5:
+  Type: {{ VehicleType5 }}  Make/Model: {{ VehicleMakeModel5 }}  Year: {{ VehicleYear5 }}
+  License/Plate: {{ VehicleLicense5 }}  Agency: {{ VehicleAgency5 }}
+  Home Base: {{ VehicleHomeBase5 }}
+
+  VEHICLE 6:
+  Type: {{ VehicleType6 }}  Make/Model: {{ VehicleMakeModel6 }}  Year: {{ VehicleYear6 }}
+  License/Plate: {{ VehicleLicense6 }}  Agency: {{ VehicleAgency6 }}
+  Home Base: {{ VehicleHomeBase6 }}
+
+  -------------------------------------------------------------------
+  Prepared by: {{ PreparedBy }}
+  Position/Title: {{ PreparedTitle }}
+  Date/Time: {{ PreparedDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTimePrepared
+    label: "2. Date/Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateFrom
+    label: "3. Op Period - Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "3. Op Period - Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: DateTo
+    label: "3. Op Period - Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeTo
+    label: "3. Op Period - Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: VehicleType1
+    label: "Vehicle 1 - Type"
+    type: text
+    max_length: 20
+
+  - name: VehicleMakeModel1
+    label: "Vehicle 1 - Make/Model"
+    type: text
+    max_length: 30
+
+  - name: VehicleYear1
+    label: "Vehicle 1 - Year"
+    type: text
+    max_length: 6
+
+  - name: VehicleLicense1
+    label: "Vehicle 1 - License/Plate #"
+    type: text
+    max_length: 15
+
+  - name: VehicleAgency1
+    label: "Vehicle 1 - Agency"
+    type: text
+    max_length: 30
+
+  - name: VehicleHomeBase1
+    label: "Vehicle 1 - Home Base"
+    type: text
+    max_length: 40
+
+  - name: VehicleType2
+    label: "Vehicle 2 - Type"
+    type: text
+    max_length: 20
+
+  - name: VehicleMakeModel2
+    label: "Vehicle 2 - Make/Model"
+    type: text
+    max_length: 30
+
+  - name: VehicleYear2
+    label: "Vehicle 2 - Year"
+    type: text
+    max_length: 6
+
+  - name: VehicleLicense2
+    label: "Vehicle 2 - License/Plate #"
+    type: text
+    max_length: 15
+
+  - name: VehicleAgency2
+    label: "Vehicle 2 - Agency"
+    type: text
+    max_length: 30
+
+  - name: VehicleHomeBase2
+    label: "Vehicle 2 - Home Base"
+    type: text
+    max_length: 40
+
+  - name: VehicleType3
+    label: "Vehicle 3 - Type"
+    type: text
+    max_length: 20
+
+  - name: VehicleMakeModel3
+    label: "Vehicle 3 - Make/Model"
+    type: text
+    max_length: 30
+
+  - name: VehicleYear3
+    label: "Vehicle 3 - Year"
+    type: text
+    max_length: 6
+
+  - name: VehicleLicense3
+    label: "Vehicle 3 - License/Plate #"
+    type: text
+    max_length: 15
+
+  - name: VehicleAgency3
+    label: "Vehicle 3 - Agency"
+    type: text
+    max_length: 30
+
+  - name: VehicleHomeBase3
+    label: "Vehicle 3 - Home Base"
+    type: text
+    max_length: 40
+
+  - name: VehicleType4
+    label: "Vehicle 4 - Type"
+    type: text
+    max_length: 20
+
+  - name: VehicleMakeModel4
+    label: "Vehicle 4 - Make/Model"
+    type: text
+    max_length: 30
+
+  - name: VehicleYear4
+    label: "Vehicle 4 - Year"
+    type: text
+    max_length: 6
+
+  - name: VehicleLicense4
+    label: "Vehicle 4 - License/Plate #"
+    type: text
+    max_length: 15
+
+  - name: VehicleAgency4
+    label: "Vehicle 4 - Agency"
+    type: text
+    max_length: 30
+
+  - name: VehicleHomeBase4
+    label: "Vehicle 4 - Home Base"
+    type: text
+    max_length: 40
+
+  - name: VehicleType5
+    label: "Vehicle 5 - Type"
+    type: text
+    max_length: 20
+
+  - name: VehicleMakeModel5
+    label: "Vehicle 5 - Make/Model"
+    type: text
+    max_length: 30
+
+  - name: VehicleYear5
+    label: "Vehicle 5 - Year"
+    type: text
+    max_length: 6
+
+  - name: VehicleLicense5
+    label: "Vehicle 5 - License/Plate #"
+    type: text
+    max_length: 15
+
+  - name: VehicleAgency5
+    label: "Vehicle 5 - Agency"
+    type: text
+    max_length: 30
+
+  - name: VehicleHomeBase5
+    label: "Vehicle 5 - Home Base"
+    type: text
+    max_length: 40
+
+  - name: VehicleType6
+    label: "Vehicle 6 - Type"
+    type: text
+    max_length: 20
+
+  - name: VehicleMakeModel6
+    label: "Vehicle 6 - Make/Model"
+    type: text
+    max_length: 30
+
+  - name: VehicleYear6
+    label: "Vehicle 6 - Year"
+    type: text
+    max_length: 6
+
+  - name: VehicleLicense6
+    label: "Vehicle 6 - License/Plate #"
+    type: text
+    max_length: 15
+
+  - name: VehicleAgency6
+    label: "Vehicle 6 - Agency"
+    type: text
+    max_length: 30
+
+  - name: VehicleHomeBase6
+    label: "Vehicle 6 - Home Base"
+    type: text
+    max_length: 40
+
+  - name: PreparedBy
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PreparedTitle
+    label: "Position/Title"
+    type: text
+    max_length: 40
+
+  - name: PreparedDateTime
+    label: "Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
