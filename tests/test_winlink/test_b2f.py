@@ -66,10 +66,12 @@ class TestB2FHandshake:
         with pytest.raises(B2FError):
             session.handshake()
 
-    def test_timeout_raises(self):
+    def test_timeout_raises(self, monkeypatch):
+        import open_packet.winlink.b2f as b2f
+        monkeypatch.setattr(b2f, "_SESSION_TIMEOUT", 0.05)  # don't wait the real 60s
         conn = FakeConnection([])  # no data
         session = B2FSession(conn, "W1AW", 0)
-        with pytest.raises(B2FError):
+        with pytest.raises(B2FError, match="Timeout"):
             session.handshake()
 
 
