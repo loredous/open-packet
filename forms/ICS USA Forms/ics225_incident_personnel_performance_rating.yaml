@@ -1,0 +1,219 @@
+name: ICS 225 Incident Personnel Performance Rating
+category: ICS USA Forms
+subject_template: "ICS 225 - {{ IncidentName }} - {{ EvaluateeName }} - {{ EvaluationDate }}"
+body_template: |
+  INCIDENT PERSONNEL PERFORMANCE RATING (ICS 225)
+
+  1. Incident Name: {{ IncidentName }}
+  2. Evaluation Date: {{ EvaluationDate }}
+  3. Operational Period: {{ OperationalPeriod }}
+
+  EVALUATEE INFORMATION
+  4. Name: {{ EvaluateeName }}
+  5. Home Unit: {{ HomeUnit }}
+  6. ICS Position: {{ ICSPosition }}
+  7. ICS Section: {{ ICSSection }}
+
+  PERFORMANCE RATINGS  (1=Does Not Meet Expectations  2=Meets Some Expectations  3=Meets All Expectations  4=Exceeds Expectations  N/A=Not Applicable)
+
+  Technical Performance:
+  a. Knowledge of job: {{ RatingKnowledgeOfJob }}
+  b. Completed assignments on time: {{ RatingCompletedAssignments }}
+  c. Worked within ICS structure: {{ RatingWorkedWithinICS }}
+
+  Communication:
+  d. Communicated effectively with supervisor: {{ RatingCommunicatedSupervisor }}
+  e. Communicated effectively with subordinates: {{ RatingCommunicatedSubordinates }}
+  f. Prepared clear and complete written products: {{ RatingWrittenProducts }}
+
+  Leadership/Supervision (if applicable):
+  g. Managed resources effectively: {{ RatingManagedResources }}
+  h. Motivated and managed personnel: {{ RatingMotivatedPersonnel }}
+  i. Delegated work appropriately: {{ RatingDelegated }}
+
+  Safety and Professionalism:
+  j. Worked safely: {{ RatingWorkedSafely }}
+  k. Maintained professional attitude: {{ RatingProfessionalAttitude }}
+  l. Adapted to incident complexity: {{ RatingAdapted }}
+
+  OVERALL PERFORMANCE RATING: {{ OverallRating }}
+
+  Recommend for Increased Responsibility: {{ RecommendIncreased }}
+  Comments if recommended with reservation: {{ ReservationComments }}
+
+  STRENGTHS:
+  {{ Strengths }}
+
+  AREAS FOR IMPROVEMENT:
+  {{ AreasForImprovement }}
+
+  Evaluator Name: {{ EvaluatorName }}
+  ICS Position: {{ EvaluatorPosition }}
+  Date/Time: {{ EvaluatorDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: EvaluationDate
+    label: "2. Evaluation Date"
+    description: "e.g. 2025-01-15"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: OperationalPeriod
+    label: "3. Operational Period"
+    description: "e.g. 2025-01-15 0800 to 2025-01-15 2000"
+    type: text
+    max_length: 40
+
+  - name: EvaluateeName
+    label: "4. Evaluatee Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: HomeUnit
+    label: "5. Home Unit"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: ICSPosition
+    label: "6. ICS Position"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: ICSSection
+    label: "7. ICS Section"
+    type: text
+    max_length: 40
+
+  - name: RatingKnowledgeOfJob
+    label: "a. Knowledge of job"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+    required: true
+
+  - name: RatingCompletedAssignments
+    label: "b. Completed assignments on time"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+    required: true
+
+  - name: RatingWorkedWithinICS
+    label: "c. Worked within ICS structure"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+    required: true
+
+  - name: RatingCommunicatedSupervisor
+    label: "d. Communicated effectively with supervisor"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+    required: true
+
+  - name: RatingCommunicatedSubordinates
+    label: "e. Communicated effectively with subordinates"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+
+  - name: RatingWrittenProducts
+    label: "f. Prepared clear and complete written products"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+
+  - name: RatingManagedResources
+    label: "g. Managed resources effectively"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+
+  - name: RatingMotivatedPersonnel
+    label: "h. Motivated and managed personnel"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+
+  - name: RatingDelegated
+    label: "i. Delegated work appropriately"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+
+  - name: RatingWorkedSafely
+    label: "j. Worked safely"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+    required: true
+
+  - name: RatingProfessionalAttitude
+    label: "k. Maintained professional attitude"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+    required: true
+
+  - name: RatingAdapted
+    label: "l. Adapted to incident complexity"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds, N/A"
+    type: text
+    choices: ["1", "2", "3", "4", "N/A"]
+
+  - name: OverallRating
+    label: "Overall Performance Rating"
+    description: "1=Does Not Meet, 2=Meets Some, 3=Meets All, 4=Exceeds"
+    type: text
+    choices: ["1", "2", "3", "4"]
+    required: true
+
+  - name: RecommendIncreased
+    label: "Recommend for Increased Responsibility"
+    type: text
+    choices: ["Yes", "Yes with Reservation", "No"]
+    required: true
+
+  - name: ReservationComments
+    label: "Comments if recommended with reservation"
+    type: textarea
+
+  - name: Strengths
+    label: "Strengths"
+    type: textarea
+    required: true
+
+  - name: AreasForImprovement
+    label: "Areas for Improvement"
+    type: textarea
+    required: true
+
+  - name: EvaluatorName
+    label: "Evaluator Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: EvaluatorPosition
+    label: "Evaluator ICS Position"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: EvaluatorDateTime
+    label: "Evaluator Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20

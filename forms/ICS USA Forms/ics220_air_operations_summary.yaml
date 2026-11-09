@@ -1,0 +1,508 @@
+name: ICS 220 Air Operations Summary
+category: ICS USA Forms
+subject_template: "ICS 220 - {{ IncidentName }} - {{ DateFrom }} {{ TimeFrom }}"
+body_template: |
+  AIR OPERATIONS SUMMARY (ICS 220)
+
+  1. Incident Name: {{ IncidentName }}
+  2. Operational Period:
+     Date From: {{ DateFrom }}  Date To: {{ DateTo }}
+     Time From: {{ TimeFrom }}  Time To: {{ TimeTo }}
+
+  3. Air Operations Branch Director: {{ AirOpsBranchDirector }}
+     Air-to-Ground Frequency: {{ AirGroundFreq }}
+
+  4. HELICOPTERS:
+
+  Name/ID            Type   Model/Agency   Freq/Phone         Capacity        Assignment         ETA    ETD
+  {{ Helo1Name }}    {{ Helo1Type }}  {{ Helo1Agency }}  {{ Helo1Freq }}  {{ Helo1Capacity }}  {{ Helo1Assignment }}  {{ Helo1ETA }}  {{ Helo1ETD }}
+  {{ Helo2Name }}    {{ Helo2Type }}  {{ Helo2Agency }}  {{ Helo2Freq }}  {{ Helo2Capacity }}  {{ Helo2Assignment }}  {{ Helo2ETA }}  {{ Helo2ETD }}
+  {{ Helo3Name }}    {{ Helo3Type }}  {{ Helo3Agency }}  {{ Helo3Freq }}  {{ Helo3Capacity }}  {{ Helo3Assignment }}  {{ Helo3ETA }}  {{ Helo3ETD }}
+  {{ Helo4Name }}    {{ Helo4Type }}  {{ Helo4Agency }}  {{ Helo4Freq }}  {{ Helo4Capacity }}  {{ Helo4Assignment }}  {{ Helo4ETA }}  {{ Helo4ETD }}
+  {{ Helo5Name }}    {{ Helo5Type }}  {{ Helo5Agency }}  {{ Helo5Freq }}  {{ Helo5Capacity }}  {{ Helo5Assignment }}  {{ Helo5ETA }}  {{ Helo5ETD }}
+
+  5. FIXED WING:
+
+  Name/ID            Type   Model/Agency   Freq/Phone         Capacity        Assignment         ETA    ETD
+  {{ FW1Name }}    {{ FW1Type }}  {{ FW1Agency }}  {{ FW1Freq }}  {{ FW1Capacity }}  {{ FW1Assignment }}  {{ FW1ETA }}  {{ FW1ETD }}
+  {{ FW2Name }}    {{ FW2Type }}  {{ FW2Agency }}  {{ FW2Freq }}  {{ FW2Capacity }}  {{ FW2Assignment }}  {{ FW2ETA }}  {{ FW2ETD }}
+  {{ FW3Name }}    {{ FW3Type }}  {{ FW3Agency }}  {{ FW3Freq }}  {{ FW3Capacity }}  {{ FW3Assignment }}  {{ FW3ETA }}  {{ FW3ETD }}
+  {{ FW4Name }}    {{ FW4Type }}  {{ FW4Agency }}  {{ FW4Freq }}  {{ FW4Capacity }}  {{ FW4Assignment }}  {{ FW4ETA }}  {{ FW4ETD }}
+  {{ FW5Name }}    {{ FW5Type }}  {{ FW5Agency }}  {{ FW5Freq }}  {{ FW5Capacity }}  {{ FW5Assignment }}  {{ FW5ETA }}  {{ FW5ETD }}
+
+  6. Remarks/Special Instructions:
+  {{ Remarks }}
+
+  Prepared by: {{ PreparedBy }}
+  Position/Title: {{ PrepPosition }}
+  Date/Time: {{ PrepDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateFrom
+    label: "2. Operational Period - Date From"
+    description: "e.g. 2025-01-15"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: DateTo
+    label: "2. Operational Period - Date To"
+    description: "e.g. 2025-01-15"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "2. Operational Period - Time From"
+    description: "e.g. 0800"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: TimeTo
+    label: "2. Operational Period - Time To"
+    description: "e.g. 2000"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: AirOpsBranchDirector
+    label: "3. Air Operations Branch Director"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: AirGroundFreq
+    label: "3. Air-to-Ground Frequency"
+    description: "Frequency or channel name for air-to-ground communications"
+    type: text
+    max_length: 20
+
+  - name: Helo1Name
+    label: "4. Helicopter 1 - Name/ID"
+    type: text
+    max_length: 20
+
+  - name: Helo1Type
+    label: "4. Helicopter 1 - Type"
+    type: text
+    max_length: 10
+
+  - name: Helo1Agency
+    label: "4. Helicopter 1 - Model/Agency"
+    type: text
+    max_length: 30
+
+  - name: Helo1Freq
+    label: "4. Helicopter 1 - Frequency/Phone"
+    type: text
+    max_length: 20
+
+  - name: Helo1Capacity
+    label: "4. Helicopter 1 - Capacity (Pax/Cargo)"
+    type: text
+    max_length: 20
+
+  - name: Helo1Assignment
+    label: "4. Helicopter 1 - Assignment"
+    type: text
+    max_length: 40
+
+  - name: Helo1ETA
+    label: "4. Helicopter 1 - ETA"
+    type: text
+    max_length: 9
+
+  - name: Helo1ETD
+    label: "4. Helicopter 1 - ETD"
+    type: text
+    max_length: 9
+
+  - name: Helo2Name
+    label: "4. Helicopter 2 - Name/ID"
+    type: text
+    max_length: 20
+
+  - name: Helo2Type
+    label: "4. Helicopter 2 - Type"
+    type: text
+    max_length: 10
+
+  - name: Helo2Agency
+    label: "4. Helicopter 2 - Model/Agency"
+    type: text
+    max_length: 30
+
+  - name: Helo2Freq
+    label: "4. Helicopter 2 - Frequency/Phone"
+    type: text
+    max_length: 20
+
+  - name: Helo2Capacity
+    label: "4. Helicopter 2 - Capacity (Pax/Cargo)"
+    type: text
+    max_length: 20
+
+  - name: Helo2Assignment
+    label: "4. Helicopter 2 - Assignment"
+    type: text
+    max_length: 40
+
+  - name: Helo2ETA
+    label: "4. Helicopter 2 - ETA"
+    type: text
+    max_length: 9
+
+  - name: Helo2ETD
+    label: "4. Helicopter 2 - ETD"
+    type: text
+    max_length: 9
+
+  - name: Helo3Name
+    label: "4. Helicopter 3 - Name/ID"
+    type: text
+    max_length: 20
+
+  - name: Helo3Type
+    label: "4. Helicopter 3 - Type"
+    type: text
+    max_length: 10
+
+  - name: Helo3Agency
+    label: "4. Helicopter 3 - Model/Agency"
+    type: text
+    max_length: 30
+
+  - name: Helo3Freq
+    label: "4. Helicopter 3 - Frequency/Phone"
+    type: text
+    max_length: 20
+
+  - name: Helo3Capacity
+    label: "4. Helicopter 3 - Capacity (Pax/Cargo)"
+    type: text
+    max_length: 20
+
+  - name: Helo3Assignment
+    label: "4. Helicopter 3 - Assignment"
+    type: text
+    max_length: 40
+
+  - name: Helo3ETA
+    label: "4. Helicopter 3 - ETA"
+    type: text
+    max_length: 9
+
+  - name: Helo3ETD
+    label: "4. Helicopter 3 - ETD"
+    type: text
+    max_length: 9
+
+  - name: Helo4Name
+    label: "4. Helicopter 4 - Name/ID"
+    type: text
+    max_length: 20
+
+  - name: Helo4Type
+    label: "4. Helicopter 4 - Type"
+    type: text
+    max_length: 10
+
+  - name: Helo4Agency
+    label: "4. Helicopter 4 - Model/Agency"
+    type: text
+    max_length: 30
+
+  - name: Helo4Freq
+    label: "4. Helicopter 4 - Frequency/Phone"
+    type: text
+    max_length: 20
+
+  - name: Helo4Capacity
+    label: "4. Helicopter 4 - Capacity (Pax/Cargo)"
+    type: text
+    max_length: 20
+
+  - name: Helo4Assignment
+    label: "4. Helicopter 4 - Assignment"
+    type: text
+    max_length: 40
+
+  - name: Helo4ETA
+    label: "4. Helicopter 4 - ETA"
+    type: text
+    max_length: 9
+
+  - name: Helo4ETD
+    label: "4. Helicopter 4 - ETD"
+    type: text
+    max_length: 9
+
+  - name: Helo5Name
+    label: "4. Helicopter 5 - Name/ID"
+    type: text
+    max_length: 20
+
+  - name: Helo5Type
+    label: "4. Helicopter 5 - Type"
+    type: text
+    max_length: 10
+
+  - name: Helo5Agency
+    label: "4. Helicopter 5 - Model/Agency"
+    type: text
+    max_length: 30
+
+  - name: Helo5Freq
+    label: "4. Helicopter 5 - Frequency/Phone"
+    type: text
+    max_length: 20
+
+  - name: Helo5Capacity
+    label: "4. Helicopter 5 - Capacity (Pax/Cargo)"
+    type: text
+    max_length: 20
+
+  - name: Helo5Assignment
+    label: "4. Helicopter 5 - Assignment"
+    type: text
+    max_length: 40
+
+  - name: Helo5ETA
+    label: "4. Helicopter 5 - ETA"
+    type: text
+    max_length: 9
+
+  - name: Helo5ETD
+    label: "4. Helicopter 5 - ETD"
+    type: text
+    max_length: 9
+
+  - name: FW1Name
+    label: "5. Fixed Wing 1 - Name/ID"
+    type: text
+    max_length: 20
+
+  - name: FW1Type
+    label: "5. Fixed Wing 1 - Type"
+    type: text
+    max_length: 10
+
+  - name: FW1Agency
+    label: "5. Fixed Wing 1 - Model/Agency"
+    type: text
+    max_length: 30
+
+  - name: FW1Freq
+    label: "5. Fixed Wing 1 - Frequency/Phone"
+    type: text
+    max_length: 20
+
+  - name: FW1Capacity
+    label: "5. Fixed Wing 1 - Capacity (Pax/Cargo)"
+    type: text
+    max_length: 20
+
+  - name: FW1Assignment
+    label: "5. Fixed Wing 1 - Assignment"
+    type: text
+    max_length: 40
+
+  - name: FW1ETA
+    label: "5. Fixed Wing 1 - ETA"
+    type: text
+    max_length: 9
+
+  - name: FW1ETD
+    label: "5. Fixed Wing 1 - ETD"
+    type: text
+    max_length: 9
+
+  - name: FW2Name
+    label: "5. Fixed Wing 2 - Name/ID"
+    type: text
+    max_length: 20
+
+  - name: FW2Type
+    label: "5. Fixed Wing 2 - Type"
+    type: text
+    max_length: 10
+
+  - name: FW2Agency
+    label: "5. Fixed Wing 2 - Model/Agency"
+    type: text
+    max_length: 30
+
+  - name: FW2Freq
+    label: "5. Fixed Wing 2 - Frequency/Phone"
+    type: text
+    max_length: 20
+
+  - name: FW2Capacity
+    label: "5. Fixed Wing 2 - Capacity (Pax/Cargo)"
+    type: text
+    max_length: 20
+
+  - name: FW2Assignment
+    label: "5. Fixed Wing 2 - Assignment"
+    type: text
+    max_length: 40
+
+  - name: FW2ETA
+    label: "5. Fixed Wing 2 - ETA"
+    type: text
+    max_length: 9
+
+  - name: FW2ETD
+    label: "5. Fixed Wing 2 - ETD"
+    type: text
+    max_length: 9
+
+  - name: FW3Name
+    label: "5. Fixed Wing 3 - Name/ID"
+    type: text
+    max_length: 20
+
+  - name: FW3Type
+    label: "5. Fixed Wing 3 - Type"
+    type: text
+    max_length: 10
+
+  - name: FW3Agency
+    label: "5. Fixed Wing 3 - Model/Agency"
+    type: text
+    max_length: 30
+
+  - name: FW3Freq
+    label: "5. Fixed Wing 3 - Frequency/Phone"
+    type: text
+    max_length: 20
+
+  - name: FW3Capacity
+    label: "5. Fixed Wing 3 - Capacity (Pax/Cargo)"
+    type: text
+    max_length: 20
+
+  - name: FW3Assignment
+    label: "5. Fixed Wing 3 - Assignment"
+    type: text
+    max_length: 40
+
+  - name: FW3ETA
+    label: "5. Fixed Wing 3 - ETA"
+    type: text
+    max_length: 9
+
+  - name: FW3ETD
+    label: "5. Fixed Wing 3 - ETD"
+    type: text
+    max_length: 9
+
+  - name: FW4Name
+    label: "5. Fixed Wing 4 - Name/ID"
+    type: text
+    max_length: 20
+
+  - name: FW4Type
+    label: "5. Fixed Wing 4 - Type"
+    type: text
+    max_length: 10
+
+  - name: FW4Agency
+    label: "5. Fixed Wing 4 - Model/Agency"
+    type: text
+    max_length: 30
+
+  - name: FW4Freq
+    label: "5. Fixed Wing 4 - Frequency/Phone"
+    type: text
+    max_length: 20
+
+  - name: FW4Capacity
+    label: "5. Fixed Wing 4 - Capacity (Pax/Cargo)"
+    type: text
+    max_length: 20
+
+  - name: FW4Assignment
+    label: "5. Fixed Wing 4 - Assignment"
+    type: text
+    max_length: 40
+
+  - name: FW4ETA
+    label: "5. Fixed Wing 4 - ETA"
+    type: text
+    max_length: 9
+
+  - name: FW4ETD
+    label: "5. Fixed Wing 4 - ETD"
+    type: text
+    max_length: 9
+
+  - name: FW5Name
+    label: "5. Fixed Wing 5 - Name/ID"
+    type: text
+    max_length: 20
+
+  - name: FW5Type
+    label: "5. Fixed Wing 5 - Type"
+    type: text
+    max_length: 10
+
+  - name: FW5Agency
+    label: "5. Fixed Wing 5 - Model/Agency"
+    type: text
+    max_length: 30
+
+  - name: FW5Freq
+    label: "5. Fixed Wing 5 - Frequency/Phone"
+    type: text
+    max_length: 20
+
+  - name: FW5Capacity
+    label: "5. Fixed Wing 5 - Capacity (Pax/Cargo)"
+    type: text
+    max_length: 20
+
+  - name: FW5Assignment
+    label: "5. Fixed Wing 5 - Assignment"
+    type: text
+    max_length: 40
+
+  - name: FW5ETA
+    label: "5. Fixed Wing 5 - ETA"
+    type: text
+    max_length: 9
+
+  - name: FW5ETD
+    label: "5. Fixed Wing 5 - ETD"
+    type: text
+    max_length: 9
+
+  - name: Remarks
+    label: "6. Remarks/Special Instructions"
+    type: textarea
+
+  - name: PreparedBy
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepPosition
+    label: "Prepared by - Position/Title"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PrepDateTime
+    label: "Prepared by - Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
