@@ -14,7 +14,7 @@ Form messages are structured messages where the content follows a defined templa
 
 ## Opening the Form Picker
 
-Press **F** to open the form picker. You'll see a list of available form categories and forms.
+Press **Ctrl+N**, then **F** (Form Message), to open the form picker. You'll see a list of available form categories and forms.
 
 Navigate the form categories and select a form to fill out.
 
@@ -28,7 +28,7 @@ Once you select a form, the form fill screen opens. Each field in the form is pr
 - Enter values in each field
 - Fields marked as required must be filled before the form can be sent
 
-Press **Ctrl+S** when the form is complete to compose the message using the form's output template.
+Select **Submit** when the form is complete to compose the message using the form's output template.
 
 The composed message will be addressed and queued for sending on the next sync (**Ctrl+C**).
 

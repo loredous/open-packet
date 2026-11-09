@@ -24,7 +24,7 @@ Bulletin headers are retrieved automatically during each sync. However, the full
 To queue a bulletin for body retrieval:
 
 1. Select the bulletin in the list
-2. Press **R** to mark it for retrieval
+2. Press **Ctrl+U** to mark it for retrieval (press again to unmark)
 
 On the next send/receive (**Ctrl+C**), open-packet will fetch the full body.
 
@@ -35,14 +35,14 @@ On the next send/receive (**Ctrl+C**), open-packet will fetch the full body.
 
 ## Posting a Bulletin
 
-Press **Ctrl+B** to open the bulletin compose screen.
+Press **Ctrl+N**, then **B** (New Bulletin), to open the bulletin compose screen.
 
 Fill in:
 - **Category** — the bulletin category channel (e.g. `ARES`, `LOCAL`)
 - **Subject** — the subject line
 - **Body** — the bulletin text
 
-Press **Ctrl+S** to queue the bulletin for posting on the next sync.
+Select **Post** to queue the bulletin for posting on the next sync.
 
 > [!WARNING]
 > Bulletins are broadcast to all stations on the BBS. Ensure your category and content are appropriate for the intended audience.
