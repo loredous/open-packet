@@ -24,9 +24,12 @@ build-backend = "hatchling.build"
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
+    "pytest-xdist>=3.8.0",
     "textual-dev>=0.60.0",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# Run tests in parallel (pytest-xdist). Use `-n0` to run serially, e.g. for pdb.
+addopts = "-n auto"

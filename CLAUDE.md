@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 uv sync                        # install dependencies
-uv run pytest                  # run full test suite
+uv run pytest                  # run full test suite (parallel via pytest-xdist; ~15s)
+uv run pytest -n0              # run serially (needed for --pdb / breakpoints)
 uv run pytest tests/test_store # run tests in one directory
 uv run pytest tests/test_store/test_store.py::test_list_outbox_excludes_sent_and_deleted  # run single test
 uv run open-packet             # run the app
@@ -14,7 +15,7 @@ uv run open-packet --db-path /tmp/test.db   # run against a scratch database
 uv run textual run --dev open_packet/ui/tui/app.py  # run with Textual live-reload + DOM inspector
 ```
 
-`asyncio_mode = "auto"` is set in `pyproject.toml`, so async tests do not need `@pytest.mark.asyncio`.
+`asyncio_mode = "auto"` is set in `pyproject.toml`, so async tests do not need `@pytest.mark.asyncio`. Tests run in parallel across processes (`addopts = "-n auto"`), so they must not share fixed ports, files, or global state — use `tmp_path` and port `0`.
 
 ## Architecture
 

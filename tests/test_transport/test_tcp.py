@@ -5,11 +5,12 @@ from open_packet.transport.tcp import TCPTransport
 from open_packet.transport.base import TransportError
 
 
-def make_echo_server(host: str, port: int) -> threading.Thread:
-    """Minimal echo server for testing."""
+def make_echo_server(host: str) -> int:
+    """Minimal echo server for testing. Returns the OS-assigned port."""
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.bind((host, port))
+    server.bind((host, 0))
+    port = server.getsockname()[1]
     server.listen(1)
     server.settimeout(2)
 
@@ -32,15 +33,13 @@ def make_echo_server(host: str, port: int) -> threading.Thread:
         finally:
             server.close()
 
-    t = threading.Thread(target=serve, daemon=True)
-    t.start()
-    return t
+    threading.Thread(target=serve, daemon=True).start()
+    return port
 
 
 def test_tcp_connect_send_receive():
-    host, port = "127.0.0.1", 15432
-    make_echo_server(host, port)
-    import time; time.sleep(0.05)
+    host = "127.0.0.1"
+    port = make_echo_server(host)
 
     t = TCPTransport(host=host, port=port)
     t.connect()
