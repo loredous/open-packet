@@ -1,0 +1,214 @@
+name: ICS 209 Incident Status Summary
+category: ICS USA Forms
+subject_template: "ICS 209 - {{ IncidentName }} - {{ ReportDateTime }}"
+body_template: |
+  ICS 209 INCIDENT STATUS SUMMARY
+
+  Report Version: {{ ReportVersion }}
+
+  1. Incident Name: {{ IncidentName }}
+  2. Incident Number: {{ IncidentNumber }}
+  3. Report Date/Time: {{ ReportDateTime }}
+  4. Incident Commander(s) & Agency/Organization: {{ IncidentCommander }}
+
+  5. Incident Start Date/Time: {{ IncidentStartDateTime }}
+  6. Cause: {{ Cause }}
+  7. Incident Location: {{ IncidentLocation }}
+  8. State: {{ State }}  County/Parish/Borough: {{ County }}
+
+  THREAT TO LIFE AND SAFETY:
+  Fatalities: {{ Fatalities }}
+  Injuries/Illness: {{ Injuries }}
+  Persons Evacuated: {{ PersonsEvacuated }}
+  Persons Sheltering in Place: {{ PersonsShelteredInPlace }}
+
+  DAMAGE ASSESSMENT:
+  Structures Threatened: {{ StructuresThreatened }}
+  Structures Damaged: {{ StructuresDamaged }}
+  Structures Destroyed: {{ StructuresDestroyed }}
+
+  INCIDENT ACTIONS / CURRENT SITUATION:
+  {{ CurrentSituation }}
+
+  PROJECTED INCIDENT ACTIVITY / SIGNIFICANT EVENTS:
+  Next Operational Period: {{ NextOperationalPeriod }}
+  Projected Activity: {{ ProjectedActivity }}
+
+  RESOURCES:
+  Personnel: {{ Personnel }}
+  Aircraft: {{ Aircraft }}
+  Engines: {{ Engines }}
+  Dozers/Heavy Equipment: {{ HeavyEquipment }}
+  Water Tenders: {{ WaterTenders }}
+  Other Resources: {{ OtherResources }}
+
+  REMARKS / OTHER SIGNIFICANT INFORMATION:
+  {{ Remarks }}
+
+  Prepared by: {{ PreparedBy }}  Position/Title: {{ PreparedByPosition }}
+  Date/Time: {{ PreparedDateTime }}
+
+fields:
+  - name: ReportVersion
+    label: "Report Version"
+    type: text
+    choices:
+      - "Initial"
+      - "Update"
+      - "Final"
+    required: true
+
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: IncidentNumber
+    label: "2. Incident Number"
+    type: text
+    max_length: 20
+
+  - name: ReportDateTime
+    label: "3. Report Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: IncidentCommander
+    label: "4. Incident Commander(s) & Agency/Organization"
+    type: text
+    required: true
+    max_length: 80
+
+  - name: IncidentStartDateTime
+    label: "5. Incident Start Date/Time"
+    description: "e.g. 2025-01-14 0600"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: Cause
+    label: "6. Cause"
+    type: text
+    max_length: 60
+
+  - name: IncidentLocation
+    label: "7. Incident Location"
+    type: text
+    required: true
+    max_length: 80
+
+  - name: State
+    label: "8. State"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: County
+    label: "8. County/Parish/Borough"
+    type: text
+    max_length: 40
+
+  - name: Fatalities
+    label: "Fatalities"
+    type: text
+    max_length: 10
+
+  - name: Injuries
+    label: "Injuries/Illness"
+    type: text
+    max_length: 10
+
+  - name: PersonsEvacuated
+    label: "Persons Evacuated"
+    type: text
+    max_length: 20
+
+  - name: PersonsShelteredInPlace
+    label: "Persons Sheltering in Place"
+    type: text
+    max_length: 20
+
+  - name: StructuresThreatened
+    label: "Structures Threatened"
+    type: text
+    max_length: 20
+
+  - name: StructuresDamaged
+    label: "Structures Damaged"
+    type: text
+    max_length: 20
+
+  - name: StructuresDestroyed
+    label: "Structures Destroyed"
+    type: text
+    max_length: 20
+
+  - name: CurrentSituation
+    label: "Incident Actions / Current Situation"
+    type: textarea
+    required: true
+
+  - name: NextOperationalPeriod
+    label: "Next Operational Period"
+    description: "e.g. 2025-01-15 2000 to 2025-01-16 0800"
+    type: text
+    max_length: 40
+
+  - name: ProjectedActivity
+    label: "Projected Activity"
+    type: textarea
+
+  - name: Personnel
+    label: "Resources - Personnel"
+    type: text
+    max_length: 20
+
+  - name: Aircraft
+    label: "Resources - Aircraft"
+    type: text
+    max_length: 20
+
+  - name: Engines
+    label: "Resources - Engines"
+    type: text
+    max_length: 20
+
+  - name: HeavyEquipment
+    label: "Resources - Dozers/Heavy Equipment"
+    type: text
+    max_length: 20
+
+  - name: WaterTenders
+    label: "Resources - Water Tenders"
+    type: text
+    max_length: 20
+
+  - name: OtherResources
+    label: "Resources - Other"
+    type: text
+    max_length: 60
+
+  - name: Remarks
+    label: "Remarks / Other Significant Information"
+    type: textarea
+
+  - name: PreparedBy
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PreparedByPosition
+    label: "Prepared by Position/Title"
+    type: text
+    max_length: 40
+
+  - name: PreparedDateTime
+    label: "Date/Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20

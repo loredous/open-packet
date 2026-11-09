@@ -1,0 +1,170 @@
+name: ICS 208HM Site Safety and Control Plan
+category: ICS USA Forms
+subject_template: "ICS 208HM - {{ IncidentName }} - {{ DateTimeFrom }}"
+body_template: |
+  ICS 208HM SITE SAFETY AND CONTROL PLAN
+
+  1. Incident Name: {{ IncidentName }}
+  2. Incident Number: {{ IncidentNumber }}
+
+  3. Operational Period:
+  Date/Time From: {{ DateTimeFrom }}
+  Date/Time To:   {{ DateTimeTo }}
+
+  4. Site Map Attached: {{ SiteMapAttached }}
+
+  5. Scene Description:
+  {{ SceneDescription }}
+
+  6. Entry Leader: {{ EntryLeader }}
+  7. Site Safety Officer: {{ SiteSafetyOfficer }}
+
+  8. WORK ZONES:
+  Exclusion Zone Boundary: {{ ExclusionZoneBoundary }}
+  Contamination Reduction Zone Boundary: {{ ContaminationReductionZoneBoundary }}
+  Support Zone Boundary: {{ SupportZoneBoundary }}
+
+  9. HAZARDOUS MATERIALS:
+  Material 1: {{ HazMatName1 }}  UN/NA: {{ HazMatUN1 }}  DOT Class: {{ HazMatClass1 }}
+  Material 2: {{ HazMatName2 }}  UN/NA: {{ HazMatUN2 }}  DOT Class: {{ HazMatClass2 }}
+  Material 3: {{ HazMatName3 }}  UN/NA: {{ HazMatUN3 }}  DOT Class: {{ HazMatClass3 }}
+
+  10. Decontamination Procedures:
+  {{ DeconProcedures }}
+
+  11. Site Safety and Control Plan Approved by:
+  Name: {{ ApprovedByName }}  Position/Title: {{ ApprovedByPosition }}
+  Date/Time: {{ ApprovedDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: IncidentNumber
+    label: "2. Incident Number"
+    type: text
+    max_length: 20
+
+  - name: DateTimeFrom
+    label: "3. Operational Period - Date/Time From"
+    description: "e.g. 2025-01-15 0800"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateTimeTo
+    label: "3. Operational Period - Date/Time To"
+    description: "e.g. 2025-01-15 2000"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: SiteMapAttached
+    label: "4. Site Map Attached"
+    type: text
+    choices:
+      - "Yes"
+      - "No"
+    required: true
+
+  - name: SceneDescription
+    label: "5. Scene Description"
+    type: textarea
+    required: true
+
+  - name: EntryLeader
+    label: "6. Entry Leader"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: SiteSafetyOfficer
+    label: "7. Site Safety Officer"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: ExclusionZoneBoundary
+    label: "8. Exclusion Zone Boundary"
+    type: text
+    max_length: 80
+
+  - name: ContaminationReductionZoneBoundary
+    label: "8. Contamination Reduction Zone Boundary"
+    type: text
+    max_length: 80
+
+  - name: SupportZoneBoundary
+    label: "8. Support Zone Boundary"
+    type: text
+    max_length: 80
+
+  - name: HazMatName1
+    label: "Hazmat 1 - Material Name"
+    type: text
+    max_length: 40
+
+  - name: HazMatUN1
+    label: "Hazmat 1 - UN/NA Number"
+    type: text
+    max_length: 10
+
+  - name: HazMatClass1
+    label: "Hazmat 1 - DOT Class"
+    type: text
+    max_length: 20
+
+  - name: HazMatName2
+    label: "Hazmat 2 - Material Name"
+    type: text
+    max_length: 40
+
+  - name: HazMatUN2
+    label: "Hazmat 2 - UN/NA Number"
+    type: text
+    max_length: 10
+
+  - name: HazMatClass2
+    label: "Hazmat 2 - DOT Class"
+    type: text
+    max_length: 20
+
+  - name: HazMatName3
+    label: "Hazmat 3 - Material Name"
+    type: text
+    max_length: 40
+
+  - name: HazMatUN3
+    label: "Hazmat 3 - UN/NA Number"
+    type: text
+    max_length: 10
+
+  - name: HazMatClass3
+    label: "Hazmat 3 - DOT Class"
+    type: text
+    max_length: 20
+
+  - name: DeconProcedures
+    label: "10. Decontamination Procedures"
+    type: textarea
+
+  - name: ApprovedByName
+    label: "11. Approved by Name"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: ApprovedByPosition
+    label: "11. Approved by Position/Title"
+    type: text
+    max_length: 40
+
+  - name: ApprovedDateTime
+    label: "11. Date/Time Approved"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
