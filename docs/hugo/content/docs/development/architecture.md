@@ -62,6 +62,7 @@ The `Engine` runs in a background daemon thread. It owns the node connection and
 | `SendMessageCommand` | Queue a personal message for sending |
 | `DeleteMessageCommand` | Delete a message from BBS and local DB |
 | `PostBulletinCommand` | Post a bulletin to the BBS |
+| `GroupSyncCommand` | Run send/receive sequentially across every node in a node group (one `NodeSyncTarget` per node) |
 
 ### Events (`events.py`)
 
@@ -70,9 +71,11 @@ The `Engine` runs in a background daemon thread. It owns the node connection and
 | `ConnectionStatusEvent` | Connection state changed (disconnected/connecting/connected/syncing/error) |
 | `MessageReceivedEvent` | A new message was received during sync |
 | `SyncCompleteEvent` | A send/receive cycle finished |
+| `MessageQueuedEvent` | A composed message was saved to the outbox |
+| `GroupSyncCompleteEvent` | A group sync finished; carries one `GroupSyncNodeResult` per node (counts, or skip reason) |
 | `ErrorEvent` | An error occurred |
 | `ConsoleEvent` | A raw AX.25 frame for the console panel |
-| `NeighborsDiscoveredEvent` | Neighbor nodes discovered via network topology |
+| `NeighborsDiscoveredEvent` | Neighbor nodes discovered via network topology, plus any shorter-path candidates for known nodes |
 
 ### Adding a New Capability
 
@@ -85,7 +88,7 @@ The `Engine` runs in a background daemon thread. It owns the node connection and
 
 SQLite-backed message persistence.
 
-- `models.py` — plain dataclasses: `Operator`, `Node`, `Interface`, `Message`, `Bulletin`, `BBSFile`
+- `models.py` — plain dataclasses: `Operator`, `Node`, `NodeHop`, `NodeGroup`, `Interface`, `Message`, `Bulletin`, `BBSFile`
 - `database.py` — raw SQLite DDL, schema migrations, low-level insert/query helpers
 - `store.py` — higher-level query methods used by the engine and TUI
 

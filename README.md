@@ -2,34 +2,40 @@
 
 An open-source packet messaging client for amateur radio operators.
 
-> **Early development:** v0.1 — expect breaking changes between releases.
-
 ![Screenshot of the open-packet terminal UI showing the message inbox](images/image.png)
+
+---
+
+## Features
+
+- **Personal messages & bulletins** — sync your inbox and bulletins from a BPQ-style BBS node to a local SQLite database
+- **Terminal sessions** — connect directly to a node for an interactive keyboard-to-keyboard session
+- **Form messages** — fill out and send structured messages from bundled templates: NTS radiogram, ICS forms (ICS-213, ICS-205, etc.), and general forms
+- **Search** — search your stored messages and bulletins by subject, body, or callsign
+- **Scheduled send/receive** — automatically sync on a configurable interval
+- **Desktop notifications** — get notified when new mail arrives
+- **Multiple identities** — manage several operators, nodes, and interfaces, with node groups for organizing your connections
+- **Flexible connections** — Telnet, KISS over TCP, or KISS over serial
+- **Frame console** — inspect raw AX.25 frame traffic, optionally logged to file
+- **Terminal & web frontends** — run in your terminal, or serve the UI over the web with `op-web`
+
+The core engine is interface-agnostic — the terminal client is the primary frontend, with the web frontend built on the same engine.
 
 ---
 
 ## Quickstart
 
 **Requirements:**
-- Linux (Windows and MacOS are currently untested, but should probably work)
+- Linux (Windows and macOS are currently untested, but should probably work)
 - Python >= 3.11
-- A KISS-capable TNC connected via TCP or serial port. If you don't have hardware, [Direwolf](https://github.com/wb2osz/direwolf) is a good software TNC.
+- A connection to a BBS/node — either:
+  - A KISS-capable TNC connected via TCP or serial port (if you don't have hardware, [Direwolf](https://github.com/wb2osz/direwolf) is a good software TNC), or
+  - A Telnet-reachable node over the network
 
 **Install:**
 
 ```bash
 uv tool install git+https://github.com/loredous/open-packet
-```
-
-**Configure:**
-
-Create `~/.config/open-packet/config.yaml`:
-
-```yaml
-connection:
-  type: kiss_tcp          # kiss_tcp | kiss_serial
-  host: localhost         # TCP only
-  port: 8001              # TCP only
 ```
 
 **Run:**
@@ -38,39 +44,73 @@ connection:
 open-packet
 ```
 
-On first launch, you'll be prompted to enter your callsign and BBS node details. You can update these later via the Settings screen (`s`).
+On first launch you'll be guided through setting up your operator identity (callsign, SSID), a network interface, and a BBS node. You can add or change any of these later from the Settings screen (`ctrl+s`).
 
 ---
 
 ## How It Works
 
-open-packet connects to a BBS node over AX.25 packet radio via a KISS TNC, syncing your personal messages and bulletins to a local SQLite database. The core engine is interface-agnostic — the terminal client is the first frontend, with a web client and other interfaces planned.
+open-packet connects to a BBS/node — over AX.25 packet radio via a KISS TNC, or over Telnet — and syncs your personal messages and bulletins to a local SQLite database. Everything you compose, receive, and read is stored locally, so the app is fully usable offline; syncing happens on demand (`ctrl+c`) or on a schedule.
+
+Operator identity, node configuration, and network interfaces are all created and managed interactively through the TUI and stored in the SQLite database — there is no configuration file to edit for these.
+
+---
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `ctrl+c` | Send/Receive (sync with node) |
+| `ctrl+n` | New… (message, bulletin, or form message) |
+| `ctrl+r` | Reply to selected message |
+| `ctrl+f` | Search messages |
+| `ctrl+a` | Archive selected message |
+| `ctrl+x` | Delete selected message |
+| `ctrl+u` | Queue bulletin for retrieval |
+| `ctrl+t` | Open a terminal session |
+| `ctrl+d` | Disconnect active session |
+| `ctrl+s` | Settings |
+| `` ` `` | Toggle the AX.25 frame console |
+| `ctrl+q` | Quit |
 
 ---
 
 ## Configuration
 
-The config file lives at `~/.config/open-packet/config.yaml` (or pass a custom path as the first argument to `open-packet`).
+open-packet does not use a YAML config file. Storage and file paths are set via command-line flags or environment variables; everything else (operators, nodes, interfaces, export path, console options, scheduled sync, notifications) is configured in-app and stored in the database.
 
-```yaml
-connection:
-  type: kiss_tcp          # kiss_tcp | kiss_serial
-  host: localhost         # TCP only
-  port: 8001              # TCP only
-  # device: /dev/ttyUSB0  # serial only
-  # baud: 9600            # serial only
+**Command-line flags:**
 
-store:
-  db_path: ~/.local/share/open-packet/messages.db    # SQLite message database
-  export_path: ~/.local/share/open-packet/export     # flat-file export directory
-
-ui:
-  console_visible: false       # show AX.25 frame console on startup
-  console_buffer: 500          # number of lines to keep in the console ring buffer
-  # console_log: ~/.local/share/open-packet/console.log  # log frame traffic to file (omit to disable)
+```bash
+open-packet \
+  --db-path ~/.local/share/open-packet/messages.db \
+  --log-path ~/.local/share/open-packet/open-packet.log \
+  --console-log ~/.local/share/open-packet/console.log \
+  --forms-dir ~/.config/open-packet/forms
 ```
 
-Operator identity (callsign, SSID) and BBS node configuration are managed interactively through the TUI rather than in the config file. Access them via the Settings screen (`s`).
+**Environment variables** (used when the matching flag is omitted):
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `OPEN_PACKET_DB_PATH` | SQLite message database | `~/.local/share/open-packet/messages.db` |
+| `OPEN_PACKET_LOG_PATH` | Application log file | `~/.local/share/open-packet/open-packet.log` |
+| `OPEN_PACKET_CONSOLE_LOG` | AX.25 frame console log file | *(disabled)* |
+| `OPEN_PACKET_FORMS_DIR` | Directory of form templates | `~/.config/open-packet/forms` |
+
+In-app settings are reached from the Settings screen (`ctrl+s`): **General** (export path, console options, scheduled send/receive, notifications, auto-discovery), **Operator**, **Node**, and **Interfaces**.
+
+---
+
+## Web Frontend
+
+open-packet can serve its UI over the web using [textual-serve](https://github.com/Textualize/textual-serve):
+
+```bash
+op-web
+```
+
+This launches the same interface in a browser.
 
 ---
 
@@ -89,9 +129,11 @@ uv run open-packet
 uv run pytest
 
 # Run with Textual's dev tools (live reload + DOM inspector)
-# Note: this launches OpenPacketApp directly, bypassing main() — config loads from the default path
+# Note: this launches OpenPacketApp directly, bypassing main() — paths load from defaults
 uv run textual run --dev open_packet/ui/tui/app.py
 ```
+
+User-facing documentation lives in `docs/hugo/` as a [Hugo](https://gohugo.io/) site and is published to GitHub Pages on each release. See `CLAUDE.md` for architecture notes and `docs/hugo/` for the full docs.
 
 ---
 

@@ -31,14 +31,14 @@ Unread messages are shown in bold. Opening a message marks it as read automatica
 
 ## Composing a New Message
 
-Press **Ctrl+N** to open the compose screen.
+Press **Ctrl+N**, then **M** (New Message), to open the compose screen.
 
 Fill in:
 - **To** — the destination callsign (e.g. `W1AW` or `W1AW-1`)
 - **Subject** — a short description of the message
 - **Body** — the message text
 
-Press **Ctrl+S** to queue the message for sending, or **Escape** to cancel.
+Select **Send** to queue the message for sending, or **Cancel** to discard it.
 
 The message will appear in your **Outbox** until the next send/receive (**Ctrl+C**).
 
@@ -50,13 +50,13 @@ Select a message and press **Ctrl+R**. The compose screen opens pre-filled with:
 - The sender's callsign in the **To** field
 - `Re: <original subject>` in the **Subject** field
 
-Edit the body and press **Ctrl+S** to queue.
+Edit the body and select **Send** to queue.
 
 ## Archiving Messages
 
-Select a message in the **Inbox** and press **A** to move it to the **Archive** folder.
+Select a message in the **Inbox** and press **Ctrl+A** to move it to the **Archive** folder.
 
-To move a message back to the inbox, navigate to **Archive**, select the message, and press **A** again.
+To move a message back to the inbox, navigate to **Archive**, select the message, and press **Ctrl+A** again.
 
 ## Deleting Messages
 
