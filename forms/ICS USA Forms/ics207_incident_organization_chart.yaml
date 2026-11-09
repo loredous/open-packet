@@ -1,0 +1,327 @@
+name: ICS 207 Incident Organization Chart
+category: ICS USA Forms
+subject_template: "ICS 207 - {{ Incident_Name }} - {{ DateTimePrepared }}"
+body_template: |
+  ICS 207 INCIDENT ORGANIZATION CHART
+
+  1. Incident Name: {{ Incident_Name }}
+  2. Date/Time Prepared: {{ DateTimePrepared }}
+
+  3. Operational Period:
+  From: {{ DateFrom }} {{ TimeFrom }}
+  To:   {{ DateTo }} {{ TimeTo }}
+
+  ======================================================
+  INCIDENT COMMANDER(S): {{ IC_Name }}
+  Deputy IC: {{ Deputy_IC }}
+
+  COMMAND STAFF:
+  Safety Officer: {{ Safety_Officer }}
+  Liaison Officer: {{ Liaison_Officer }}
+  Public Info Officer: {{ PIO }}
+
+  ======================================================
+  OPERATIONS SECTION CHIEF: {{ Ops_Chief }}
+  Deputy: {{ Ops_Deputy }}
+
+  Branch I Director: {{ Branch1_Dir }}
+  Branch I Div/Group: {{ Branch1_DivGroup }}
+
+  Branch II Director: {{ Branch2_Dir }}
+  Branch II Div/Group: {{ Branch2_DivGroup }}
+
+  Branch III Director: {{ Branch3_Dir }}
+  Branch III Div/Group: {{ Branch3_DivGroup }}
+
+  Air Ops Branch Director: {{ AirOps_Dir }}
+  Air Tactical Supervisor: {{ AirTac_Sup }}
+
+  ======================================================
+  PLANNING SECTION CHIEF: {{ Plan_Chief }}
+  Deputy: {{ Plan_Deputy }}
+
+  Resources Unit Leader: {{ Resources_UL }}
+  Situation Unit Leader: {{ Situation_UL }}
+  Documentation Unit Leader: {{ Docs_UL }}
+  Demob Unit Leader: {{ Demob_UL }}
+  Technical Specialists: {{ Tech_Specialists }}
+
+  ======================================================
+  LOGISTICS SECTION CHIEF: {{ Log_Chief }}
+  Deputy: {{ Log_Deputy }}
+
+  Support Branch Director: {{ Support_Dir }}
+    Supply Unit Leader: {{ Supply_UL }}
+    Facilities Unit Leader: {{ Facilities_UL }}
+    Ground Support Unit Leader: {{ GroundSupport_UL }}
+
+  Service Branch Director: {{ Service_Dir }}
+    Communications Unit Leader: {{ Comms_UL }}
+    Medical Unit Leader: {{ Medical_UL }}
+    Food Unit Leader: {{ Food_UL }}
+
+  ======================================================
+  FINANCE/ADMIN SECTION CHIEF: {{ Finance_Chief }}
+  Deputy: {{ Finance_Deputy }}
+
+  Time Unit Leader: {{ Time_UL }}
+  Procurement Unit Leader: {{ Procurement_UL }}
+  Comp/Claims Unit Leader: {{ CompClaims_UL }}
+  Cost Unit Leader: {{ Cost_UL }}
+
+  ======================================================
+  Prepared by: {{ PreparedName }}  Position/Title: {{ PreparedTitle }}
+  Date/Time: {{ PreparedDateTime }}
+
+  IAP Page: {{ IAP_Page }}
+
+fields:
+  - name: Incident_Name
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTimePrepared
+    label: "2. Date/Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateFrom
+    label: "3. Op Period - Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "3. Op Period - Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: DateTo
+    label: "3. Op Period - Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeTo
+    label: "3. Op Period - Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: IC_Name
+    label: "Incident Commander(s)"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: Deputy_IC
+    label: "Deputy IC"
+    type: text
+    max_length: 40
+
+  - name: Safety_Officer
+    label: "Safety Officer"
+    type: text
+    max_length: 40
+
+  - name: Liaison_Officer
+    label: "Liaison Officer"
+    type: text
+    max_length: 40
+
+  - name: PIO
+    label: "Public Info Officer"
+    type: text
+    max_length: 40
+
+  - name: Ops_Chief
+    label: "Operations Section Chief"
+    type: text
+    max_length: 40
+
+  - name: Ops_Deputy
+    label: "Operations Section Deputy"
+    type: text
+    max_length: 40
+
+  - name: Branch1_Dir
+    label: "Branch I - Director"
+    type: text
+    max_length: 40
+
+  - name: Branch1_DivGroup
+    label: "Branch I - Division/Group Supervisors"
+    type: text
+    max_length: 80
+
+  - name: Branch2_Dir
+    label: "Branch II - Director"
+    type: text
+    max_length: 40
+
+  - name: Branch2_DivGroup
+    label: "Branch II - Division/Group Supervisors"
+    type: text
+    max_length: 80
+
+  - name: Branch3_Dir
+    label: "Branch III - Director"
+    type: text
+    max_length: 40
+
+  - name: Branch3_DivGroup
+    label: "Branch III - Division/Group Supervisors"
+    type: text
+    max_length: 80
+
+  - name: AirOps_Dir
+    label: "Air Operations Branch Director"
+    type: text
+    max_length: 40
+
+  - name: AirTac_Sup
+    label: "Air Tactical Supervisor"
+    type: text
+    max_length: 40
+
+  - name: Plan_Chief
+    label: "Planning Section Chief"
+    type: text
+    max_length: 40
+
+  - name: Plan_Deputy
+    label: "Planning Section Deputy"
+    type: text
+    max_length: 40
+
+  - name: Resources_UL
+    label: "Resources Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Situation_UL
+    label: "Situation Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Docs_UL
+    label: "Documentation Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Demob_UL
+    label: "Demobilization Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Tech_Specialists
+    label: "Technical Specialists"
+    type: text
+    max_length: 80
+
+  - name: Log_Chief
+    label: "Logistics Section Chief"
+    type: text
+    max_length: 40
+
+  - name: Log_Deputy
+    label: "Logistics Section Deputy"
+    type: text
+    max_length: 40
+
+  - name: Support_Dir
+    label: "Support Branch Director"
+    type: text
+    max_length: 40
+
+  - name: Supply_UL
+    label: "Supply Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Facilities_UL
+    label: "Facilities Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: GroundSupport_UL
+    label: "Ground Support Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Service_Dir
+    label: "Service Branch Director"
+    type: text
+    max_length: 40
+
+  - name: Comms_UL
+    label: "Communications Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Medical_UL
+    label: "Medical Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Food_UL
+    label: "Food Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Finance_Chief
+    label: "Finance/Admin Section Chief"
+    type: text
+    max_length: 40
+
+  - name: Finance_Deputy
+    label: "Finance/Admin Section Deputy"
+    type: text
+    max_length: 40
+
+  - name: Time_UL
+    label: "Time Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Procurement_UL
+    label: "Procurement Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: CompClaims_UL
+    label: "Compensation/Claims Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: Cost_UL
+    label: "Cost Unit Leader"
+    type: text
+    max_length: 40
+
+  - name: PreparedName
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PreparedTitle
+    label: "Prepared by (Position/Title)"
+    type: text
+    max_length: 40
+
+  - name: PreparedDateTime
+    label: "Prepared by (Date/Time)"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: IAP_Page
+    label: "IAP Page #"
+    type: text
+    max_length: 5

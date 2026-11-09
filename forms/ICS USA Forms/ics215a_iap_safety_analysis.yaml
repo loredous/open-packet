@@ -1,0 +1,178 @@
+name: ICS 215A IAP Safety Analysis
+category: ICS USA Forms
+subject_template: "ICS 215A - {{ IncidentName }} - {{ DateTimePrepared }}"
+body_template: |
+  ICS 215A INCIDENT ACTION PLAN SAFETY ANALYSIS
+
+  1. Incident Name: {{ IncidentName }}
+  2. Date/Time Prepared: {{ DateTimePrepared }}
+
+  3. Operational Period:
+  From: {{ DateFrom }} {{ TimeFrom }}
+  To:   {{ DateTo }} {{ TimeTo }}
+
+  4. Operational Period Weather Forecast for Planning:
+  {{ WeatherForecast }}
+
+  -------------------------------------------------------------------
+  5. HAZARDS/RISKS AND MITIGATION MEASURES:
+
+  HAZARD/RISK 1: {{ HazardRisk1 }}
+  MITIGATIONS:   {{ Mitigations1 }}
+  AFFECTS:       {{ AffectsWho1 }}
+
+  HAZARD/RISK 2: {{ HazardRisk2 }}
+  MITIGATIONS:   {{ Mitigations2 }}
+  AFFECTS:       {{ AffectsWho2 }}
+
+  HAZARD/RISK 3: {{ HazardRisk3 }}
+  MITIGATIONS:   {{ Mitigations3 }}
+  AFFECTS:       {{ AffectsWho3 }}
+
+  HAZARD/RISK 4: {{ HazardRisk4 }}
+  MITIGATIONS:   {{ Mitigations4 }}
+  AFFECTS:       {{ AffectsWho4 }}
+
+  HAZARD/RISK 5: {{ HazardRisk5 }}
+  MITIGATIONS:   {{ Mitigations5 }}
+  AFFECTS:       {{ AffectsWho5 }}
+
+  -------------------------------------------------------------------
+  Prepared by (Safety Officer): {{ PreparedBy }}
+  Position/Title: {{ PreparedTitle }}
+  Date/Time: {{ PreparedDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTimePrepared
+    label: "2. Date/Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateFrom
+    label: "3. Op Period - Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "3. Op Period - Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: DateTo
+    label: "3. Op Period - Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeTo
+    label: "3. Op Period - Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: WeatherForecast
+    label: "4. Operational Period Weather Forecast"
+    type: textarea
+
+  - name: HazardRisk1
+    label: "Hazard/Risk 1 - Description"
+    type: text
+    max_length: 80
+
+  - name: Mitigations1
+    label: "Hazard/Risk 1 - Mitigation Measures"
+    type: text
+    max_length: 80
+
+  - name: AffectsWho1
+    label: "Hazard/Risk 1 - Affects Who"
+    type: text
+    max_length: 40
+
+  - name: HazardRisk2
+    label: "Hazard/Risk 2 - Description"
+    type: text
+    max_length: 80
+
+  - name: Mitigations2
+    label: "Hazard/Risk 2 - Mitigation Measures"
+    type: text
+    max_length: 80
+
+  - name: AffectsWho2
+    label: "Hazard/Risk 2 - Affects Who"
+    type: text
+    max_length: 40
+
+  - name: HazardRisk3
+    label: "Hazard/Risk 3 - Description"
+    type: text
+    max_length: 80
+
+  - name: Mitigations3
+    label: "Hazard/Risk 3 - Mitigation Measures"
+    type: text
+    max_length: 80
+
+  - name: AffectsWho3
+    label: "Hazard/Risk 3 - Affects Who"
+    type: text
+    max_length: 40
+
+  - name: HazardRisk4
+    label: "Hazard/Risk 4 - Description"
+    type: text
+    max_length: 80
+
+  - name: Mitigations4
+    label: "Hazard/Risk 4 - Mitigation Measures"
+    type: text
+    max_length: 80
+
+  - name: AffectsWho4
+    label: "Hazard/Risk 4 - Affects Who"
+    type: text
+    max_length: 40
+
+  - name: HazardRisk5
+    label: "Hazard/Risk 5 - Description"
+    type: text
+    max_length: 80
+
+  - name: Mitigations5
+    label: "Hazard/Risk 5 - Mitigation Measures"
+    type: text
+    max_length: 80
+
+  - name: AffectsWho5
+    label: "Hazard/Risk 5 - Affects Who"
+    type: text
+    max_length: 40
+
+  - name: PreparedBy
+    label: "Prepared by (Safety Officer Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PreparedTitle
+    label: "Position/Title"
+    type: text
+    max_length: 40
+
+  - name: PreparedDateTime
+    label: "Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20

@@ -72,4 +72,32 @@ class FileUploadedEvent:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent | NeighborsDiscoveredEvent | FileUploadedEvent
+@dataclass
+class FrameReceivedEvent:
+    """Emitted when a frame is received from the interface/TNC."""
+    interface_id: Optional[int] = None
+    interface_label: Optional[str] = None
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+@dataclass
+class GroupSyncNodeResult:
+    """Result for a single node's sync within a group sync operation."""
+    node_label: str
+    skipped: bool
+    skip_reason: str = ""
+    messages_retrieved: int = 0
+    messages_sent: int = 0
+    bulletins_retrieved: int = 0
+    files_retrieved: int = 0
+
+
+@dataclass
+class GroupSyncCompleteEvent:
+    """Emitted when a group sync operation finishes (all nodes attempted)."""
+    group_name: str
+    results: list  # list[GroupSyncNodeResult]
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+Event = ConnectionStatusEvent | MessageReceivedEvent | SyncCompleteEvent | ErrorEvent | MessageQueuedEvent | ConsoleEvent | NeighborsDiscoveredEvent | FrameReceivedEvent | GroupSyncCompleteEvent | FileUploadedEvent

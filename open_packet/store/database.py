@@ -1,10 +1,13 @@
 from __future__ import annotations
+import functools
+import inspect
 import json as _json
 import sqlite3
+import threading
 from datetime import datetime
 from typing import Optional
 
-from open_packet.store.models import Operator, Node, Message, Bulletin, Interface, BBSFile
+from open_packet.store.models import Operator, Node, Message, Bulletin, Interface, BBSFile, NodeGroup
 
 
 _KNOWN_SETTING_KEYS = frozenset({
@@ -31,10 +34,51 @@ def _json_to_hops(s: str):
         return []
 
 
+def _atomic(method):
+    """Run ``method`` as one atomic store operation.
+
+    The Engine thread and the TUI thread share a single Database (and one
+    sqlite3 connection). Every public operation holds the database's RLock,
+    so no other thread can interleave statements with it, and if the
+    outermost operation raises, its uncommitted changes are rolled back so a
+    later, unrelated commit cannot persist them.
+    """
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        db = self._atomic_db
+        with db._lock:
+            db._op_depth += 1
+            try:
+                return method(self, *args, **kwargs)
+            except BaseException:
+                if db._op_depth == 1 and db._conn is not None:
+                    db._conn.rollback()
+                raise
+            finally:
+                db._op_depth -= 1
+    return wrapper
+
+
+def atomic_operations(cls):
+    """Class decorator: make every public method of ``cls`` an atomic store
+    operation (see ``_atomic``). The class must provide ``_atomic_db``."""
+    for name, attr in list(vars(cls).items()):
+        if not name.startswith("_") and inspect.isfunction(attr):
+            setattr(cls, name, _atomic(attr))
+    return cls
+
+
+@atomic_operations
 class Database:
     def __init__(self, path: str):
         self._path = path
         self._conn: sqlite3.Connection | None = None
+        self._lock = threading.RLock()
+        self._op_depth = 0
+
+    @property
+    def _atomic_db(self) -> "Database":
+        return self
 
     def initialize(self) -> None:
         self._conn = sqlite3.connect(self._path, check_same_thread=False)
@@ -114,6 +158,14 @@ class Database:
         try:
             self._conn.execute(
                 "ALTER TABLE messages ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"
+            )
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+        try:
+            self._conn.execute(
+                "ALTER TABLE operators ADD COLUMN nts_msg_number INTEGER NOT NULL DEFAULT 1"
             )
             self._conn.commit()
         except sqlite3.OperationalError:
@@ -247,6 +299,26 @@ class Database:
                 deleted INTEGER NOT NULL DEFAULT 0,
                 UNIQUE(node_id, filename)
             );
+
+            CREATE TABLE IF NOT EXISTS message_target_nodes (
+                message_id INTEGER NOT NULL REFERENCES messages(id),
+                node_id    INTEGER NOT NULL REFERENCES nodes(id),
+                PRIMARY KEY (message_id, node_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS node_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                deleted INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS node_group_members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL REFERENCES node_groups(id),
+                node_id INTEGER NOT NULL REFERENCES nodes(id),
+                position INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(group_id, node_id)
+            );
         """)
         self._conn.commit()
 
@@ -336,6 +408,25 @@ class Database:
         assert self._conn
         rows = self._conn.execute("SELECT * FROM nodes WHERE deleted=0 ORDER BY id").fetchall()
         return [self._row_to_node(r) for r in rows]
+
+    def get_nts_msg_number(self, operator_id: int) -> int:
+        """Return the next NTS message number for *operator_id* (default 1 if not set)."""
+        assert self._conn
+        row = self._conn.execute(
+            "SELECT nts_msg_number FROM operators WHERE id=?", (operator_id,)
+        ).fetchone()
+        if row is None:
+            return 1
+        val = row["nts_msg_number"]
+        return val if val is not None else 1
+
+    def set_nts_msg_number(self, operator_id: int, number: int) -> None:
+        """Persist the NTS message number for *operator_id*."""
+        assert self._conn
+        self._conn.execute(
+            "UPDATE operators SET nts_msg_number=? WHERE id=?", (number, operator_id)
+        )
+        self._conn.commit()
 
     def update_operator(self, op: Operator) -> None:
         assert self._conn
@@ -465,6 +556,22 @@ class Database:
         ).fetchone()[0]
         return (msg_count, bul_count)
 
+    def add_message_target_nodes(self, message_id: int, node_ids: list[int]) -> None:
+        assert self._conn
+        for node_id in node_ids:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO message_target_nodes (message_id, node_id) VALUES (?, ?)",
+                (message_id, node_id),
+            )
+        self._conn.commit()
+
+    def get_message_target_nodes(self, message_id: int) -> list[int]:
+        assert self._conn
+        rows = self._conn.execute(
+            "SELECT node_id FROM message_target_nodes WHERE message_id=?", (message_id,)
+        ).fetchall()
+        return [r["node_id"] for r in rows]
+
     def count_node_dependents(self, node_id: int) -> tuple[int, int]:
         assert self._conn
         msg_count = self._conn.execute(
@@ -474,3 +581,67 @@ class Database:
             "SELECT COUNT(*) FROM bulletins WHERE node_id=?", (node_id,)
         ).fetchone()[0]
         return (msg_count, bul_count)
+
+    # --- Node Group CRUD ---
+
+    def insert_node_group(self, group: NodeGroup) -> NodeGroup:
+        assert self._conn
+        cur = self._conn.execute(
+            "INSERT INTO node_groups (name) VALUES (?)", (group.name,)
+        )
+        group_id = cur.lastrowid
+        for position, node_id in enumerate(group.node_ids):
+            self._conn.execute(
+                "INSERT INTO node_group_members (group_id, node_id, position) VALUES (?, ?, ?)",
+                (group_id, node_id, position),
+            )
+        self._conn.commit()
+        return self.get_node_group(group_id)  # type: ignore
+
+    def get_node_group(self, group_id: int) -> Optional[NodeGroup]:
+        assert self._conn
+        row = self._conn.execute(
+            "SELECT * FROM node_groups WHERE id=? AND deleted=0", (group_id,)
+        ).fetchone()
+        if not row:
+            return None
+        return self._row_to_node_group(row)
+
+    def list_node_groups(self) -> list[NodeGroup]:
+        assert self._conn
+        rows = self._conn.execute(
+            "SELECT * FROM node_groups WHERE deleted=0 ORDER BY id"
+        ).fetchall()
+        return [self._row_to_node_group(r) for r in rows]
+
+    def update_node_group(self, group: NodeGroup) -> None:
+        assert self._conn
+        assert group.id is not None, "Cannot update node group without id"
+        self._conn.execute(
+            "UPDATE node_groups SET name=? WHERE id=?", (group.name, group.id)
+        )
+        self._conn.execute(
+            "DELETE FROM node_group_members WHERE group_id=?", (group.id,)
+        )
+        for position, node_id in enumerate(group.node_ids):
+            self._conn.execute(
+                "INSERT INTO node_group_members (group_id, node_id, position) VALUES (?, ?, ?)",
+                (group.id, node_id, position),
+            )
+        self._conn.commit()
+
+    def soft_delete_node_group(self, group_id: int) -> None:
+        assert self._conn
+        self._conn.execute(
+            "UPDATE node_groups SET deleted=1 WHERE id=?", (group_id,)
+        )
+        self._conn.commit()
+
+    def _row_to_node_group(self, row) -> NodeGroup:
+        assert self._conn
+        member_rows = self._conn.execute(
+            "SELECT node_id FROM node_group_members WHERE group_id=? ORDER BY position",
+            (row["id"],),
+        ).fetchall()
+        node_ids = [r["node_id"] for r in member_rows]
+        return NodeGroup(id=row["id"], name=row["name"], node_ids=node_ids)

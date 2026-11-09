@@ -86,6 +86,13 @@ class Bulletin:
 
 
 @dataclass
+class NodeGroup:
+    name: str
+    node_ids: list[int] = field(default_factory=list)  # ordered list of node IDs
+    id: Optional[int] = None
+
+
+@dataclass
 class BBSFile:
     id: Optional[int]
     node_id: int

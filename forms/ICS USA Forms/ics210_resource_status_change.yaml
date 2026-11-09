@@ -1,0 +1,270 @@
+name: ICS 210 Resource Status Change
+category: ICS USA Forms
+subject_template: "ICS 210 - {{ Incident_Name }} - {{ DateTime }}"
+body_template: |
+  ICS 210 RESOURCE STATUS CHANGE
+
+  1. Incident Name: {{ Incident_Name }}
+  2. Date/Time: {{ DateTime }}
+
+  -----------------------------------------------------------------------
+  3. RESOURCE STATUS CHANGE ENTRIES:
+
+  Entry 1:
+    Resource Name/ID: {{ ResourceName1 }}
+    Kind/Type: {{ KindType1 }}
+    Current Status: {{ CurrentStatus1 }}
+    Current Location/Assignment: {{ CurrentLocation1 }}
+    Change to Status: {{ NewStatus1 }}
+    New Location/Assignment: {{ NewLocation1 }}
+    Reason: {{ Reason1 }}
+
+  Entry 2:
+    Resource Name/ID: {{ ResourceName2 }}
+    Kind/Type: {{ KindType2 }}
+    Current Status: {{ CurrentStatus2 }}
+    Current Location/Assignment: {{ CurrentLocation2 }}
+    Change to Status: {{ NewStatus2 }}
+    New Location/Assignment: {{ NewLocation2 }}
+    Reason: {{ Reason2 }}
+
+  Entry 3:
+    Resource Name/ID: {{ ResourceName3 }}
+    Kind/Type: {{ KindType3 }}
+    Current Status: {{ CurrentStatus3 }}
+    Current Location/Assignment: {{ CurrentLocation3 }}
+    Change to Status: {{ NewStatus3 }}
+    New Location/Assignment: {{ NewLocation3 }}
+    Reason: {{ Reason3 }}
+
+  Entry 4:
+    Resource Name/ID: {{ ResourceName4 }}
+    Kind/Type: {{ KindType4 }}
+    Current Status: {{ CurrentStatus4 }}
+    Current Location/Assignment: {{ CurrentLocation4 }}
+    Change to Status: {{ NewStatus4 }}
+    New Location/Assignment: {{ NewLocation4 }}
+    Reason: {{ Reason4 }}
+
+  Entry 5:
+    Resource Name/ID: {{ ResourceName5 }}
+    Kind/Type: {{ KindType5 }}
+    Current Status: {{ CurrentStatus5 }}
+    Current Location/Assignment: {{ CurrentLocation5 }}
+    Change to Status: {{ NewStatus5 }}
+    New Location/Assignment: {{ NewLocation5 }}
+    Reason: {{ Reason5 }}
+
+  -----------------------------------------------------------------------
+  4. Requested By: {{ RequestedBy }}
+  5. Prepared By: {{ PreparedBy }}
+
+fields:
+  - name: Incident_Name
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTime
+    label: "2. Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: ResourceName1
+    label: "Entry 1 - Resource Name/ID"
+    type: text
+    max_length: 40
+
+  - name: KindType1
+    label: "Entry 1 - Kind/Type"
+    type: text
+    max_length: 20
+
+  - name: CurrentStatus1
+    label: "Entry 1 - Current Status"
+    description: "e.g. Available, Assigned, Out-of-Service"
+    type: text
+    max_length: 20
+
+  - name: CurrentLocation1
+    label: "Entry 1 - Current Location/Assignment"
+    type: text
+    max_length: 40
+
+  - name: NewStatus1
+    label: "Entry 1 - Change to Status"
+    description: "e.g. Available, Assigned, Out-of-Service"
+    type: text
+    max_length: 20
+
+  - name: NewLocation1
+    label: "Entry 1 - New Location/Assignment"
+    type: text
+    max_length: 40
+
+  - name: Reason1
+    label: "Entry 1 - Reason"
+    type: text
+    max_length: 60
+
+  - name: ResourceName2
+    label: "Entry 2 - Resource Name/ID"
+    type: text
+    max_length: 40
+
+  - name: KindType2
+    label: "Entry 2 - Kind/Type"
+    type: text
+    max_length: 20
+
+  - name: CurrentStatus2
+    label: "Entry 2 - Current Status"
+    description: "e.g. Available, Assigned, Out-of-Service"
+    type: text
+    max_length: 20
+
+  - name: CurrentLocation2
+    label: "Entry 2 - Current Location/Assignment"
+    type: text
+    max_length: 40
+
+  - name: NewStatus2
+    label: "Entry 2 - Change to Status"
+    description: "e.g. Available, Assigned, Out-of-Service"
+    type: text
+    max_length: 20
+
+  - name: NewLocation2
+    label: "Entry 2 - New Location/Assignment"
+    type: text
+    max_length: 40
+
+  - name: Reason2
+    label: "Entry 2 - Reason"
+    type: text
+    max_length: 60
+
+  - name: ResourceName3
+    label: "Entry 3 - Resource Name/ID"
+    type: text
+    max_length: 40
+
+  - name: KindType3
+    label: "Entry 3 - Kind/Type"
+    type: text
+    max_length: 20
+
+  - name: CurrentStatus3
+    label: "Entry 3 - Current Status"
+    description: "e.g. Available, Assigned, Out-of-Service"
+    type: text
+    max_length: 20
+
+  - name: CurrentLocation3
+    label: "Entry 3 - Current Location/Assignment"
+    type: text
+    max_length: 40
+
+  - name: NewStatus3
+    label: "Entry 3 - Change to Status"
+    description: "e.g. Available, Assigned, Out-of-Service"
+    type: text
+    max_length: 20
+
+  - name: NewLocation3
+    label: "Entry 3 - New Location/Assignment"
+    type: text
+    max_length: 40
+
+  - name: Reason3
+    label: "Entry 3 - Reason"
+    type: text
+    max_length: 60
+
+  - name: ResourceName4
+    label: "Entry 4 - Resource Name/ID"
+    type: text
+    max_length: 40
+
+  - name: KindType4
+    label: "Entry 4 - Kind/Type"
+    type: text
+    max_length: 20
+
+  - name: CurrentStatus4
+    label: "Entry 4 - Current Status"
+    description: "e.g. Available, Assigned, Out-of-Service"
+    type: text
+    max_length: 20
+
+  - name: CurrentLocation4
+    label: "Entry 4 - Current Location/Assignment"
+    type: text
+    max_length: 40
+
+  - name: NewStatus4
+    label: "Entry 4 - Change to Status"
+    description: "e.g. Available, Assigned, Out-of-Service"
+    type: text
+    max_length: 20
+
+  - name: NewLocation4
+    label: "Entry 4 - New Location/Assignment"
+    type: text
+    max_length: 40
+
+  - name: Reason4
+    label: "Entry 4 - Reason"
+    type: text
+    max_length: 60
+
+  - name: ResourceName5
+    label: "Entry 5 - Resource Name/ID"
+    type: text
+    max_length: 40
+
+  - name: KindType5
+    label: "Entry 5 - Kind/Type"
+    type: text
+    max_length: 20
+
+  - name: CurrentStatus5
+    label: "Entry 5 - Current Status"
+    description: "e.g. Available, Assigned, Out-of-Service"
+    type: text
+    max_length: 20
+
+  - name: CurrentLocation5
+    label: "Entry 5 - Current Location/Assignment"
+    type: text
+    max_length: 40
+
+  - name: NewStatus5
+    label: "Entry 5 - Change to Status"
+    description: "e.g. Available, Assigned, Out-of-Service"
+    type: text
+    max_length: 20
+
+  - name: NewLocation5
+    label: "Entry 5 - New Location/Assignment"
+    type: text
+    max_length: 40
+
+  - name: Reason5
+    label: "Entry 5 - Reason"
+    type: text
+    max_length: 60
+
+  - name: RequestedBy
+    label: "4. Requested By"
+    type: text
+    max_length: 40
+
+  - name: PreparedBy
+    label: "5. Prepared By"
+    type: text
+    required: true
+    max_length: 40

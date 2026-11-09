@@ -1,0 +1,256 @@
+name: ICS 217A Comm Resource Availability Worksheet
+category: ICS USA Forms
+subject_template: "ICS 217A - {{ IncidentName }} - {{ DateTimePrepared }}"
+body_template: |
+  ICS 217A COMMUNICATIONS RESOURCE AVAILABILITY WORKSHEET
+
+  1. Incident Name: {{ IncidentName }}
+  2. Date/Time Prepared: {{ DateTimePrepared }}
+
+  3. Operational Period:
+  From: {{ DateFrom }} {{ TimeFrom }}
+  To:   {{ DateTo }} {{ TimeTo }}
+
+  -------------------------------------------------------------------
+  4. AVAILABLE COMMUNICATIONS RESOURCES:
+
+  RESOURCE 1:
+  Type/Kind: {{ ResourceType1 }}  Channel/System: {{ ResourceChannel1 }}
+  Function: {{ ResourceFunction1 }}  Frequency/Talkgroup: {{ ResourceFreq1 }}
+  Special Instructions: {{ ResourceInstructions1 }}
+
+  RESOURCE 2:
+  Type/Kind: {{ ResourceType2 }}  Channel/System: {{ ResourceChannel2 }}
+  Function: {{ ResourceFunction2 }}  Frequency/Talkgroup: {{ ResourceFreq2 }}
+  Special Instructions: {{ ResourceInstructions2 }}
+
+  RESOURCE 3:
+  Type/Kind: {{ ResourceType3 }}  Channel/System: {{ ResourceChannel3 }}
+  Function: {{ ResourceFunction3 }}  Frequency/Talkgroup: {{ ResourceFreq3 }}
+  Special Instructions: {{ ResourceInstructions3 }}
+
+  RESOURCE 4:
+  Type/Kind: {{ ResourceType4 }}  Channel/System: {{ ResourceChannel4 }}
+  Function: {{ ResourceFunction4 }}  Frequency/Talkgroup: {{ ResourceFreq4 }}
+  Special Instructions: {{ ResourceInstructions4 }}
+
+  RESOURCE 5:
+  Type/Kind: {{ ResourceType5 }}  Channel/System: {{ ResourceChannel5 }}
+  Function: {{ ResourceFunction5 }}  Frequency/Talkgroup: {{ ResourceFreq5 }}
+  Special Instructions: {{ ResourceInstructions5 }}
+
+  RESOURCE 6:
+  Type/Kind: {{ ResourceType6 }}  Channel/System: {{ ResourceChannel6 }}
+  Function: {{ ResourceFunction6 }}  Frequency/Talkgroup: {{ ResourceFreq6 }}
+  Special Instructions: {{ ResourceInstructions6 }}
+
+  -------------------------------------------------------------------
+  Prepared by: {{ PreparedBy }}
+  Position/Title: {{ PreparedTitle }}
+  Date/Time: {{ PreparedDateTime }}
+
+fields:
+  - name: IncidentName
+    label: "1. Incident Name"
+    type: text
+    required: true
+    max_length: 60
+
+  - name: DateTimePrepared
+    label: "2. Date/Time Prepared"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20
+
+  - name: DateFrom
+    label: "3. Op Period - Date From"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeFrom
+    label: "3. Op Period - Time From"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: DateTo
+    label: "3. Op Period - Date To"
+    type: text
+    required: true
+    max_length: 12
+
+  - name: TimeTo
+    label: "3. Op Period - Time To"
+    type: text
+    required: true
+    max_length: 9
+
+  - name: ResourceType1
+    label: "Resource 1 - Type/Kind"
+    type: text
+    max_length: 30
+
+  - name: ResourceChannel1
+    label: "Resource 1 - Channel/System Name"
+    type: text
+    max_length: 30
+
+  - name: ResourceFunction1
+    label: "Resource 1 - Function"
+    type: text
+    max_length: 30
+
+  - name: ResourceFreq1
+    label: "Resource 1 - Frequency/Talkgroup"
+    type: text
+    max_length: 20
+
+  - name: ResourceInstructions1
+    label: "Resource 1 - Special Instructions"
+    type: text
+    max_length: 60
+
+  - name: ResourceType2
+    label: "Resource 2 - Type/Kind"
+    type: text
+    max_length: 30
+
+  - name: ResourceChannel2
+    label: "Resource 2 - Channel/System Name"
+    type: text
+    max_length: 30
+
+  - name: ResourceFunction2
+    label: "Resource 2 - Function"
+    type: text
+    max_length: 30
+
+  - name: ResourceFreq2
+    label: "Resource 2 - Frequency/Talkgroup"
+    type: text
+    max_length: 20
+
+  - name: ResourceInstructions2
+    label: "Resource 2 - Special Instructions"
+    type: text
+    max_length: 60
+
+  - name: ResourceType3
+    label: "Resource 3 - Type/Kind"
+    type: text
+    max_length: 30
+
+  - name: ResourceChannel3
+    label: "Resource 3 - Channel/System Name"
+    type: text
+    max_length: 30
+
+  - name: ResourceFunction3
+    label: "Resource 3 - Function"
+    type: text
+    max_length: 30
+
+  - name: ResourceFreq3
+    label: "Resource 3 - Frequency/Talkgroup"
+    type: text
+    max_length: 20
+
+  - name: ResourceInstructions3
+    label: "Resource 3 - Special Instructions"
+    type: text
+    max_length: 60
+
+  - name: ResourceType4
+    label: "Resource 4 - Type/Kind"
+    type: text
+    max_length: 30
+
+  - name: ResourceChannel4
+    label: "Resource 4 - Channel/System Name"
+    type: text
+    max_length: 30
+
+  - name: ResourceFunction4
+    label: "Resource 4 - Function"
+    type: text
+    max_length: 30
+
+  - name: ResourceFreq4
+    label: "Resource 4 - Frequency/Talkgroup"
+    type: text
+    max_length: 20
+
+  - name: ResourceInstructions4
+    label: "Resource 4 - Special Instructions"
+    type: text
+    max_length: 60
+
+  - name: ResourceType5
+    label: "Resource 5 - Type/Kind"
+    type: text
+    max_length: 30
+
+  - name: ResourceChannel5
+    label: "Resource 5 - Channel/System Name"
+    type: text
+    max_length: 30
+
+  - name: ResourceFunction5
+    label: "Resource 5 - Function"
+    type: text
+    max_length: 30
+
+  - name: ResourceFreq5
+    label: "Resource 5 - Frequency/Talkgroup"
+    type: text
+    max_length: 20
+
+  - name: ResourceInstructions5
+    label: "Resource 5 - Special Instructions"
+    type: text
+    max_length: 60
+
+  - name: ResourceType6
+    label: "Resource 6 - Type/Kind"
+    type: text
+    max_length: 30
+
+  - name: ResourceChannel6
+    label: "Resource 6 - Channel/System Name"
+    type: text
+    max_length: 30
+
+  - name: ResourceFunction6
+    label: "Resource 6 - Function"
+    type: text
+    max_length: 30
+
+  - name: ResourceFreq6
+    label: "Resource 6 - Frequency/Talkgroup"
+    type: text
+    max_length: 20
+
+  - name: ResourceInstructions6
+    label: "Resource 6 - Special Instructions"
+    type: text
+    max_length: 60
+
+  - name: PreparedBy
+    label: "Prepared by (Name)"
+    type: text
+    required: true
+    max_length: 40
+
+  - name: PreparedTitle
+    label: "Position/Title"
+    type: text
+    max_length: 40
+
+  - name: PreparedDateTime
+    label: "Date/Time"
+    description: "e.g. 2025-01-15 1430"
+    type: text
+    required: true
+    max_length: 20

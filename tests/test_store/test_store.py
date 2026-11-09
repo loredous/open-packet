@@ -1082,3 +1082,184 @@ def test_migration_adds_archived_column_to_existing_db():
     db2.close()
     os.unlink(f.name)
     assert "archived" in cols
+
+
+# --- search_messages / search_bulletins tests ---
+
+def _make_message(op, node, bbs_id, **kwargs) -> Message:
+    defaults = dict(
+        operator_id=op.id, node_id=node.id, bbs_id=bbs_id,
+        from_call="W0SRC", to_call="KD9ABC",
+        subject="Hello world", body="Some body text",
+        timestamp=datetime.now(timezone.utc),
+    )
+    defaults.update(kwargs)
+    return Message(**defaults)
+
+
+def _make_bulletin(op, node, bbs_id, **kwargs) -> Bulletin:
+    defaults = dict(
+        operator_id=op.id, node_id=node.id, bbs_id=bbs_id,
+        category="WX", from_call="W0SRC",
+        subject="Weather alert", body="Storm incoming",
+        timestamp=datetime.now(timezone.utc),
+    )
+    defaults.update(kwargs)
+    return Bulletin(**defaults)
+
+
+def test_search_messages_by_subject(store):
+    s, op, node = store
+    s.save_message(_make_message(op, node, "S01", subject="Urgent test message"))
+    s.save_message(_make_message(op, node, "S02", subject="Regular note"))
+    results = s.search_messages(op.id, "Urgent")
+    assert len(results) == 1
+    assert results[0].subject == "Urgent test message"
+
+
+def test_search_messages_by_body(store):
+    s, op, node = store
+    s.save_message(_make_message(op, node, "S03", body="Find this keyword inside"))
+    s.save_message(_make_message(op, node, "S04", body="Nothing special here"))
+    results = s.search_messages(op.id, "keyword")
+    assert len(results) == 1
+    assert "keyword" in results[0].body
+
+
+def test_search_messages_by_from_call(store):
+    s, op, node = store
+    s.save_message(_make_message(op, node, "S05", from_call="KA1ABC"))
+    s.save_message(_make_message(op, node, "S06", from_call="W0OTHER"))
+    results = s.search_messages(op.id, "KA1ABC")
+    assert len(results) == 1
+    assert results[0].from_call == "KA1ABC"
+
+
+def test_search_messages_by_to_call(store):
+    s, op, node = store
+    s.save_message(_make_message(op, node, "S07", to_call="WB4GHI"))
+    s.save_message(_make_message(op, node, "S08", to_call="N0XYZ"))
+    results = s.search_messages(op.id, "WB4GHI")
+    assert len(results) == 1
+    assert results[0].to_call == "WB4GHI"
+
+
+def test_search_messages_case_insensitive(store):
+    s, op, node = store
+    s.save_message(_make_message(op, node, "S09", subject="Emergency ALERT"))
+    results = s.search_messages(op.id, "alert")
+    assert len(results) == 1
+
+
+def test_search_messages_excludes_deleted(store):
+    s, op, node = store
+    saved = s.save_message(_make_message(op, node, "S10", subject="Deleted message"))
+    s.delete_message(saved.id)
+    results = s.search_messages(op.id, "Deleted message")
+    assert len(results) == 0
+
+
+def test_search_messages_includes_archived(store):
+    s, op, node = store
+    saved = s.save_message(_make_message(op, node, "S11", subject="Archived item"))
+    s.archive_message(saved.id)
+    results = s.search_messages(op.id, "Archived item")
+    assert len(results) == 1
+    assert results[0].archived is True
+
+
+def test_search_messages_no_match_returns_empty(store):
+    s, op, node = store
+    s.save_message(_make_message(op, node, "S12"))
+    results = s.search_messages(op.id, "zzz_no_match_zzz")
+    assert results == []
+
+
+def test_search_bulletins_by_subject(store):
+    s, op, node = store
+    s.save_bulletin(_make_bulletin(op, node, "B01", subject="Severe thunderstorm warning"))
+    s.save_bulletin(_make_bulletin(op, node, "B02", subject="Routine bulletin"))
+    results = s.search_bulletins(op.id, "thunderstorm")
+    assert len(results) == 1
+    assert "thunderstorm" in results[0].subject.lower()
+
+
+def test_search_bulletins_by_from_call(store):
+    s, op, node = store
+    s.save_bulletin(_make_bulletin(op, node, "B03", from_call="KG4WXR"))
+    s.save_bulletin(_make_bulletin(op, node, "B04", from_call="W0OTHER"))
+    results = s.search_bulletins(op.id, "KG4WXR")
+    assert len(results) == 1
+    assert results[0].from_call == "KG4WXR"
+
+
+def test_search_bulletins_by_category(store):
+    s, op, node = store
+    s.save_bulletin(_make_bulletin(op, node, "B05", category="ARES"))
+    s.save_bulletin(_make_bulletin(op, node, "B06", category="WX"))
+    results = s.search_bulletins(op.id, "ARES")
+    assert len(results) == 1
+    assert results[0].category == "ARES"
+
+
+def test_search_bulletins_header_only_not_body_matched(store):
+    """Header-only bulletins (body=None/sentinel) should not match body-based queries."""
+    s, op, node = store
+    bul = _make_bulletin(op, node, "B07", subject="Header only", body=None)
+    s.save_bulletin(bul)
+    # Should match on subject
+    results = s.search_bulletins(op.id, "Header only")
+    assert len(results) == 1
+    # Should NOT match on body content (body is sentinel, not searchable)
+    results_body = s.search_bulletins(op.id, "zzz_no_body_zzz")
+    assert len(results_body) == 0
+
+
+def test_search_bulletins_excludes_outbox(store):
+    """Queued (outbox) bulletins should not appear in search results."""
+    s, op, node = store
+    bul = _make_bulletin(op, node, "B08", subject="Outbox bulletin")
+    bul.queued = True
+    s.save_bulletin(bul)
+    results = s.search_bulletins(op.id, "Outbox bulletin")
+    assert len(results) == 0
+
+
+# ---------------------------------------------------------------------------
+# NTS message number persistence
+# ---------------------------------------------------------------------------
+
+def test_nts_msg_number_defaults_to_one(db):
+    op = db.insert_operator(Operator(callsign="KD9NTS", ssid=0, label="nts", is_default=False))
+    assert db.get_nts_msg_number(op.id) == 1
+
+
+def test_nts_msg_number_set_and_get(db):
+    op = db.insert_operator(Operator(callsign="KD9NTS", ssid=0, label="nts", is_default=False))
+    db.set_nts_msg_number(op.id, 42)
+    assert db.get_nts_msg_number(op.id) == 42
+
+
+def test_nts_msg_number_persists_across_instances(tmp_path):
+    db_path = str(tmp_path / "test.db")
+    db1 = Database(db_path)
+    db1.initialize()
+    op = db1.insert_operator(Operator(callsign="KD9NTS", ssid=0, label="nts", is_default=False))
+    db1.set_nts_msg_number(op.id, 99)
+    db1.close()
+
+    db2 = Database(db_path)
+    db2.initialize()
+    assert db2.get_nts_msg_number(op.id) == 99
+    db2.close()
+
+
+def test_store_get_nts_msg_number(store):
+    s, op, node = store
+    assert s.get_nts_msg_number(op.id) == 1
+
+
+def test_store_set_and_get_nts_msg_number(store):
+    s, op, node = store
+    s.set_nts_msg_number(op.id, 7)
+    assert s.get_nts_msg_number(op.id) == 7

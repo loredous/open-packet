@@ -9,8 +9,8 @@ uv sync                        # install dependencies
 uv run pytest                  # run full test suite
 uv run pytest tests/test_store # run tests in one directory
 uv run pytest tests/test_store/test_store.py::test_list_outbox_excludes_sent_and_deleted  # run single test
-uv run open-packet             # run the app (requires config.yaml)
-uv run open-packet test.yaml   # run with a specific config file
+uv run open-packet             # run the app
+uv run open-packet --db-path /tmp/test.db   # run against a scratch database
 uv run textual run --dev open_packet/ui/tui/app.py  # run with Textual live-reload + DOM inspector
 ```
 
@@ -36,9 +36,11 @@ Transport (tcp.py / serial.py)   — raw byte I/O
 
 ### Store (`store/`)
 
-- `models.py` — plain dataclasses: `Operator`, `Node`, `Message`, `Bulletin`
+- `models.py` — plain dataclasses: `Operator`, `Node`, `NodeHop`, `NodeGroup`, `Interface`, `Message`, `Bulletin`, `BBSFile`
 - `database.py` — raw SQLite DDL, schema migrations, and low-level insert/query helpers
 - `store.py` — higher-level query methods used by the engine and TUI (`list_messages`, `list_outbox`, `count_folder_stats`, etc.)
+
+**Thread safety:** the Engine thread and the TUI thread share one `Database`/`Store` (one sqlite3 connection). Both classes are decorated with `@atomic_operations`, which makes every public method hold a shared `RLock` and roll back uncommitted changes if the outermost call raises. Put any multi-statement write in a single public method so it stays atomic; never touch `_conn` from outside the store package.
 
 Schema migrations use `ALTER TABLE ... ADD COLUMN` in `Database.initialize()` with `except sqlite3.OperationalError: pass`. Always use `self._conn.execute()` for migrations — never `executescript()` (which issues an implicit COMMIT).
 
@@ -60,7 +62,7 @@ The TUI calls `self._store` directly for lightweight operations that don't need 
 - `widgets/folder_tree.py` — uses `node.data` (not `str(node.label)`) for folder routing so count suffixes don't break selection
 - `widgets/console_panel.py` — receives `ConsoleEvent` objects from the engine via `log_frame(direction, text)`
 
-Operator identity and node configuration are stored in SQLite and managed via TUI screens, not the config file. The config file (`~/.config/open-packet/config.yaml`) covers connection and storage settings only.
+Operator identity, node, and interface configuration are stored in SQLite and managed via TUI screens. There is no config file: storage paths come from CLI flags (`--db-path`, `--log-path`, `--console-log`, `--forms-dir`) or the matching `OPEN_PACKET_*` environment variables (see `main()` in `ui/tui/app.py`).
 
 ### AX.25 / Node (`ax25/`, `node/`)
 
@@ -68,12 +70,14 @@ Operator identity and node configuration are stored in SQLite and managed via TU
 
 ## Documentation
 
-The user-facing documentation lives in `docs/hugo/` as a [Hugo](https://gohugo.io/) static site using the `hugo-book` theme (included as a Git submodule at `docs/hugo/themes/book`).
+The user-facing documentation lives in `docs/hugo/` as a [Hugo](https://gohugo.io/) static site using the [Lotus Docs](https://github.com/colinwilson/lotusdocs) theme (included as a Git submodule at `docs/hugo/themes/lotusdocs`). Hugo module dependencies (Bootstrap SCSS) are declared in `docs/hugo/go.mod`.
 
-**When to update docs:** Update the relevant page in `docs/hugo/content/` whenever you:
+Content lives under `docs/hugo/content/docs/` organised into three sections: `user-guide/`, `reference/`, and `development/`. A print/PDF view of the full documentation is available at `/docs/print/`.
+
+**When to update docs:** Update the relevant page in `docs/hugo/content/docs/` whenever you:
 - Add or change a user-visible feature → update `user-guide/`
 - Add, remove, or change a keyboard shortcut → update `reference/keyboard-shortcuts.md`
-- Change the config file format → update `reference/configuration.md`
+- Change CLI flags or environment variables → update `reference/configuration.md`
 - Change the architecture (new commands, events, layers) → update `development/architecture.md`
 
 **To preview docs locally:**

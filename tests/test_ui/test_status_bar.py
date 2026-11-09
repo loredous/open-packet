@@ -1,7 +1,8 @@
+import queue
 from textual.app import App, ComposeResult
 from textual.widgets import Label
 from open_packet.ui.tui.widgets.status_bar import StatusBar
-from open_packet.engine.events import ConnectionStatus
+from open_packet.engine.events import ConnectionStatus, FrameReceivedEvent
 from tests.test_ui.conftest import _label_text
 
 
@@ -118,3 +119,44 @@ async def test_left_label_does_not_contain_triple_dash():
     async with app.run_test() as pilot:
         left = app.query_one("#status_left")
         assert "---" not in _label_text(left)
+
+
+async def test_left_label_shows_last_frame_never_by_default():
+    app = StatusBarApp()
+    async with app.run_test() as pilot:
+        left = app.query_one("#status_left")
+        assert "Last frame: Never" in _label_text(left)
+
+
+async def test_left_label_updates_on_last_frame_change():
+    app = StatusBarApp()
+    async with app.run_test() as pilot:
+        sb = app.query_one(StatusBar)
+        sb.last_frame = "12:34:56"
+        await pilot.pause()
+        assert "Last frame: 12:34:56" in _label_text(app.query_one("#status_left"))
+
+
+async def test_frame_received_event_handling_updates_last_frame():
+    """Polling a FrameReceivedEvent and updating last_frame should change the status bar text."""
+    class _App(App):
+        def compose(self) -> ComposeResult:
+            yield StatusBar()
+
+        def on_mount(self) -> None:
+            self._evt_queue: queue.Queue = queue.Queue()
+            self._evt_queue.put(FrameReceivedEvent())
+            self.set_interval(0.05, self._poll)
+
+        def _poll(self) -> None:
+            while not self._evt_queue.empty():
+                event = self._evt_queue.get_nowait()
+                if isinstance(event, FrameReceivedEvent):
+                    self.query_one(StatusBar).last_frame = event.timestamp.astimezone().strftime("%H:%M:%S")
+
+    app = _App()
+    async with app.run_test() as pilot:
+        await pilot.pause(0.2)
+        text = _label_text(app.query_one("#status_left"))
+        assert "Last frame: Never" not in text
+        assert "Last frame:" in text
