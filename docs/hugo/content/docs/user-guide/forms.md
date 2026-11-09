@@ -28,7 +28,7 @@ Once you select a form, the form fill screen opens. Each field in the form is pr
 - Enter values in each field
 - Fields marked as required must be filled before the form can be sent
 
-Select **Submit** when the form is complete to compose the message using the form's output template.
+Press **Ctrl+S** (or select **Submit**) when the form is complete to compose the message using the form's output template.
 
 The composed message will be addressed and queued for sending on the next sync (**Ctrl+C**).
 

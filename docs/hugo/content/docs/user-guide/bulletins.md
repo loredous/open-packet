@@ -42,7 +42,7 @@ Fill in:
 - **Subject** — the subject line
 - **Body** — the bulletin text
 
-Select **Post** to queue the bulletin for posting on the next sync.
+Press **Ctrl+S** (or select **Post**) to queue the bulletin for posting on the next sync.
 
 > [!WARNING]
 > Bulletins are broadcast to all stations on the BBS. Ensure your category and content are appropriate for the intended audience.
