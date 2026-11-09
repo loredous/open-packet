@@ -75,6 +75,7 @@ The `Engine` runs in a background daemon thread. It owns the node connection and
 | `GroupSyncCompleteEvent` | A group sync finished; carries one `GroupSyncNodeResult` per node (counts, or skip reason) |
 | `ErrorEvent` | An error occurred |
 | `ConsoleEvent` | A raw AX.25 frame for the console panel |
+| `FrameReceivedEvent` | A frame arrived from the interface/TNC; drives the status bar's "Last frame" time |
 | `NeighborsDiscoveredEvent` | Neighbor nodes discovered via network topology, plus any shorter-path candidates for known nodes |
 
 ### Adding a New Capability

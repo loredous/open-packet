@@ -44,7 +44,7 @@ The main interface consists of:
 
 | Area | Description |
 |------|-------------|
-| **Status bar** (top) | Shows connection status, operator callsign, and active node |
+| **Status bar** (top) | Shows connection status, last sync time, time of the last frame received from the TNC, operator callsign, and active node |
 | **Folder tree** (left) | Navigate between Inbox, Outbox, Archive, Sent, Bulletins, and Files |
 | **Message list** (center-top) | Lists messages in the current folder |
 | **Message body** (center-bottom) | Shows the full content of the selected message |

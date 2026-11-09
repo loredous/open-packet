@@ -38,7 +38,7 @@ Fill in:
 - **Subject** — a short description of the message
 - **Body** — the message text
 
-Select **Send** to queue the message for sending, or **Cancel** to discard it.
+Press **Ctrl+S** (or select **Send**) to queue the message for sending, or **Escape** (or **Cancel**) to discard it.
 
 The message will appear in your **Outbox** until the next send/receive (**Ctrl+C**).
 
@@ -50,7 +50,7 @@ Select a message and press **Ctrl+R**. The compose screen opens pre-filled with:
 - The sender's callsign in the **To** field
 - `Re: <original subject>` in the **Subject** field
 
-Edit the body and select **Send** to queue.
+Edit the body and press **Ctrl+S** (or select **Send**) to queue.
 
 ## Archiving Messages
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, Optional
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, TextArea
 from textual.containers import Vertical, Horizontal
@@ -27,6 +28,11 @@ class ComposeScreen(ModalScreen):
     }
     """
 
+    BINDINGS = [
+        Binding("ctrl+s", "submit", "Send", priority=True),
+        Binding("escape", "cancel", "Cancel"),
+    ]
+
     def __init__(self, to_call: str = "", subject: str = "", body: str = "", **kwargs):
         super().__init__(**kwargs)
         self._to_call = to_call
@@ -47,17 +53,23 @@ class ComposeScreen(ModalScreen):
                 yield Button("Use Form", id="use_form_btn")
                 yield Button("Cancel", id="cancel_btn")
 
+    def action_submit(self) -> None:
+        to_call = self.query_one("#to_field", Input).value.strip()
+        subject = self.query_one("#subject_field", Input).value.strip()
+        body = self.query_one("#body_field", TextArea).text.strip()
+        if to_call and subject:
+            self.dismiss(SendMessageCommand(
+                to_call=to_call, subject=subject, body=body
+            ))
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "cancel_btn":
-            self.dismiss(None)
+            self.action_cancel()
         elif event.button.id == "send_btn":
-            to_call = self.query_one("#to_field", Input).value.strip()
-            subject = self.query_one("#subject_field", Input).value.strip()
-            body = self.query_one("#body_field", TextArea).text.strip()
-            if to_call and subject:
-                self.dismiss(SendMessageCommand(
-                    to_call=to_call, subject=subject, body=body
-                ))
+            self.action_submit()
         elif event.button.id == "use_form_btn":
             from open_packet.forms.loader import discover_forms
             from open_packet.ui.tui.screens.form_picker import FormPickerScreen

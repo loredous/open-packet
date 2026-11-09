@@ -54,8 +54,8 @@ Opened with **Ctrl+N** from the main screen.
 |----------|--------|
 | **Tab** | Move to next field |
 | **Shift+Tab** | Move to previous field |
-
-Use the **Send** / **Post** button to queue the message, or **Cancel** to discard it.
+| **Ctrl+S** | Queue the message / bulletin (same as **Send** / **Post**) |
+| **Escape** | Cancel and discard |
 
 ## Form Fill Screen
 
@@ -63,9 +63,10 @@ Use the **Send** / **Post** button to queue the message, or **Cancel** to discar
 |----------|--------|
 | **Tab** | Move to next field |
 | **Shift+Tab** | Move to previous field |
+| **Ctrl+S** | Submit the form (same as **Submit**; does nothing while validation errors remain) |
 | **Escape** | Cancel |
 
-Use the **Submit** button to submit the form (or **Submit Anyway** to bypass validation).
+To submit a form that fails validation, use the **Submit Anyway** button.
 
 ## Settings Screen
 
