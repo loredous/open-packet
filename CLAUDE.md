@@ -40,6 +40,8 @@ Transport (tcp.py / serial.py)   — raw byte I/O
 - `database.py` — raw SQLite DDL, schema migrations, and low-level insert/query helpers
 - `store.py` — higher-level query methods used by the engine and TUI (`list_messages`, `list_outbox`, `count_folder_stats`, etc.)
 
+**Thread safety:** the Engine thread and the TUI thread share one `Database`/`Store` (one sqlite3 connection). Both classes are decorated with `@atomic_operations`, which makes every public method hold a shared `RLock` and roll back uncommitted changes if the outermost call raises. Put any multi-statement write in a single public method so it stays atomic; never touch `_conn` from outside the store package.
+
 Schema migrations use `ALTER TABLE ... ADD COLUMN` in `Database.initialize()` with `except sqlite3.OperationalError: pass`. Always use `self._conn.execute()` for migrations — never `executescript()` (which issues an implicit COMMIT).
 
 **Message state matrix:**

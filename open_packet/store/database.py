@@ -1,6 +1,9 @@
 from __future__ import annotations
+import functools
+import inspect
 import json as _json
 import sqlite3
+import threading
 from datetime import datetime
 from typing import Optional
 
@@ -31,10 +34,51 @@ def _json_to_hops(s: str):
         return []
 
 
+def _atomic(method):
+    """Run ``method`` as one atomic store operation.
+
+    The Engine thread and the TUI thread share a single Database (and one
+    sqlite3 connection). Every public operation holds the database's RLock,
+    so no other thread can interleave statements with it, and if the
+    outermost operation raises, its uncommitted changes are rolled back so a
+    later, unrelated commit cannot persist them.
+    """
+    @functools.wraps(method)
+    def wrapper(self, *args, **kwargs):
+        db = self._atomic_db
+        with db._lock:
+            db._op_depth += 1
+            try:
+                return method(self, *args, **kwargs)
+            except BaseException:
+                if db._op_depth == 1 and db._conn is not None:
+                    db._conn.rollback()
+                raise
+            finally:
+                db._op_depth -= 1
+    return wrapper
+
+
+def atomic_operations(cls):
+    """Class decorator: make every public method of ``cls`` an atomic store
+    operation (see ``_atomic``). The class must provide ``_atomic_db``."""
+    for name, attr in list(vars(cls).items()):
+        if not name.startswith("_") and inspect.isfunction(attr):
+            setattr(cls, name, _atomic(attr))
+    return cls
+
+
+@atomic_operations
 class Database:
     def __init__(self, path: str):
         self._path = path
         self._conn: sqlite3.Connection | None = None
+        self._lock = threading.RLock()
+        self._op_depth = 0
+
+    @property
+    def _atomic_db(self) -> "Database":
+        return self
 
     def initialize(self) -> None:
         self._conn = sqlite3.connect(self._path, check_same_thread=False)

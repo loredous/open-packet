@@ -2,13 +2,18 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from open_packet.store.database import Database
+from open_packet.store.database import Database, atomic_operations
 from open_packet.store.models import Message, Bulletin, BBSFile
 
 
+@atomic_operations
 class Store:
     def __init__(self, db: Database):
         self._db = db
+
+    @property
+    def _atomic_db(self) -> Database:
+        return self._db
 
     @property
     def _conn(self):
