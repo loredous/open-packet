@@ -35,8 +35,8 @@ class Store:
         cur = self._conn.execute(
             """INSERT INTO messages
                (operator_id, node_id, bbs_id, from_call, to_call, subject, body,
-                timestamp, read, sent, deleted, queued, synced_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                timestamp, read, sent, deleted, queued, synced_at, message_type)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 msg.operator_id, msg.node_id, msg.bbs_id, msg.from_call,
                 msg.to_call, msg.subject, msg.body,
@@ -44,6 +44,7 @@ class Store:
                 int(msg.read), int(msg.sent), int(msg.deleted), int(msg.queued),
                 None if msg.queued else datetime.now(timezone.utc).isoformat(),
                 # synced_at=NULL for queued (composed) messages; they were never retrieved from a BBS.
+                msg.message_type,
             ),
         )
         self._conn.commit()
@@ -93,26 +94,42 @@ class Store:
         combined.sort(key=lambda x: x.timestamp)
         return combined
 
-    def list_outbox_messages(self, operator_id: int, node_id: Optional[int] = None) -> list[Message]:
+    def list_outbox_messages(
+        self, operator_id: int, node_id: Optional[int] = None,
+        message_type: Optional[str] = None,
+    ) -> list[Message]:
+        """Queued, unsent messages. Optionally filtered to a target node and/or
+        message_type ("bbs" or "winlink")."""
         assert self._conn
+        type_clause = " AND m.message_type = ?" if message_type is not None else ""
+        type_args: tuple = (message_type,) if message_type is not None else ()
         if node_id is not None:
             # Include messages that target this node (via message_target_nodes table),
             # falling back to the message's own node_id for legacy rows with no target entries.
             rows = self._conn.execute(
-                """SELECT DISTINCT m.* FROM messages m
+                f"""SELECT DISTINCT m.* FROM messages m
                    LEFT JOIN message_target_nodes mtn ON m.id = mtn.message_id
                    WHERE m.operator_id = ?
                      AND m.queued = 1 AND m.sent = 0 AND m.deleted = 0
                      AND (mtn.node_id = ? OR (mtn.message_id IS NULL AND m.node_id = ?))
+                     {type_clause}
                    ORDER BY m.timestamp ASC""",
-                (operator_id, node_id, node_id),
+                (operator_id, node_id, node_id, *type_args),
             ).fetchall()
         else:
             rows = self._conn.execute(
-                "SELECT * FROM messages WHERE operator_id=? AND queued=1 AND sent=0 AND deleted=0 ORDER BY timestamp ASC",
-                (operator_id,),
+                f"SELECT * FROM messages m WHERE m.operator_id=? AND m.queued=1 AND m.sent=0 AND m.deleted=0{type_clause} ORDER BY m.timestamp ASC",
+                (operator_id, *type_args),
             ).fetchall()
         return [self._row_to_message(r) for r in rows]
+
+    def list_outbox_bbs_messages(self, operator_id: int, node_id: Optional[int] = None) -> list[Message]:
+        """Return queued BBS messages (message_type='bbs') for the given operator."""
+        return self.list_outbox_messages(operator_id, node_id=node_id, message_type="bbs")
+
+    def list_outbox_winlink_messages(self, operator_id: int, node_id: Optional[int] = None) -> list[Message]:
+        """Return queued Winlink messages (message_type='winlink') for the given operator."""
+        return self.list_outbox_messages(operator_id, node_id=node_id, message_type="winlink")
 
     def list_outbox_bulletins(self, operator_id: int, node_id: Optional[int] = None) -> list[Bulletin]:
         assert self._conn
@@ -259,6 +276,7 @@ class Store:
             queued=bool(row["queued"]),
             archived=bool(row["archived"]) if "archived" in keys else False,
             synced_at=datetime.fromisoformat(row["synced_at"]) if row["synced_at"] else None,
+            message_type=row["message_type"] if "message_type" in keys else "bbs",
         )
 
     def _row_to_bulletin(self, row) -> Bulletin:

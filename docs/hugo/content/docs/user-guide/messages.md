@@ -34,7 +34,8 @@ Unread messages are shown in bold. Opening a message marks it as read automatica
 Press **Ctrl+N**, then **M** (New Message), to open the compose screen.
 
 Fill in:
-- **To** — the destination callsign (e.g. `W1AW` or `W1AW-1`)
+- **Message Type** — `BBS` (default) or `Winlink`
+- **To** — the destination callsign (e.g. `W1AW` or `W1AW-1`). For Winlink messages enter a callsign or a full address such as `W1AW@winlink.org` or an internet email address; if no domain is given, `@winlink.org` is appended.
 - **Subject** — a short description of the message
 - **Body** — the message text
 
@@ -43,6 +44,16 @@ Press **Ctrl+S** (or select **Send**) to queue the message for sending, or **Esc
 The message will appear in your **Outbox** until the next send/receive (**Ctrl+C**).
 
 ![Compose message screenshot](../images/screenshot-compose.png)
+
+## Winlink Messages
+
+Winlink messages are stored in the same folders as BBS messages but are sent and received over a separate B2F session. To use Winlink:
+
+1. Enable **Winlink** in the node's **Node Features** (see [Settings](../settings/)), using either an AX.25 interface to an RF Winlink gateway or a `winlink_telnet` interface to a CMS server.
+2. Optionally set your **Winlink Password** on the operator.
+3. Compose a message with **Message Type** set to `Winlink`.
+
+During a send/receive (**Ctrl+C**) the BBS phase runs first and only sends queued BBS messages and bulletins; the Winlink phase then sends queued Winlink messages and retrieves your Winlink inbox. A failure in the Winlink phase is reported in the console and does not abort the BBS results.
 
 ## Replying to a Message
 

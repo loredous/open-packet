@@ -10,7 +10,12 @@ from open_packet.store.models import Node, Interface
 from open_packet.ui.tui.screens import CALLSIGN_RE
 
 _NEW_IFACE = "__new__"
-_CONN_TYPES = [("Telnet", "telnet"), ("KISS TCP", "kiss_tcp"), ("KISS Serial", "kiss_serial")]
+_CONN_TYPES = [
+    ("Telnet (BPQ32)", "telnet"),
+    ("KISS TCP", "kiss_tcp"),
+    ("KISS Serial", "kiss_serial"),
+    ("Winlink Telnet (CMS)", "winlink_telnet"),
+]
 
 
 def _hops_to_text(hops) -> str:
@@ -133,6 +138,14 @@ class NodeSetupScreen(ModalScreen):
                 yield Label("Interface Label (optional):")
                 yield Input(placeholder="auto-generated if blank", id="iface_label_kiss_serial")
 
+            with Vertical(id="winlink_telnet_fields"):
+                yield Label("CMS Host:")
+                yield Input(placeholder="cms.winlink.org", id="winlink_host")
+                yield Label("Port:")
+                yield Input(placeholder="8772", id="winlink_port")
+                yield Label("Interface Label (optional):")
+                yield Input(placeholder="auto-generated if blank", id="iface_label_winlink")
+
             yield Label("", id="conn_error", classes="error")
 
             yield Label("Path Strategy:", classes="section")
@@ -150,6 +163,14 @@ class NodeSetupScreen(ModalScreen):
 
             yield Label("Auto Forward:")
             yield Switch(value=getattr(n, "auto_forward", False) if n else False, id="auto_forward_switch")
+
+            yield Label("Node Features:", classes="section")
+            yield Label("BBS (messages, bulletins):")
+            yield Switch(value=getattr(n, "has_bbs", True) if n else True, id="has_bbs_switch")
+            yield Label("Winlink (B2F messages):")
+            yield Switch(value=getattr(n, "has_winlink", False) if n else False, id="has_winlink_switch")
+            yield Label("Files:")
+            yield Switch(value=getattr(n, "has_files", True) if n else True, id="has_files_switch")
 
             with Horizontal():
                 yield Button("Save", variant="primary", id="save_btn")
@@ -202,6 +223,7 @@ class NodeSetupScreen(ModalScreen):
         self.query_one("#telnet_fields").display = (conn_type == "telnet" and using_new)
         self.query_one("#kiss_tcp_fields").display = (conn_type == "kiss_tcp" and using_new)
         self.query_one("#kiss_serial_fields").display = (conn_type == "kiss_serial" and using_new)
+        self.query_one("#winlink_telnet_fields").display = (conn_type == "winlink_telnet" and using_new)
 
     def _validate(self) -> bool:
         valid = True
@@ -282,6 +304,20 @@ class NodeSetupScreen(ModalScreen):
                 err.update("Baud must be a positive integer")
                 return False
 
+        elif conn_type == "winlink_telnet":
+            host = self.query_one("#winlink_host", Input).value.strip()
+            port_str = self.query_one("#winlink_port", Input).value.strip()
+            if not host:
+                err.update("CMS host is required")
+                return False
+            try:
+                port = int(port_str) if port_str else 8772
+                if port <= 0:
+                    raise ValueError
+            except ValueError:
+                err.update("Port must be a positive integer")
+                return False
+
         err.update("")
         return True
 
@@ -308,12 +344,20 @@ class NodeSetupScreen(ModalScreen):
                      or f"{callsign} via {host}")
             iface = Interface(label=label, iface_type="kiss_tcp", host=host, port=port)
 
-        else:  # kiss_serial
+        elif conn_type == "kiss_serial":
             device = self.query_one("#kiss_serial_device", Input).value.strip()
             baud = int(self.query_one("#kiss_serial_baud", Input).value.strip())
             label = (self.query_one("#iface_label_kiss_serial", Input).value.strip()
                      or f"{callsign} via {device}")
             iface = Interface(label=label, iface_type="kiss_serial", device=device, baud=baud)
+
+        else:  # winlink_telnet
+            host = self.query_one("#winlink_host", Input).value.strip()
+            port_str = self.query_one("#winlink_port", Input).value.strip()
+            port = int(port_str) if port_str else 8772
+            label = (self.query_one("#iface_label_winlink", Input).value.strip()
+                     or f"{callsign} via {host}")
+            iface = Interface(label=label, iface_type="winlink_telnet", host=host, port=port)
 
         saved = self._db.insert_interface(iface)
         assert saved is not None and saved.id is not None, "insert_interface returned no id"
@@ -338,18 +382,27 @@ class NodeSetupScreen(ModalScreen):
                 hop_path = _text_to_hops(self.query_one("#hop_path_area", TextArea).text)
                 path_strategy = str(self.query_one("#strategy_select", Select).value)
                 auto_forward = self.query_one("#auto_forward_switch", Switch).value
+                has_bbs = self.query_one("#has_bbs_switch", Switch).value
+                has_winlink = self.query_one("#has_winlink_switch", Switch).value
+                has_files = self.query_one("#has_files_switch", Switch).value
+
+                conn_type = self._conn_type()
+                node_type = "winlink" if conn_type == "winlink_telnet" else "bpq"
 
                 self.dismiss(Node(
                     label=label,
                     callsign=callsign,
                     ssid=ssid,
-                    node_type="bpq",
+                    node_type=node_type,
                     is_default=is_default,
                     interface_id=interface_id,
                     id=self._node.id if self._node else None,
                     hop_path=hop_path,
                     path_strategy=path_strategy,
                     auto_forward=auto_forward,
+                    has_bbs=has_bbs,
+                    has_winlink=has_winlink,
+                    has_files=has_files,
                 ))
 
     def on_key(self, event) -> None:

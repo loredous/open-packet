@@ -26,6 +26,10 @@ An **operator** represents your amateur radio identity — your callsign and SSI
 4. Enter your callsign, SSID, and a label
 5. Save
 
+### Winlink Password
+
+The operator form has an optional **Winlink Password** field. It is used to authenticate to Winlink CMS gateways during a B2F session (secure login challenge). Leave it blank if your account has no password or you only use BBS messaging. The password is stored in the local SQLite database.
+
 ### Setting the Default Operator
 
 Select an operator and choose **Set as Default**. The default operator's callsign is shown in the status bar and used for all outgoing messages unless overridden.
@@ -43,9 +47,12 @@ A **node** is a BBS or packet node you connect to for messaging. Each node is as
    - **Label** — a friendly name for this node
    - **Callsign** — the node's callsign (e.g. `W1AW-10`)
    - **SSID** — the node's SSID
-   - **Type** — `bpq` for BPQ32 nodes
+   - **Type** — `bpq` for BPQ32 nodes (set automatically to `winlink` for Winlink Telnet interfaces)
    - **Interface** — which interface (TNC connection) to use
+   - **Node Features** — switches for **BBS** (messages and bulletins), **Winlink** (B2F messages) and **Files**. BBS and Files are on by default; Winlink is off by default.
 5. Save
+
+When you check mail, each enabled feature is synced in turn: the BBS session first, then a Winlink B2F session if **Winlink** is enabled.
 
 ### Node Path Settings
 
@@ -65,6 +72,7 @@ An **interface** defines how open-packet connects to your TNC. This maps to the 
 | `kiss_tcp` | KISS TNC over TCP (e.g. Direwolf on localhost) |
 | `kiss_serial` | KISS TNC over serial port |
 | `telnet` | Telnet connection to a node |
+| `winlink_telnet` | Direct Telnet connection to a Winlink CMS server (default port 8772, e.g. `cms.winlink.org`) |
 
 ### Adding an Interface
 

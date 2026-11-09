@@ -44,6 +44,12 @@ Provides raw byte I/O over TCP (`tcp.py`) or serial (`serial.py`). Each transpor
 
 `connect_node()` handles the BBS handshake: sends `BBS\r`, waits for a prompt, and responds to name prompts with the operator callsign.
 
+### Winlink (`node/winlink.py`, `winlink/`, `link/winlink_telnet.py`)
+
+`WinlinkNode` implements `NodeBase` on top of a `ConnectionBase` and speaks the Winlink B2F protocol (framing, compression and secure login live in `winlink/b2f.py`; message encoding in `winlink/message.py`). `link/winlink_telnet.py` provides a direct TCP link to a CMS server for the `winlink_telnet` interface type.
+
+`Engine._do_check_mail()` runs a BBS session if `Node.has_bbs` and then a Winlink session (`_do_winlink_sync()`) if `Node.has_winlink`. Both use `_run_sync_phases(node, node_id, message_type)`; `message_type` (`"bbs"` or `"winlink"`) selects which queued outbox messages are sent, and bulletins are only posted in BBS sessions.
+
 ## Engine (`engine/`)
 
 The `Engine` runs in a background daemon thread. It owns the node connection and orchestrates sync operations.
@@ -102,6 +108,10 @@ The Engine thread and the TUI thread share one `Database`/`Store` (one sqlite3 c
 ### Schema Migrations
 
 Migrations use `ALTER TABLE ... ADD COLUMN` in `Database.initialize()` with `except sqlite3.OperationalError: pass`. Always use `self._conn.execute()` for migrations — never `executescript()` (which issues an implicit COMMIT).
+
+### Winlink Columns
+
+`operators.winlink_password`, `nodes.has_bbs/has_winlink/has_files` and `messages.message_type` (`'bbs'` or `'winlink'`) were added by migration. `Store.list_outbox_messages()` accepts an optional `message_type` filter alongside `node_id`.
 
 ### Message State Matrix
 
